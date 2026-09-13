@@ -12,6 +12,8 @@ class SchoolPreset {
     required this.bell,
     required this.defaultFirstWeekMonday,
     required this.defaultTotalWeeks,
+    this.defaultLoginUrl = '',
+    this.cleartextHosts = const [],
   });
 
   final String id;
@@ -19,6 +21,13 @@ class SchoolPreset {
   final BellSchedule bell;
   final DateTime defaultFirstWeekMonday;
   final int defaultTotalWeeks;
+
+  /// 教务登录地址（预填用；可为空）。
+  final String defaultLoginUrl;
+
+  /// 允许明文 HTTP 的教务域名（仅内置档案里确认过的站点；
+  /// Android network_security_config 与 iOS ATS 必须同步放行）。
+  final List<String> cleartextHosts;
 }
 
 final ncpuPreset = SchoolPreset(
@@ -27,6 +36,8 @@ final ncpuPreset = SchoolPreset(
   bell: _ncpuBell,
   defaultFirstWeekMonday: DateTime(2026, 8, 31),
   defaultTotalWeeks: 20,
+  defaultLoginUrl: 'http://jwxt.ncpu.edu.cn',
+  cleartextHosts: ['jwxt.ncpu.edu.cn'],
 );
 
 /// 南昌工学院 2026-2027 学年校历作息（10 节；晚上最多两节）。

@@ -41,6 +41,9 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
         if (_nameController.text == presetById('ncpu')?.displayName) {
           _nameController.clear();
         }
+        if (_urlController.text == presetById('ncpu')?.defaultLoginUrl) {
+          _urlController.clear();
+        }
         _firstWeekMonday = _defaultMonday();
         _totalWeeks = 20;
         return;
@@ -48,6 +51,10 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       if (_nameController.text.isEmpty ||
           _nameController.text == presetById('ncpu')?.displayName) {
         _nameController.text = preset.displayName;
+      }
+      if (_urlController.text.isEmpty ||
+          _urlController.text == presetById('ncpu')?.defaultLoginUrl) {
+        _urlController.text = preset.defaultLoginUrl;
       }
       _firstWeekMonday = preset.defaultFirstWeekMonday;
       _totalWeeks = preset.defaultTotalWeeks;
@@ -283,9 +290,22 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     final urlText = _urlController.text.trim();
     if (urlText.isNotEmpty) {
       final uri = Uri.tryParse(urlText);
-      if (uri == null || uri.scheme != 'https' || uri.host.isEmpty) {
+      final preset = presetById(_presetId);
+      final httpAllowed =
+          preset != null && preset.cleartextHosts.contains(uri?.host);
+      final schemeOk = uri != null &&
+          uri.host.isNotEmpty &&
+          (uri.scheme == 'https' || (uri.scheme == 'http' && httpAllowed));
+      if (uri == null || !schemeOk) {
         messenger.showSnackBar(
-          const SnackBar(content: Text('教务网址需要是合法的 HTTPS 地址，或留空')),
+          SnackBar(
+            content: Text(
+              uri == null || (uri.scheme != 'https' && uri.scheme != 'http')
+                  ? '教务网址格式不正确，或留空'
+                  : '该教务站点为明文 HTTP，只有内置档案登记过的域名可用'
+                  '（当前构建仅南工）',
+            ),
+          ),
         );
         return;
       }

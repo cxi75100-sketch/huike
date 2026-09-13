@@ -54,7 +54,14 @@ class _ImportWebPageState extends ConsumerState<ImportWebPage> {
     _cleaner = ImportSessionCleaner(
       () => ref.read(importSessionProvider.notifier).reset(),
     );
-    _policy = NavigationPolicy(allowedHosts: [widget.host]);
+    // 用户在入口页确认过的地址决定 scheme：明文白名单域名为 http，
+    // 其余一律 https。
+    final uri = Uri.tryParse(widget.initialUrl);
+    final schemes = (uri?.scheme == 'http') ? ['http'] : ['https'];
+    _policy = NavigationPolicy(
+      allowedHosts: [widget.host],
+      allowedSchemes: schemes,
+    );
   }
 
   @override

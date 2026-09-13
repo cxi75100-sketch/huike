@@ -72,4 +72,12 @@ void main() {
   test('未知预设返回 null（走通用兜底）', () {
     expect(presetById('nope'), isNull);
   });
+
+  test('南工教务为明文 HTTP，域名在白名单内', () {
+    expect(preset!.defaultLoginUrl, 'http://jwxt.ncpu.edu.cn');
+    expect(preset!.cleartextHosts, ['jwxt.ncpu.edu.cn']);
+    final uri = Uri.parse(preset!.defaultLoginUrl);
+    expect(preset!.cleartextHosts.contains(uri.host), isTrue);
+    expect(uri.scheme, 'http');
+  });
 }

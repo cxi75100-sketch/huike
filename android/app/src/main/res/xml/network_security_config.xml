@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 明文 HTTP 仅放行内置学校档案里确认过的高校教务域名（目前只有南工）；
+     其余站点一律拒绝明文，HTTPS 不受影响。新加 HTTP 教务必须在
+     school_presets.dart 的 cleartextHosts 里登记并同步此处。 -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">jwxt.ncpu.edu.cn</domain>
+    </domain-config>
+</network-security-config>

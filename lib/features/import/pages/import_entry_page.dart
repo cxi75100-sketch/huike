@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../schools/providers/school_providers.dart';
+import '../../schools/services/school_presets.dart';
 import '../../schools/services/school_repository.dart';
 import '../widgets/import_widgets.dart';
 
@@ -119,9 +120,17 @@ class _ImportEntryPageState extends ConsumerState<ImportEntryPage> {
       messenger.showSnackBar(const SnackBar(content: Text('网址格式不正确')));
       return;
     }
-    if (uri.scheme != 'https') {
+    final preset = presetById(
+      ref.read(activeSchoolProvider)?.presetId ?? '',
+    );
+    final httpAllowed =
+        preset != null && preset.cleartextHosts.contains(uri.host);
+    if (uri.scheme != 'https' && !httpAllowed) {
       messenger.showSnackBar(
-        const SnackBar(content: Text('当前构建只支持 HTTPS 教务地址')),
+        const SnackBar(
+          content: Text('明文 HTTP 教务仅对内置档案登记过的域名开放'
+              '（当前构建仅南工）；其余站点请使用 HTTPS'),
+        ),
       );
       return;
     }
@@ -132,7 +141,9 @@ class _ImportEntryPageState extends ConsumerState<ImportEntryPage> {
         title: const Text('进入教务登录页'),
         content: Text(
           '即将打开 ${uri.host}。账号与密码只在该学校的官方页面输入，'
-          '本应用不接触登录凭据；导入结果会先预览、经确认后才写入。',
+          '本应用不接触登录凭据；导入结果会先预览、经确认后才写入。'
+          '${uri.scheme == 'http' ? '\n\n注意：该站点为明文 HTTP，'
+              '请确认地址属于你学校。' : ''}',
         ),
         actions: [
           TextButton(
