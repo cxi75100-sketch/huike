@@ -40,6 +40,18 @@ class $SchoolsTable extends Schools with TableInfo<$SchoolsTable, School> {
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _presetIdMeta = const VerificationMeta(
+    'presetId',
+  );
+  @override
+  late final GeneratedColumn<String> presetId = GeneratedColumn<String>(
+    'preset_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   static const VerificationMeta _loginUrlMeta = const VerificationMeta(
     'loginUrl',
   );
@@ -65,6 +77,18 @@ class $SchoolsTable extends Schools with TableInfo<$SchoolsTable, School> {
         requiredDuringInsert: false,
         defaultValue: const Constant('[]'),
       );
+  static const VerificationMeta _scheduleVariantsJsonMeta =
+      const VerificationMeta('scheduleVariantsJson');
+  @override
+  late final GeneratedColumn<String> scheduleVariantsJson =
+      GeneratedColumn<String>(
+        'schedule_variants_json',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('[]'),
+      );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -81,8 +105,10 @@ class $SchoolsTable extends Schools with TableInfo<$SchoolsTable, School> {
     id,
     displayName,
     adapterId,
+    presetId,
     loginUrl,
     acceptedHostsJson,
+    scheduleVariantsJson,
     createdAt,
   ];
   @override
@@ -119,6 +145,12 @@ class $SchoolsTable extends Schools with TableInfo<$SchoolsTable, School> {
         adapterId.isAcceptableOrUnknown(data['adapter_id']!, _adapterIdMeta),
       );
     }
+    if (data.containsKey('preset_id')) {
+      context.handle(
+        _presetIdMeta,
+        presetId.isAcceptableOrUnknown(data['preset_id']!, _presetIdMeta),
+      );
+    }
     if (data.containsKey('login_url')) {
       context.handle(
         _loginUrlMeta,
@@ -131,6 +163,15 @@ class $SchoolsTable extends Schools with TableInfo<$SchoolsTable, School> {
         acceptedHostsJson.isAcceptableOrUnknown(
           data['accepted_hosts_json']!,
           _acceptedHostsJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('schedule_variants_json')) {
+      context.handle(
+        _scheduleVariantsJsonMeta,
+        scheduleVariantsJson.isAcceptableOrUnknown(
+          data['schedule_variants_json']!,
+          _scheduleVariantsJsonMeta,
         ),
       );
     }
@@ -163,6 +204,10 @@ class $SchoolsTable extends Schools with TableInfo<$SchoolsTable, School> {
         DriftSqlType.string,
         data['${effectivePrefix}adapter_id'],
       )!,
+      presetId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}preset_id'],
+      )!,
       loginUrl: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}login_url'],
@@ -170,6 +215,10 @@ class $SchoolsTable extends Schools with TableInfo<$SchoolsTable, School> {
       acceptedHostsJson: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}accepted_hosts_json'],
+      )!,
+      scheduleVariantsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}schedule_variants_json'],
       )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
@@ -188,15 +237,23 @@ class School extends DataClass implements Insertable<School> {
   final String id;
   final String displayName;
   final String adapterId;
+
+  /// 内置学校档案 id（如南工）；空串表示走通用兜底作息。
+  final String presetId;
   final String loginUrl;
   final String acceptedHostsJson;
+
+  /// 按教室匹配的作息变体（ScheduleVariant 列表 JSON）。
+  final String scheduleVariantsJson;
   final DateTime createdAt;
   const School({
     required this.id,
     required this.displayName,
     required this.adapterId,
+    required this.presetId,
     required this.loginUrl,
     required this.acceptedHostsJson,
+    required this.scheduleVariantsJson,
     required this.createdAt,
   });
   @override
@@ -205,8 +262,10 @@ class School extends DataClass implements Insertable<School> {
     map['id'] = Variable<String>(id);
     map['display_name'] = Variable<String>(displayName);
     map['adapter_id'] = Variable<String>(adapterId);
+    map['preset_id'] = Variable<String>(presetId);
     map['login_url'] = Variable<String>(loginUrl);
     map['accepted_hosts_json'] = Variable<String>(acceptedHostsJson);
+    map['schedule_variants_json'] = Variable<String>(scheduleVariantsJson);
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -216,8 +275,10 @@ class School extends DataClass implements Insertable<School> {
       id: Value(id),
       displayName: Value(displayName),
       adapterId: Value(adapterId),
+      presetId: Value(presetId),
       loginUrl: Value(loginUrl),
       acceptedHostsJson: Value(acceptedHostsJson),
+      scheduleVariantsJson: Value(scheduleVariantsJson),
       createdAt: Value(createdAt),
     );
   }
@@ -231,8 +292,12 @@ class School extends DataClass implements Insertable<School> {
       id: serializer.fromJson<String>(json['id']),
       displayName: serializer.fromJson<String>(json['displayName']),
       adapterId: serializer.fromJson<String>(json['adapterId']),
+      presetId: serializer.fromJson<String>(json['presetId']),
       loginUrl: serializer.fromJson<String>(json['loginUrl']),
       acceptedHostsJson: serializer.fromJson<String>(json['acceptedHostsJson']),
+      scheduleVariantsJson: serializer.fromJson<String>(
+        json['scheduleVariantsJson'],
+      ),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -243,8 +308,10 @@ class School extends DataClass implements Insertable<School> {
       'id': serializer.toJson<String>(id),
       'displayName': serializer.toJson<String>(displayName),
       'adapterId': serializer.toJson<String>(adapterId),
+      'presetId': serializer.toJson<String>(presetId),
       'loginUrl': serializer.toJson<String>(loginUrl),
       'acceptedHostsJson': serializer.toJson<String>(acceptedHostsJson),
+      'scheduleVariantsJson': serializer.toJson<String>(scheduleVariantsJson),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -253,15 +320,19 @@ class School extends DataClass implements Insertable<School> {
     String? id,
     String? displayName,
     String? adapterId,
+    String? presetId,
     String? loginUrl,
     String? acceptedHostsJson,
+    String? scheduleVariantsJson,
     DateTime? createdAt,
   }) => School(
     id: id ?? this.id,
     displayName: displayName ?? this.displayName,
     adapterId: adapterId ?? this.adapterId,
+    presetId: presetId ?? this.presetId,
     loginUrl: loginUrl ?? this.loginUrl,
     acceptedHostsJson: acceptedHostsJson ?? this.acceptedHostsJson,
+    scheduleVariantsJson: scheduleVariantsJson ?? this.scheduleVariantsJson,
     createdAt: createdAt ?? this.createdAt,
   );
   School copyWithCompanion(SchoolsCompanion data) {
@@ -271,10 +342,14 @@ class School extends DataClass implements Insertable<School> {
           ? data.displayName.value
           : this.displayName,
       adapterId: data.adapterId.present ? data.adapterId.value : this.adapterId,
+      presetId: data.presetId.present ? data.presetId.value : this.presetId,
       loginUrl: data.loginUrl.present ? data.loginUrl.value : this.loginUrl,
       acceptedHostsJson: data.acceptedHostsJson.present
           ? data.acceptedHostsJson.value
           : this.acceptedHostsJson,
+      scheduleVariantsJson: data.scheduleVariantsJson.present
+          ? data.scheduleVariantsJson.value
+          : this.scheduleVariantsJson,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -285,8 +360,10 @@ class School extends DataClass implements Insertable<School> {
           ..write('id: $id, ')
           ..write('displayName: $displayName, ')
           ..write('adapterId: $adapterId, ')
+          ..write('presetId: $presetId, ')
           ..write('loginUrl: $loginUrl, ')
           ..write('acceptedHostsJson: $acceptedHostsJson, ')
+          ..write('scheduleVariantsJson: $scheduleVariantsJson, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -297,8 +374,10 @@ class School extends DataClass implements Insertable<School> {
     id,
     displayName,
     adapterId,
+    presetId,
     loginUrl,
     acceptedHostsJson,
+    scheduleVariantsJson,
     createdAt,
   );
   @override
@@ -308,8 +387,10 @@ class School extends DataClass implements Insertable<School> {
           other.id == this.id &&
           other.displayName == this.displayName &&
           other.adapterId == this.adapterId &&
+          other.presetId == this.presetId &&
           other.loginUrl == this.loginUrl &&
           other.acceptedHostsJson == this.acceptedHostsJson &&
+          other.scheduleVariantsJson == this.scheduleVariantsJson &&
           other.createdAt == this.createdAt);
 }
 
@@ -317,16 +398,20 @@ class SchoolsCompanion extends UpdateCompanion<School> {
   final Value<String> id;
   final Value<String> displayName;
   final Value<String> adapterId;
+  final Value<String> presetId;
   final Value<String> loginUrl;
   final Value<String> acceptedHostsJson;
+  final Value<String> scheduleVariantsJson;
   final Value<DateTime> createdAt;
   final Value<int> rowid;
   const SchoolsCompanion({
     this.id = const Value.absent(),
     this.displayName = const Value.absent(),
     this.adapterId = const Value.absent(),
+    this.presetId = const Value.absent(),
     this.loginUrl = const Value.absent(),
     this.acceptedHostsJson = const Value.absent(),
+    this.scheduleVariantsJson = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -334,8 +419,10 @@ class SchoolsCompanion extends UpdateCompanion<School> {
     required String id,
     required String displayName,
     this.adapterId = const Value.absent(),
+    this.presetId = const Value.absent(),
     this.loginUrl = const Value.absent(),
     this.acceptedHostsJson = const Value.absent(),
+    this.scheduleVariantsJson = const Value.absent(),
     required DateTime createdAt,
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -345,8 +432,10 @@ class SchoolsCompanion extends UpdateCompanion<School> {
     Expression<String>? id,
     Expression<String>? displayName,
     Expression<String>? adapterId,
+    Expression<String>? presetId,
     Expression<String>? loginUrl,
     Expression<String>? acceptedHostsJson,
+    Expression<String>? scheduleVariantsJson,
     Expression<DateTime>? createdAt,
     Expression<int>? rowid,
   }) {
@@ -354,8 +443,11 @@ class SchoolsCompanion extends UpdateCompanion<School> {
       if (id != null) 'id': id,
       if (displayName != null) 'display_name': displayName,
       if (adapterId != null) 'adapter_id': adapterId,
+      if (presetId != null) 'preset_id': presetId,
       if (loginUrl != null) 'login_url': loginUrl,
       if (acceptedHostsJson != null) 'accepted_hosts_json': acceptedHostsJson,
+      if (scheduleVariantsJson != null)
+        'schedule_variants_json': scheduleVariantsJson,
       if (createdAt != null) 'created_at': createdAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -365,8 +457,10 @@ class SchoolsCompanion extends UpdateCompanion<School> {
     Value<String>? id,
     Value<String>? displayName,
     Value<String>? adapterId,
+    Value<String>? presetId,
     Value<String>? loginUrl,
     Value<String>? acceptedHostsJson,
+    Value<String>? scheduleVariantsJson,
     Value<DateTime>? createdAt,
     Value<int>? rowid,
   }) {
@@ -374,8 +468,10 @@ class SchoolsCompanion extends UpdateCompanion<School> {
       id: id ?? this.id,
       displayName: displayName ?? this.displayName,
       adapterId: adapterId ?? this.adapterId,
+      presetId: presetId ?? this.presetId,
       loginUrl: loginUrl ?? this.loginUrl,
       acceptedHostsJson: acceptedHostsJson ?? this.acceptedHostsJson,
+      scheduleVariantsJson: scheduleVariantsJson ?? this.scheduleVariantsJson,
       createdAt: createdAt ?? this.createdAt,
       rowid: rowid ?? this.rowid,
     );
@@ -393,11 +489,19 @@ class SchoolsCompanion extends UpdateCompanion<School> {
     if (adapterId.present) {
       map['adapter_id'] = Variable<String>(adapterId.value);
     }
+    if (presetId.present) {
+      map['preset_id'] = Variable<String>(presetId.value);
+    }
     if (loginUrl.present) {
       map['login_url'] = Variable<String>(loginUrl.value);
     }
     if (acceptedHostsJson.present) {
       map['accepted_hosts_json'] = Variable<String>(acceptedHostsJson.value);
+    }
+    if (scheduleVariantsJson.present) {
+      map['schedule_variants_json'] = Variable<String>(
+        scheduleVariantsJson.value,
+      );
     }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
@@ -414,8 +518,10 @@ class SchoolsCompanion extends UpdateCompanion<School> {
           ..write('id: $id, ')
           ..write('displayName: $displayName, ')
           ..write('adapterId: $adapterId, ')
+          ..write('presetId: $presetId, ')
           ..write('loginUrl: $loginUrl, ')
           ..write('acceptedHostsJson: $acceptedHostsJson, ')
+          ..write('scheduleVariantsJson: $scheduleVariantsJson, ')
           ..write('createdAt: $createdAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -2210,8 +2316,10 @@ typedef $$SchoolsTableCreateCompanionBuilder = SchoolsCompanion Function({
   required String id,
   required String displayName,
   Value<String> adapterId,
+  Value<String> presetId,
   Value<String> loginUrl,
   Value<String> acceptedHostsJson,
+  Value<String> scheduleVariantsJson,
   required DateTime createdAt,
   Value<int> rowid,
 });
@@ -2219,8 +2327,10 @@ typedef $$SchoolsTableUpdateCompanionBuilder = SchoolsCompanion Function({
   Value<String> id,
   Value<String> displayName,
   Value<String> adapterId,
+  Value<String> presetId,
   Value<String> loginUrl,
   Value<String> acceptedHostsJson,
+  Value<String> scheduleVariantsJson,
   Value<DateTime> createdAt,
   Value<int> rowid,
 });
@@ -2249,6 +2359,11 @@ class $$SchoolsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get presetId => $composableBuilder(
+    column: $table.presetId,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get loginUrl => $composableBuilder(
     column: $table.loginUrl,
     builder: (column) => ColumnFilters(column),
@@ -2256,6 +2371,11 @@ class $$SchoolsTableFilterComposer
 
   ColumnFilters<String> get acceptedHostsJson => $composableBuilder(
     column: $table.acceptedHostsJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get scheduleVariantsJson => $composableBuilder(
+    column: $table.scheduleVariantsJson,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2289,6 +2409,11 @@ class $$SchoolsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get presetId => $composableBuilder(
+    column: $table.presetId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get loginUrl => $composableBuilder(
     column: $table.loginUrl,
     builder: (column) => ColumnOrderings(column),
@@ -2296,6 +2421,11 @@ class $$SchoolsTableOrderingComposer
 
   ColumnOrderings<String> get acceptedHostsJson => $composableBuilder(
     column: $table.acceptedHostsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get scheduleVariantsJson => $composableBuilder(
+    column: $table.scheduleVariantsJson,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -2325,11 +2455,19 @@ class $$SchoolsTableAnnotationComposer
   GeneratedColumn<String> get adapterId =>
       $composableBuilder(column: $table.adapterId, builder: (column) => column);
 
+  GeneratedColumn<String> get presetId =>
+      $composableBuilder(column: $table.presetId, builder: (column) => column);
+
   GeneratedColumn<String> get loginUrl =>
       $composableBuilder(column: $table.loginUrl, builder: (column) => column);
 
   GeneratedColumn<String> get acceptedHostsJson => $composableBuilder(
     column: $table.acceptedHostsJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get scheduleVariantsJson => $composableBuilder(
+    column: $table.scheduleVariantsJson,
     builder: (column) => column,
   );
 
@@ -2368,16 +2506,20 @@ class $$SchoolsTableTableManager
                 Value<String> id = const Value.absent(),
                 Value<String> displayName = const Value.absent(),
                 Value<String> adapterId = const Value.absent(),
+                Value<String> presetId = const Value.absent(),
                 Value<String> loginUrl = const Value.absent(),
                 Value<String> acceptedHostsJson = const Value.absent(),
+                Value<String> scheduleVariantsJson = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SchoolsCompanion(
                 id: id,
                 displayName: displayName,
                 adapterId: adapterId,
+                presetId: presetId,
                 loginUrl: loginUrl,
                 acceptedHostsJson: acceptedHostsJson,
+                scheduleVariantsJson: scheduleVariantsJson,
                 createdAt: createdAt,
                 rowid: rowid,
               ),
@@ -2386,16 +2528,20 @@ class $$SchoolsTableTableManager
                 required String id,
                 required String displayName,
                 Value<String> adapterId = const Value.absent(),
+                Value<String> presetId = const Value.absent(),
                 Value<String> loginUrl = const Value.absent(),
                 Value<String> acceptedHostsJson = const Value.absent(),
+                Value<String> scheduleVariantsJson = const Value.absent(),
                 required DateTime createdAt,
                 Value<int> rowid = const Value.absent(),
               }) => SchoolsCompanion.insert(
                 id: id,
                 displayName: displayName,
                 adapterId: adapterId,
+                presetId: presetId,
                 loginUrl: loginUrl,
                 acceptedHostsJson: acceptedHostsJson,
+                scheduleVariantsJson: scheduleVariantsJson,
                 createdAt: createdAt,
                 rowid: rowid,
               ),

@@ -5,9 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_provider.dart';
+import '../../../models/bell_schedule.dart';
 import '../../../models/school_profile.dart';
 import '../../../models/semester.dart';
-import '../../../models/bell_schedule.dart';
+import 'school_presets.dart';
 
 /// 学校与学期的写路径。所有播种都只在缺失时发生，
 /// 不存在“用内置值覆盖用户修改”的路径。
@@ -21,8 +22,11 @@ class SchoolRepository {
     required String adapterId,
     required String loginUrl,
     required List<String> confirmedHosts,
+    String presetId = '',
   }) async {
     final id = 'school-${DateTime.now().microsecondsSinceEpoch}';
+    final preset = presetById(presetId);
+    final variants = preset?.bell.variants ?? const <ScheduleVariant>[];
     await _db
         .into(_db.schools)
         .insert(
@@ -30,18 +34,25 @@ class SchoolRepository {
             id: id,
             displayName: displayName,
             adapterId: Value(adapterId),
+            presetId: Value(preset?.id ?? ''),
             loginUrl: Value(loginUrl),
             acceptedHostsJson: Value(jsonEncode(confirmedHosts)),
+            scheduleVariantsJson: Value(jsonEncode(
+              [for (final v in variants) v.toJson()],
+            )),
             createdAt: DateTime.now(),
           ),
         );
-    await _seedSectionTimes(id, BellSchedule.fallback());
+    // 有内置档案的学校直接播种官方作息；否则通用兜底。只播种一次。
+    await _seedSectionTimes(id, preset?.bell ?? BellSchedule.fallback());
     return SchoolProfile(
       id: id,
       displayName: displayName,
       adapterId: adapterId,
+      presetId: preset?.id ?? '',
       loginUrl: loginUrl,
       acceptedHosts: confirmedHosts,
+      scheduleVariants: variants,
       createdAt: DateTime.now(),
     );
   }
@@ -144,12 +155,18 @@ class SchoolRepository {
         .write(SectionTimeEntriesCompanion(start: Value(start), end: Value(end)));
   }
 
-  /// 把作息恢复为通用兜底；这是用户显式操作，不是启动行为。
+  /// 把作息恢复为该校的默认值（内置档案学校回到官方作息，其他走通用兜底）；
+  /// 这是用户显式操作，不是启动行为。
   Future<void> resetSectionTimes(String schoolId) async {
+    final row =
+        await (_db.select(
+          _db.schools,
+        )..where((t) => t.id.equals(schoolId))).getSingleOrNull();
+    final preset = presetById(row?.presetId ?? '');
     await (_db.delete(
       _db.sectionTimeEntries,
     )..where((t) => t.schoolId.equals(schoolId))).go();
-    await _seedSectionTimes(schoolId, BellSchedule.fallback());
+    await _seedSectionTimes(schoolId, preset?.bell ?? BellSchedule.fallback());
   }
 
   Future<void> _seedSectionTimes(String schoolId, BellSchedule schedule) async {

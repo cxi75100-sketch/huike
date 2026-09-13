@@ -58,7 +58,7 @@ final courseByIdProvider = StreamProvider.autoDispose
 final bellForActiveSchoolProvider = Provider.autoDispose<BellSchedule?>((ref) {
   final school = ref.watch(activeSchoolProvider);
   if (school == null) return null;
-  return ref.watch(sectionTimesProvider(school.id)).value;
+  return ref.watch(schoolBellProvider(school.id));
 });
 
 final activeSemesterRefProvider = Provider.autoDispose<Semester?>((ref) {

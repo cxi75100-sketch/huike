@@ -1,6 +1,7 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:huike_timetable/core/database/app_database.dart';
+import 'package:huike_timetable/models/bell_schedule.dart';
 import 'package:huike_timetable/features/import/models/adapter_batch.dart';
 import 'package:huike_timetable/features/import/services/course_repository.dart';
 import 'package:huike_timetable/features/schools/services/school_repository.dart';
@@ -148,12 +149,36 @@ void main() {
   });
 
   group('作息播种', () {
-    test('创建学校播种一次通用作息', () async {
+    test('创建学校播种一次通用作息（10 节）', () async {
       final rows = await (db.select(db.sectionTimeEntries)
             ..where((t) => t.schoolId.equals(schoolId)))
           .get();
-      expect(rows, hasLength(12));
+      expect(rows, hasLength(10));
       expect(rows.first.start, '08:00');
+    });
+
+    test('南工预设播种官方作息与变体', () async {
+      final ncpu = await schools.createSchool(
+        displayName: '南昌工学院',
+        adapterId: '',
+        loginUrl: '',
+        confirmedHosts: const [],
+        presetId: 'ncpu',
+      );
+      final rows = await (db.select(db.sectionTimeEntries)
+            ..where((t) => t.schoolId.equals(ncpu.id)))
+          .get();
+      expect(rows, hasLength(10));
+      expect(rows.singleWhere((r) => r.sectionIndex == 1).start, '08:20');
+      expect(rows.singleWhere((r) => r.sectionIndex == 3).start, '10:25');
+      expect(rows.singleWhere((r) => r.sectionIndex == 10).end, '20:30');
+      final schoolRow = await (db.select(db.schools)
+            ..where((t) => t.id.equals(ncpu.id)))
+          .getSingle();
+      expect(schoolRow.presetId, 'ncpu');
+      final variants = schoolVariantsFromRow(schoolRow);
+      expect(variants, hasLength(1));
+      expect(variants.single.matchesClassroom('明志楼301'), isTrue);
     });
 
     test('resetSectionTimes 是唯一的重置路径且可重复', () async {

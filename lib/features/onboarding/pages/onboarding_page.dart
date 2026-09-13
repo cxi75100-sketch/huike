@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../schools/services/school_presets.dart';
 import '../../schools/services/school_repository.dart';
 import '../../import/widgets/import_widgets.dart';
 
@@ -27,7 +28,31 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   final _urlController = TextEditingController();
   DateTime _firstWeekMonday = _defaultMonday();
   int _totalWeeks = 20;
+  String _presetId = '';
   bool _creating = false;
+
+  /// 选择内置学校档案：名称、开学周一与总周数按档案预填（均可再改）。
+  /// 目前只有南昌工学院；其他学校一律通用作息。
+  void _selectPreset(String presetId) {
+    setState(() {
+      _presetId = presetId;
+      final preset = presetById(presetId);
+      if (preset == null) {
+        if (_nameController.text == presetById('ncpu')?.displayName) {
+          _nameController.clear();
+        }
+        _firstWeekMonday = _defaultMonday();
+        _totalWeeks = 20;
+        return;
+      }
+      if (_nameController.text.isEmpty ||
+          _nameController.text == presetById('ncpu')?.displayName) {
+        _nameController.text = preset.displayName;
+      }
+      _firstWeekMonday = preset.defaultFirstWeekMonday;
+      _totalWeeks = preset.defaultTotalWeeks;
+    });
+  }
 
   static DateTime _defaultMonday() {
     final now = DateTime.now();
@@ -65,6 +90,56 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             ),
             const SizedBox(height: 20),
           ],
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final preset in [ncpuPreset])
+                ChoiceChip(
+                  label: Text(preset.displayName),
+                  selected: _presetId == preset.id,
+                  onSelected: (_) => _selectPreset(preset.id),
+                  selectedColor: palette.accentSoft,
+                  labelStyle: TextStyle(
+                    color: _presetId == preset.id
+                        ? palette.accent
+                        : palette.inkSecondary,
+                    fontWeight:
+                        _presetId == preset.id ? FontWeight.w600 : FontWeight.w400,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(4),
+                    side: BorderSide(
+                      color: _presetId == preset.id
+                          ? palette.accent
+                          : palette.hairlineStrong,
+                    ),
+                  ),
+                  showCheckmark: false,
+                ),
+              ChoiceChip(
+                label: const Text('其他学校'),
+                selected: _presetId.isEmpty,
+                onSelected: (_) => _selectPreset(''),
+                selectedColor: palette.accentSoft,
+                labelStyle: TextStyle(
+                  color: _presetId.isEmpty ? palette.accent : palette.inkSecondary,
+                  fontWeight:
+                      _presetId.isEmpty ? FontWeight.w600 : FontWeight.w400,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(4),
+                  side: BorderSide(
+                    color: _presetId.isEmpty
+                        ? palette.accent
+                        : palette.hairlineStrong,
+                  ),
+                ),
+                showCheckmark: false,
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
           TextField(
             controller: _nameController,
             decoration: const InputDecoration(
@@ -226,6 +301,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
         adapterId: loginUrl.isEmpty ? '' : 'auto',
         loginUrl: loginUrl,
         confirmedHosts: hosts,
+        presetId: _presetId,
       );
       await repository.createSemester(
         schoolId: school.id,

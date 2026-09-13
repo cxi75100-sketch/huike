@@ -27,7 +27,10 @@
   界面为「新历书」设计语言；整周视图为横向翻页周历，当前周今天优先循环排列，
   打开整周第一列必是今天。应用图标为朱砂印章 + 行楷「汇」+ 内框
   （用户两轮否定日历卡片方案后定稿，候选存 assets/icon/candidates/）。
-  验收：`flutter analyze` 无问题、`flutter test` 65/65、Debug APK 构建成功、
-  `ncpu_api36` 模拟器冒烟（含 example.com 探测循环端到端）全程无致命异常。
-  `UNVERIFIED`：真实教务导入、iOS 构建。证据见 knowledge/current_state.md。
+  用户反馈迭代（同日完成）：引导页不要求选教务系统类型（导入自动逐个探测）；
+  课表改节次槽位网格（课程卡占位、信息完整、上下午分段、晚上最多两节）；
+  内置「南昌工学院」档案（校历 10 节作息 + 明志/明德/至善楼第 3、4 节变体 +
+  开学周一预填，schema v2）。验收：`flutter analyze` 无问题、`flutter test`
+  75/75、Debug APK 构建成功、`ncpu_api36` 模拟器冒烟（含 example.com 探测
+  循环端到端）全程无致命异常。`UNVERIFIED`：真实教务导入、iOS 构建。证据见 knowledge/current_state.md。
 - [x] TASK-000 建立独立仓库、AGENTS.md 与知识库（2026-09-13）。

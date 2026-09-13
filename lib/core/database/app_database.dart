@@ -18,8 +18,14 @@ class Schools extends Table {
   TextColumn get id => text()();
   TextColumn get displayName => text()();
   TextColumn get adapterId => text().withDefault(const Constant(''))();
+
+  /// 内置学校档案 id（如南工）；空串表示走通用兜底作息。
+  TextColumn get presetId => text().withDefault(const Constant(''))();
   TextColumn get loginUrl => text().withDefault(const Constant(''))();
   TextColumn get acceptedHostsJson => text().withDefault(const Constant('[]'))();
+
+  /// 按教室匹配的作息变体（ScheduleVariant 列表 JSON）。
+  TextColumn get scheduleVariantsJson => text().withDefault(const Constant('[]'))();
   DateTimeColumn get createdAt => dateTime()();
 
   @override
@@ -108,12 +114,20 @@ extension SchoolRowMapping on School {
     id: id,
     displayName: displayName,
     adapterId: adapterId,
+    presetId: presetId,
     loginUrl: loginUrl,
     acceptedHosts:
         (jsonDecode(acceptedHostsJson) as List<dynamic>).cast<String>(),
+    scheduleVariants: schoolVariantsFromRow(this),
     createdAt: createdAt,
   );
 }
+
+List<ScheduleVariant> schoolVariantsFromRow(School row) =>
+    (jsonDecode(row.scheduleVariantsJson) as List<dynamic>)
+        .cast<Map<String, dynamic>>()
+        .map(ScheduleVariant.fromJson)
+        .toList();
 
 extension SemesterRowMapping on SemesterRow {
   Semester toModel() => Semester(
@@ -154,7 +168,18 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onUpgrade: (migrator, from, to) async {
+      if (from < 2) {
+        // v2：学校档案新增内置预设 id 与作息变体列；老数据走通用兜底语义不变。
+        await migrator.addColumn(schools, schools.presetId);
+        await migrator.addColumn(schools, schools.scheduleVariantsJson);
+      }
+    },
+  );
 
   /// 多校设计下没有任何“应用默认学校/学期/作息”：
   /// 全新安装只保证设置表有主题偏好读取即可，其余全部由用户创建。

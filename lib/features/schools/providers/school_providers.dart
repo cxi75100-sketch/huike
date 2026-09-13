@@ -1,4 +1,5 @@
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' hide Column;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/database/app_database.dart';
@@ -80,3 +81,20 @@ final sectionTimesProvider = StreamProvider.family
         ..orderBy([(t) => OrderingTerm.asc(t.sectionIndex)]);
       return query.watch().map(bellScheduleFromRows);
     });
+
+/// 一所学校的完整作息：节次表 + 按教室匹配的作息变体。
+/// 需要解析课程显示时间的一律用这个，不要用 [sectionTimesProvider]。
+final schoolBellProvider = Provider.family.autoDispose<BellSchedule, String>((
+  ref,
+  schoolId,
+) {
+  final base = ref.watch(sectionTimesProvider(schoolId)).value;
+  if (base == null) return BellSchedule.fallback();
+  final schools = ref.watch(schoolsProvider).value ?? const [];
+  for (final school in schools) {
+    if (school.id == schoolId) {
+      return BellSchedule(sections: base.sections, variants: school.scheduleVariants);
+    }
+  }
+  return base;
+});

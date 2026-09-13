@@ -29,7 +29,7 @@ class SectionSlotBoard extends StatelessWidget {
 
   static const _gap = 3.0;
 
-  double get _slotHeight => compact ? 48 : 54;
+  double get _slotHeight => compact ? 64 : 58;
 
   @override
   Widget build(BuildContext context) {
@@ -172,45 +172,37 @@ class SectionSlotBoard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    course.name,
-                    maxLines: span >= 2 ? 2 : 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: isNarrow ? 12.5 : 14,
-                      height: 1.25,
-                      fontWeight: FontWeight.w600,
-                      color: tint.onChip,
-                    ),
-                  ),
-                ),
-                if (!isNarrow) ...[
-                  const SizedBox(width: 6),
-                  Text(
-                    range == null ? '' : range.$1,
-                    style: TextStyle(
-                      fontSize: 10.5,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                      color: tint.onChip.withValues(alpha: 0.75),
-                    ),
-                  ),
-                ],
-              ],
+            Text(
+              course.name,
+              maxLines: span >= 2 ? 2 : 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: isNarrow ? 12.5 : 14,
+                height: 1.25,
+                fontWeight: FontWeight.w600,
+                color: tint.onChip,
+              ),
             ),
             const Spacer(),
+            if (range != null)
+              Text(
+                '${range.$1}-${range.$2}',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                  color: tint.onChip.withValues(alpha: 0.72),
+                ),
+              ),
             Text(
               [
                 if (course.classroom.isNotEmpty) course.classroom,
-                if (!isNarrow && course.teacher.isNotEmpty) course.teacher,
+                if (course.teacher.isNotEmpty) course.teacher,
               ].join('  '),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 10.5,
-                color: tint.onChip.withValues(alpha: 0.78),
+                color: tint.onChip.withValues(alpha: 0.8),
               ),
             ),
           ],

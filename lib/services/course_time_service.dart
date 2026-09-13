@@ -1,7 +1,7 @@
-import '../models/bell_schedule.dart';
-import '../models/course.dart';
+import '../../models/bell_schedule.dart';
+import '../../models/course.dart';
 
-/// 课程显示时间解析：显式时间 > 学校作息表。
+/// 课程显示时间解析：显式时间 > 学校作息表（含按教室匹配的变体）。
 class CourseTimeService {
   const CourseTimeService();
 
@@ -13,7 +13,11 @@ class CourseTimeService {
     if (start != null && start.isNotEmpty && end != null && end.isNotEmpty) {
       return (start, end);
     }
-    return schedule.resolveRange(course.startSection, course.endSection);
+    return schedule.resolveRange(
+      course.startSection,
+      course.endSection,
+      classroom: course.classroom,
+    );
   }
 
   /// 「14:00 - 15:40」或「时间未定」。
