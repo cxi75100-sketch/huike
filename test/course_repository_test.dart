@@ -5,7 +5,6 @@ import 'package:huike_timetable/models/bell_schedule.dart';
 import 'package:huike_timetable/features/import/models/adapter_batch.dart';
 import 'package:huike_timetable/features/import/services/course_repository.dart';
 import 'package:huike_timetable/features/schools/services/school_repository.dart';
-import 'package:huike_timetable/models/bell_schedule.dart';
 import 'package:huike_timetable/models/course.dart';
 
 void main() {

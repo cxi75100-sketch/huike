@@ -13,6 +13,7 @@ import '../../schools/providers/school_providers.dart';
 import '../providers/timetable_providers.dart';
 import '../widgets/course_listing_row.dart';
 import '../widgets/section_slot_board.dart';
+import '../widgets/day_timeline.dart';
 
 /// 课表首页：今日历牌 / 整周周历两个栏目。
 class TimetablePage extends ConsumerStatefulWidget {
@@ -374,12 +375,7 @@ class _TodayList extends ConsumerWidget {
       children: [
         _NextCourseLine(courses: courses, bell: bell),
         Expanded(
-          child: SectionSlotBoard(
-            courses: courses,
-            schedule: bell ?? BellSchedule.fallback(),
-            compact: false,
-            onCourseTap: (course) => context.push('/course/${course.id}'),
-          ),
+          child: DayTimeline(courses: courses, schedule: bell ?? BellSchedule.fallback()),
         ),
       ],
     );

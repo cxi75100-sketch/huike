@@ -183,26 +183,32 @@ class SectionSlotBoard extends StatelessWidget {
                 color: tint.onChip,
               ),
             ),
-            const Spacer(),
+            // 信息紧跟课程名，不留中段空白；跨节次时多余高度留在卡底。
             if (range != null)
-              Text(
-                '${range.$1}-${range.$2}',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                  color: tint.onChip.withValues(alpha: 0.72),
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  '${range.$1}-${range.$2}',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                    color: tint.onChip.withValues(alpha: 0.72),
+                  ),
                 ),
               ),
-            Text(
-              [
-                if (course.classroom.isNotEmpty) course.classroom,
-                if (course.teacher.isNotEmpty) course.teacher,
-              ].join('  '),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 10.5,
-                color: tint.onChip.withValues(alpha: 0.8),
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(
+                [
+                  if (course.classroom.isNotEmpty) course.classroom,
+                  if (course.teacher.isNotEmpty) course.teacher,
+                ].join('  '),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 10.5,
+                  color: tint.onChip.withValues(alpha: 0.8),
+                ),
               ),
             ),
           ],
