@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 明文 HTTP 仅放行内置学校档案里确认过的高校教务域名（目前只有南工）；
-     其余站点一律拒绝明文，HTTPS 不受影响。新加 HTTP 教务必须在
-     school_presets.dart 的 cleartextHosts 里登记并同步此处。 -->
+<!--
+  明文 HTTP 策略：允许，但有三层应用内约束——
+  1. WebView 只加载用户在导入页显式确认过的主机（NavigationPolicy 白名单）；
+  2. 确认弹窗对明文站点额外警告；
+  3. 应用自身没有任何 HTTP 接口请求（无后端，数据全本地）。
+  教务系统是否明文由学校决定，App 拦截只会让功能不可用而非更安全；
+  用户被告知风险后自行决定是否登录。
+-->
 <network-security-config>
-    <base-config cleartextTrafficPermitted="false" />
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="false">jwxt.ncpu.edu.cn</domain>
-    </domain-config>
+    <base-config cleartextTrafficPermitted="true" />
 </network-security-config>

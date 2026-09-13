@@ -4,17 +4,17 @@ import 'package:huike_timetable/services/course_time_service.dart';
 import 'package:huike_timetable/models/course.dart';
 
 void main() {
-  final preset = presetById('ncpu');
+  final preset = presetById('ncpu')!;
 
   test('南工档案存在且为 10 节', () {
     expect(preset, isNotNull);
-    expect(preset!.bell.sections, hasLength(10));
+    expect(preset.bell.sections, hasLength(10));
     expect(preset.defaultFirstWeekMonday, DateTime(2026, 8, 31));
     expect(preset.defaultTotalWeeks, 20);
   });
 
   test('校历作息时间逐节正确', () {
-    final bell = preset!.bell;
+    final bell = preset.bell;
     expect(bell.resolveRange(1, 1), ('08:20', '09:00'));
     expect(bell.resolveRange(2, 2), ('09:10', '09:50'));
     expect(bell.resolveRange(5, 5), ('14:00', '14:40'));
@@ -23,7 +23,7 @@ void main() {
   });
 
   test('第 3、4 节按教学楼变体：明志/明德/至善提前', () {
-    final bell = preset!.bell;
+    final bell = preset.bell;
     expect(
       bell.resolveRange(3, 3, classroom: '明志楼302'),
       ('10:15', '10:55'),
@@ -44,7 +44,7 @@ void main() {
   });
 
   test('CourseTimeService 组合：显式时间 > 变体 > 基础', () {
-    final bell = preset!.bell;
+    final bell = preset.bell;
     const service = CourseTimeService();
 
     Course course(String classroom, {String? start, String? end}) => Course(
@@ -73,11 +73,8 @@ void main() {
     expect(presetById('nope'), isNull);
   });
 
-  test('南工教务为明文 HTTP，域名在白名单内', () {
-    expect(preset!.defaultLoginUrl, 'http://jwxt.ncpu.edu.cn');
-    expect(preset!.cleartextHosts, ['jwxt.ncpu.edu.cn']);
-    final uri = Uri.parse(preset!.defaultLoginUrl);
-    expect(preset!.cleartextHosts.contains(uri.host), isTrue);
-    expect(uri.scheme, 'http');
+  test('南工教务默认地址为明文 HTTP（导入门会额外警示）', () {
+    expect(preset.defaultLoginUrl, 'http://jwxt.ncpu.edu.cn');
+    expect(Uri.parse(preset.defaultLoginUrl).scheme, 'http');
   });
 }

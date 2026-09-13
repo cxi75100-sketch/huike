@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../schools/providers/school_providers.dart';
-import '../../schools/services/school_presets.dart';
 import '../../schools/services/school_repository.dart';
 import '../widgets/import_widgets.dart';
 
@@ -120,20 +119,8 @@ class _ImportEntryPageState extends ConsumerState<ImportEntryPage> {
       messenger.showSnackBar(const SnackBar(content: Text('网址格式不正确')));
       return;
     }
-    final preset = presetById(
-      ref.read(activeSchoolProvider)?.presetId ?? '',
-    );
-    final httpAllowed =
-        preset != null && preset.cleartextHosts.contains(uri.host);
-    if (uri.scheme != 'https' && !httpAllowed) {
-      messenger.showSnackBar(
-        const SnackBar(
-          content: Text('明文 HTTP 教务仅对内置档案登记过的域名开放'
-              '（当前构建仅南工）；其余站点请使用 HTTPS'),
-        ),
-      );
-      return;
-    }
+    // 明文 HTTP 不按学校名单拦截：站点是否明文由学校决定，
+    // 拦截只会让功能不可用。风险由确认弹窗明示（见下）。
 
     final ok = await showDialog<bool>(
       context: context,
