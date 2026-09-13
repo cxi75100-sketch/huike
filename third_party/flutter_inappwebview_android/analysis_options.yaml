@@ -1,0 +1,6 @@
+# The application-level analyzer verifies our code. This vendored upstream
+# package is kept byte-for-byte except for the documented Android build fix,
+# so its legacy lint output is excluded from the repository-wide command.
+analyzer:
+  exclude:
+    - lib/**
