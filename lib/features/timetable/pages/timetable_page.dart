@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/route_background.dart';
 import '../../../models/bell_schedule.dart';
 import '../../../models/course.dart';
 import '../../../models/semester.dart';
@@ -35,55 +36,63 @@ class _TimetablePageState extends ConsumerState<TimetablePage> {
     final school = ref.watch(activeSchoolProvider);
     final semester = ref.watch(activeSemesterRefProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(school?.displayName ?? '汇课'),
-        actions: [
-          IconButton(
-            tooltip: '导入教务课表',
-            icon: const Icon(Icons.download_outlined),
-            onPressed: () => context.push('/import'),
-          ),
-          IconButton(
-            tooltip: '设置',
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () => context.push('/settings'),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push('/course/new'),
-        backgroundColor: palette.accent,
-        foregroundColor: palette.onAccent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        icon: const Icon(Icons.add),
-        label: const Text('加课'),
-      ),
-      body: semester == null
-          ? _noSemesterBody(context, school?.id)
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _showWeek
-                    ? _WeekHeader(
-                        semester: semester,
-                        weekOffset: _weekOffset,
-                        onMove: (delta) =>
-                            setState(() => _weekOffset += delta),
-                      )
-                    : const _TodayHero(),
-                const SizedBox(height: 4),
-                _modeSwitch(context),
-                Expanded(
-                  child: _showWeek
-                      ? _WeekBoard(
-                          semester: semester,
-                          week: _currentWeek(semester),
-                        )
-                      : const _TodayList(),
-                ),
-              ],
+    return RouteBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: Text(school?.displayName ?? '汇课'),
+          actions: [
+            IconButton(
+              tooltip: '导入教务课表',
+              icon: const Icon(Icons.download_outlined),
+              onPressed: () => context.push('/import'),
             ),
+            IconButton(
+              tooltip: '设置',
+              icon: const Icon(Icons.settings_outlined),
+              onPressed: () => context.push('/settings'),
+            ),
+          ],
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () => context.push('/course/new'),
+          backgroundColor: palette.accent,
+          foregroundColor: palette.onAccent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          icon: const Icon(Icons.add),
+          label: const Text('加课'),
+        ),
+        body: semester == null
+            ? _noSemesterBody(context, school?.id)
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _showWeek
+                      ? _WeekHeader(
+                          semester: semester,
+                          weekOffset: _weekOffset,
+                          onMove: (delta) =>
+                              setState(() => _weekOffset += delta),
+                        )
+                      : const _TodayHero(),
+                  if (!_showWeek) _WeekRouteOverview(semester: semester),
+                  const SizedBox(height: 4),
+                  _modeSwitch(context),
+                  Expanded(
+                    child: _showWeek
+                        ? _WeekBoard(
+                            semester: semester,
+                            week: _currentWeek(semester),
+                          )
+                        : _TodayList(
+                            onShowWeek: () => setState(() => _showWeek = true),
+                          ),
+                  ),
+                ],
+              ),
+      ),
     );
   }
 
@@ -136,7 +145,11 @@ class _TimetablePageState extends ConsumerState<TimetablePage> {
         children: [
           Text(
             '还没有设置学期',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: palette.ink),
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: palette.ink,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
@@ -177,7 +190,7 @@ class _ModeChip extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(4),
         child: Container(
-          constraints: const BoxConstraints(minWidth: 48, minHeight: 32),
+          constraints: const BoxConstraints(minWidth: 64, minHeight: 48),
           alignment: Alignment.center,
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
           decoration: BoxDecoration(
@@ -201,6 +214,150 @@ class _ModeChip extends StatelessWidget {
   }
 }
 
+/// 七日线路概览：把本周课程密度变成可扫读的站点，不增加第二套导航。
+class _WeekRouteOverview extends ConsumerWidget {
+  const _WeekRouteOverview({required this.semester});
+
+  final Semester semester;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = AppTheme.paletteOf(context);
+    final school = ref.watch(activeSchoolProvider);
+    final courses = school == null
+        ? const <Course>[]
+        : (ref.watch(coursesForProvider((school.id, semester.id))).value ??
+              const <Course>[]);
+    final calendar = ref.watch(activeCalendarServiceProvider);
+    final service = const SemesterService();
+    final now = DateTime.now();
+    final rawWeek = service.currentWeek(semester, now);
+    final week = (rawWeek == 0 ? 1 : rawWeek).clamp(1, semester.totalWeeks);
+    final counts = <int>[];
+    final suspended = <bool>[];
+
+    for (var weekday = 1; weekday <= 7; weekday++) {
+      final date = service.dateFor(semester, week, weekday);
+      final schedule = calendar.resolve(date);
+      suspended.add(schedule.suspended);
+      counts.add(
+        schedule.suspended
+            ? 0
+            : courses
+                  .where(
+                    (course) =>
+                        course.weekday == schedule.weekday &&
+                        course.weeks.contains(week),
+                  )
+                  .length,
+      );
+    }
+
+    final summary = List.generate(
+      7,
+      (index) => suspended[index]
+          ? '周${'一二三四五六日'[index]}停课'
+          : '周${'一二三四五六日'[index]}${counts[index]}门课',
+    ).join('，');
+
+    return Semantics(
+      label: '本周线路概览，$summary',
+      child: Container(
+        height: 76,
+        margin: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+        decoration: BoxDecoration(
+          color: palette.surface.withValues(alpha: 0.88),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: palette.hairline),
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              top: 28,
+              left: 22,
+              right: 22,
+              child: Container(height: 1.5, color: palette.hairlineStrong),
+            ),
+            Row(
+              children: [
+                for (var index = 0; index < 7; index++)
+                  Expanded(
+                    child: _RouteDayNode(
+                      weekday: index + 1,
+                      count: counts[index],
+                      suspended: suspended[index],
+                      active: rawWeek == week && now.weekday == index + 1,
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RouteDayNode extends StatelessWidget {
+  const _RouteDayNode({
+    required this.weekday,
+    required this.count,
+    required this.suspended,
+    required this.active,
+  });
+
+  final int weekday;
+  final int count;
+  final bool suspended;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = AppTheme.paletteOf(context);
+    return ExcludeSemantics(
+      child: Column(
+        children: [
+          Text(
+            '一二三四五六日'[weekday - 1],
+            style: TextStyle(
+              fontSize: 10.5,
+              fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+              color: active ? palette.accent : palette.inkTertiary,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Container(
+            width: active ? 14 : 10,
+            height: active ? 14 : 10,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: active
+                  ? palette.accent
+                  : count > 0
+                  ? palette.surface
+                  : palette.background,
+              border: Border.all(
+                color: active ? palette.accent : palette.hairlineStrong,
+                width: 1.4,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            suspended ? '停' : '$count',
+            style: TextStyle(
+              fontSize: 10,
+              fontFeatures: const [FontFeature.tabularFigures()],
+              color: active ? palette.accent : palette.inkSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// 今日历牌：巨大日期数字 + 周次 + 学期状态提示。
 class _TodayHero extends ConsumerWidget {
   const _TodayHero();
@@ -210,9 +367,7 @@ class _TodayHero extends ConsumerWidget {
     final palette = AppTheme.paletteOf(context);
     final semester = ref.watch(activeSemesterRefProvider);
     final now = DateTime.now();
-    final weekLabel = semester == null
-        ? ''
-        : _weekLabel(ref, semester, now);
+    final weekLabel = semester == null ? '' : _weekLabel(ref, semester, now);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
@@ -311,10 +466,11 @@ class _WeekHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = AppTheme.paletteOf(context);
     final service = const SemesterService();
-    final week = (service.currentWeek(semester, DateTime.now()) == 0
-            ? 1
-            : service.currentWeek(semester, DateTime.now()))
-        .clamp(1, semester.totalWeeks);
+    final week =
+        (service.currentWeek(semester, DateTime.now()) == 0
+                ? 1
+                : service.currentWeek(semester, DateTime.now()))
+            .clamp(1, semester.totalWeeks);
     final current = (week + weekOffset).clamp(1, semester.totalWeeks);
     final monday = service.weekMonday(semester, current);
     final sunday = monday.add(const Duration(days: 6));
@@ -363,7 +519,9 @@ class _WeekHeader extends StatelessWidget {
 }
 
 class _TodayList extends ConsumerWidget {
-  const _TodayList();
+  const _TodayList({required this.onShowWeek});
+
+  final VoidCallback onShowWeek;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -389,12 +547,7 @@ class _TodayList extends ConsumerWidget {
       return Column(
         children: [
           ?makeup,
-          const Expanded(
-            child: EmptyDayPlate(
-              title: '今日无课',
-              subtitle: '加课或导入教务课表都会显示在这里',
-            ),
-          ),
+          Expanded(child: _EmptyTodayPanel(onShowWeek: onShowWeek)),
         ],
       );
     }
@@ -403,9 +556,108 @@ class _TodayList extends ConsumerWidget {
         ?makeup,
         _NextCourseLine(courses: courses, bell: bell),
         Expanded(
-          child: DayTimeline(courses: courses, schedule: bell ?? BellSchedule.fallback()),
+          child: DayTimeline(
+            courses: courses,
+            schedule: bell ?? BellSchedule.fallback(),
+          ),
         ),
       ],
+    );
+  }
+}
+
+class _EmptyTodayPanel extends StatelessWidget {
+  const _EmptyTodayPanel({required this.onShowWeek});
+
+  final VoidCallback onShowWeek;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const EmptyDayPlate(title: '今日无课', subtitle: '可以看看整周，也可以从教务或手动补充课程'),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 88),
+          child: Row(
+            children: [
+              Expanded(
+                child: _QuickAction(
+                  icon: Icons.view_week_outlined,
+                  label: '看整周',
+                  onTap: onShowWeek,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _QuickAction(
+                  icon: Icons.add_circle_outline,
+                  label: '加课程',
+                  onTap: () => context.push('/course/new'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _QuickAction(
+                  icon: Icons.download_outlined,
+                  label: '教务导入',
+                  onTap: () => context.push('/import'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _QuickAction extends StatelessWidget {
+  const _QuickAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = AppTheme.paletteOf(context);
+    return Material(
+      color: palette.surface.withValues(alpha: 0.86),
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 56),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: palette.hairline),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 19, color: palette.accent),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                  color: palette.inkSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -476,7 +728,8 @@ class _NextCourseLine extends StatelessWidget {
       if (range == null) continue;
       final endParts = range.$2.split(':');
       final endMinutes =
-          (int.tryParse(endParts[0]) ?? 0) * 60 + (int.tryParse(endParts[1]) ?? 0);
+          (int.tryParse(endParts[0]) ?? 0) * 60 +
+          (int.tryParse(endParts[1]) ?? 0);
       if (endMinutes > nowMinutes) {
         next = course;
         break;
@@ -564,8 +817,7 @@ class _WeekBoard extends ConsumerWidget {
     // 当前周：今天优先循环排列；其他周：周一到周日。
     final order = <int>[
       if (isCurrentWeek)
-        for (var i = 0; i < 7; i++)
-          ((todayWeekday - 1 + i) % 7) + 1
+        for (var i = 0; i < 7; i++) ((todayWeekday - 1 + i) % 7) + 1
       else
         for (var d = 1; d <= 7; d++) d,
     ];
@@ -582,13 +834,13 @@ class _WeekBoard extends ConsumerWidget {
         final dayCourses = daySchedule.suspended
             ? const <Course>[]
             : (courses
-                    .where(
-                      (course) =>
-                          course.weekday == daySchedule.weekday &&
-                          course.weeks.contains(week),
-                    )
-                    .toList()
-                  ..sort((a, b) => a.startSection.compareTo(b.startSection)));
+                  .where(
+                    (course) =>
+                        course.weekday == daySchedule.weekday &&
+                        course.weeks.contains(week),
+                  )
+                  .toList()
+                ..sort((a, b) => a.startSection.compareTo(b.startSection)));
         final isToday = isCurrentWeek && todayWeekday == weekday;
         return _DayColumn(
           date: date,

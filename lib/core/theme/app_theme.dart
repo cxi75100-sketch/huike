@@ -44,7 +44,7 @@ class AppTheme {
 
     return base.copyWith(
       appBarTheme: AppBarTheme(
-        backgroundColor: p.background,
+        backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         foregroundColor: p.ink,
         elevation: 0,
@@ -56,24 +56,20 @@ class AppTheme {
           color: p.ink,
           letterSpacing: 0.2,
         ),
-        systemOverlayStyle:
-            brightness == Brightness.light
-                ? SystemUiOverlayStyle(
-                  statusBarColor: Colors.transparent,
-                  statusBarIconBrightness: Brightness.dark,
-                  statusBarBrightness: Brightness.light,
-                )
-                : SystemUiOverlayStyle(
-                  statusBarColor: Colors.transparent,
-                  statusBarIconBrightness: Brightness.light,
-                  statusBarBrightness: Brightness.dark,
-                ),
+        systemOverlayStyle: brightness == Brightness.light
+            ? SystemUiOverlayStyle(
+                statusBarColor: Colors.transparent,
+                statusBarIconBrightness: Brightness.dark,
+                statusBarBrightness: Brightness.light,
+              )
+            : SystemUiOverlayStyle(
+                statusBarColor: Colors.transparent,
+                statusBarIconBrightness: Brightness.light,
+                statusBarBrightness: Brightness.dark,
+              ),
       ),
       dividerTheme: DividerThemeData(color: p.hairline, thickness: 1, space: 1),
-      textTheme: base.textTheme.apply(
-        bodyColor: p.ink,
-        displayColor: p.ink,
-      ),
+      textTheme: base.textTheme.apply(bodyColor: p.ink, displayColor: p.ink),
       textSelectionTheme: TextSelectionThemeData(
         cursorColor: p.accent,
         selectionColor: p.accent.withValues(alpha: 0.25),
@@ -159,9 +155,8 @@ class AppTheme {
       ),
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith(
-          (states) => states.contains(WidgetState.selected)
-              ? p.onAccent
-              : p.surface,
+          (states) =>
+              states.contains(WidgetState.selected) ? p.onAccent : p.surface,
         ),
         trackColor: WidgetStateProperty.resolveWith(
           (states) => states.contains(WidgetState.selected)
@@ -186,6 +181,6 @@ class AppTheme {
   /// 便捷取调色板。调色板不做 ThemeExtension，直接由明暗选择。
   static AppPalette paletteOf(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark
-          ? AppPalette.dark
-          : AppPalette.light;
+      ? AppPalette.dark
+      : AppPalette.light;
 }

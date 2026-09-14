@@ -113,6 +113,8 @@ void main() {
 
     await tester.tap(find.byTooltip('设置'));
     await tester.pumpAndSettle();
+    expect(find.text('当前学校'), findsOneWidget);
+    expect(find.text('调休大学'), findsWidgets);
     await tester.tap(find.text('调休 / 停课'));
     await tester.pumpAndSettle();
 

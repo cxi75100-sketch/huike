@@ -34,7 +34,8 @@ class SectionSlotBoard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = AppTheme.paletteOf(context);
-    final specs = [...schedule.sections]..sort((a, b) => a.index.compareTo(b.index));
+    final specs = [...schedule.sections]
+      ..sort((a, b) => a.index.compareTo(b.index));
     final byStart = {for (final c in courses) c.startSection: c};
 
     final children = <Widget>[];
@@ -125,7 +126,7 @@ class SectionSlotBoard extends StatelessWidget {
           style: TextStyle(
             fontSize: 10.5,
             fontFeatures: const [FontFeature.tabularFigures()],
-            color: palette.inkTertiary.withValues(alpha: 0.45),
+            color: palette.inkTertiary.withValues(alpha: 0.68),
           ),
         ),
         const Spacer(),
@@ -136,7 +137,7 @@ class SectionSlotBoard extends StatelessWidget {
             style: TextStyle(
               fontSize: 9.5,
               fontFeatures: const [FontFeature.tabularFigures()],
-              color: palette.inkTertiary.withValues(alpha: 0.35),
+              color: palette.inkTertiary.withValues(alpha: 0.55),
             ),
           ),
         ),
