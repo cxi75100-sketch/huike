@@ -156,7 +156,11 @@ TASK-001（基座）+ 用户第一轮反馈迭代（自动适配探测、印章�
   `flutter analyze` 无问题、`flutter test` 76/76。
 - `UNVERIFIED`：真实教务系统导入（用户已取 release 包在真机试用，结果待反馈）；
   arm64 真机安装；iOS 构建；应用名「汇课」为用户 2026-09-13 确认定稿。
-- `BLOCKED`：Gitee 新仓库上传（等用户提供 projects 权限令牌；命令模板见交接报告 §11）。
+- `CONFIRMED`（2026-09-14 00:05 +08:00）：仓库已上传 Gitee `chenxihh/huike`（**私有**）——
+  master 读回 `8cdccda`（= 本地 HEAD）、annotated tag `v0.1.0`（`5bd42fb` → `8cdccda`）；
+  推送前敏感扫描无命中、构建产物未入库；`origin` 已配为无令牌地址。
+- `BLOCKED`（需用户在 Gitee 操作）：仓库转公开——Gitee 要求账号完成 2FA 或绑定第三方账号
+  才允许发布公开内容；完成后可用 PATCH 改 `private=false`。
 
 ## Recommended Next Action
 

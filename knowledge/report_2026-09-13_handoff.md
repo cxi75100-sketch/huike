@@ -19,7 +19,7 @@ Status: **可用**（Android 装机验证通过）；真实教务导入与 iOS �
 | 包名 | `com.huike.huike_timetable` |
 | 版本 | `0.1.0+1`（pubspec.yaml） |
 | 本地提交 | 7 笔，最新 `c1d56cd`；`git log --oneline` 为准 |
-| 远端 | **无**（上传待用户提供 Gitee 令牌，见 §11） |
+| 远端 | `origin` = `https://gitee.com/chenxihh/huike.git`（**已推送**，当前为**私有**；公开需账号完成 2FA/绑定第三方，见 §11） |
 | 签名 | release 用 Flutter 默认 debug 证书（自用试用可；正式发布需换正式 keystore） |
 | 知识库 | `D:\桌面\汇课\knowledge\`（本报告所在目录） |
 
@@ -213,7 +213,8 @@ iOS `NSAllowsArbitraryLoadsInWebContent=true`，仅 WebView），应用层两道
 
 | 项 | 状态 | 说明 |
 | --- | --- | --- |
-| **上传 Gitee 新仓库** | **待用户提供令牌** | 用户选择「给 Gitee 令牌」路径。令牌到手后执行下方命令模板；令牌只经环境变量、不落盘，用完提醒撤销 |
+| **上传 Gitee 新仓库** | **已完成（2026-09-13）** | 仓库 `chenxihh/huike`；master 读回 `8cdccda`、tag `v0.1.0` 指向同一提交；推送前做过敏感信息扫描（无凭据/无真实课表数据/构建产物未入库） |
+| 仓库转为公开 | **BLOCKED（需用户操作）** | Gitee 返回：`您的帐号安全评级较低，发布公开内容前请在「个人设置」完成2FA设置，或绑定可靠第三方帐号`。用户在 Gitee 完成 2FA 或绑定后，我可用同一条 PATCH 改公开（`private=false` + `name=huike`） |
 | TASK-002 桌面小组件 | 未开始 | 建议载荷 v2：Dart 预计算整学期每日课程，原生只查表（消除双实现） |
 | TASK-003 上课提醒 | 未开始 | 迁移 + 按学校/学期排程，时区语义「课程所在地墙上时间」 |
 | TASK-004 调休/停课例外表 | 未开始 | 用户可编辑 CalendarException |
@@ -223,7 +224,7 @@ iOS `NSAllowsArbitraryLoadsInWebContent=true`，仅 WebView），应用层两道
 | GitHub 镜像 | 未做 | 需 Clash 开启 + 新建 GitHub 仓库；当前 Clash 关闭 |
 | 老仓库 GitHub 镜像 | 落后一笔 | `8c17a86` 只推了 Gitee；Clash 开时补推 `git push github master` 并读回 |
 
-**上传命令模板（拿到令牌后，`<TOKEN>` 与仓库名以用户给的为准）**：
+**上传命令（已完成，留档备查；令牌已用毕，需撤销）**：
 
 ```bash
 # 1) 建仓（令牌仅在本次命令的环境变量里，不落盘、不写日志）

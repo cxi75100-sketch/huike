@@ -10,10 +10,8 @@
 
 ## Now
 
-- [ ] TASK-007 上传汇课仓库到 Gitee（2026-09-13 起 `BLOCKED`）：用户选择「提供 Gitee 令牌、
-      由 Agent 建仓并推送」的路径，令牌待提供。到手后按
-      `knowledge/report_2026-09-13_handoff.md` §11 的命令模板执行（令牌只经环境变量、
-      不落盘；用完提醒用户撤销），推送后必须 `git ls-remote` 读回校验。
+- [ ] TASK-008 仓库转公开（`BLOCKED` 等用户在 Gitee 完成 2FA 或绑定第三方账号）：
+  仓库 `chenxihh/huike` 已推送但为私有；Gitee 限制未完成 2FA 的账号发布公开内容。
 
 ## Next
 
@@ -26,6 +24,11 @@
 
 ## Done
 
+- [x] TASK-007 上传汇课仓库到 Gitee（2026-09-14 完成）：建仓 `chenxihh/huike` 并推送
+      master 与 annotated tag `v0.1.0`；读回 master `8cdccda` = 本地 HEAD、tag `5bd42fb`
+      指向同一提交。推送前扫描确认无凭据、无真实课表数据、构建产物未入库；`origin`
+      配为无令牌地址。令牌由用户提供、仅经环境变量传入命令、未落盘（**需用户撤销**）。
+      仓库暂为私有，转公开另立 TASK-008。
 - [x] TASK-001 多校通用课表 App 基座（2026-09-13 完成）：独立 Flutter 工程
   （Riverpod 3 + GoRouter + Drift），多校原生数据模型；导入链路实现社区适配脚本
   契约桥，内置正方/青果/URP/超星四个通用脚本（MIT，署名在 THIRD_PARTY_NOTICES）；
