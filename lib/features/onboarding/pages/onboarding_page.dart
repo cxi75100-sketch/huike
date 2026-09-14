@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../schools/services/login_url_policy.dart';
 import '../../schools/services/school_presets.dart';
 import '../../schools/services/school_repository.dart';
 import '../../import/widgets/import_widgets.dart';
@@ -287,22 +288,15 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     }
     var loginUrl = '';
     var hosts = <String>[];
-    final urlText = _urlController.text.trim();
-    if (urlText.isNotEmpty) {
-      final uri = Uri.tryParse(urlText);
-      final schemeOk = uri != null &&
-          uri.host.isNotEmpty &&
-          (uri.scheme == 'https' || uri.scheme == 'http');
-      if (uri == null || !schemeOk) {
-        // 明文 HTTP 与 HTTPS 都接受：站点协议由学校决定，
-        // 风险在导入页的确认弹窗里明示。
-        messenger.showSnackBar(
-          const SnackBar(content: Text('教务网址格式不正确，或留空')),
-        );
-        return;
-      }
-      loginUrl = uri.toString();
-      hosts = [uri.host];
+    // 明文 HTTP 与 HTTPS 都接受（校方决定协议），判定与其它入口共用同一函数。
+    final check = checkLoginUrl(_urlController.text);
+    if (!check.ok) {
+      messenger.showSnackBar(SnackBar(content: Text(check.error!)));
+      return;
+    }
+    if (check.uri != null) {
+      loginUrl = check.uri!.toString();
+      hosts = [check.uri!.host];
     }
 
     setState(() => _creating = true);

@@ -7,6 +7,7 @@ import '../../features/import/pages/import_preview_page.dart';
 import '../../features/import/pages/import_web_page.dart';
 import '../../features/onboarding/pages/onboarding_page.dart';
 import '../../features/settings/pages/bell_settings_page.dart';
+import '../../features/settings/pages/calendar_exception_page.dart';
 import '../../features/settings/pages/school_manage_page.dart';
 import '../../features/settings/pages/semester_settings_page.dart';
 import '../../features/settings/pages/settings_page.dart';
@@ -99,6 +100,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/settings/bell',
         builder: (context, state) => const BellSettingsPage(),
+      ),
+      GoRoute(
+        path: '/settings/calendar',
+        builder: (context, state) => const CalendarExceptionPage(),
       ),
     ],
   );

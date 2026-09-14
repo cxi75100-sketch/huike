@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../schools/providers/school_providers.dart';
 import '../../schools/services/adapter_catalog.dart';
+import '../../schools/services/login_url_policy.dart';
 import '../../schools/services/school_repository.dart';
 
 class SchoolManagePage extends ConsumerWidget {
@@ -152,7 +153,9 @@ class SchoolManagePage extends ConsumerWidget {
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(hintText: 'https://jw.example.edu.cn'),
+          decoration: const InputDecoration(
+            hintText: 'https:// 或 http://jw.example.edu.cn',
+          ),
         ),
         actions: [
           TextButton(
@@ -167,17 +170,17 @@ class SchoolManagePage extends ConsumerWidget {
       ),
     );
     if (ok != true) return;
-    final uri = Uri.tryParse(controller.text.trim());
-    if (uri == null || uri.scheme != 'https' || uri.host.isEmpty) {
+    final check = checkLoginUrl(controller.text, required: true);
+    if (!check.ok) {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('仅支持 HTTPS 教务地址')));
+        ).showSnackBar(SnackBar(content: Text(check.error!)));
       }
       return;
     }
     final repository = ref.read(schoolRepositoryProvider);
-    await repository.updateLoginUrl(schoolId, uri);
+    await repository.updateLoginUrl(schoolId, check.uri!);
     if (context.mounted) {
       ScaffoldMessenger.of(
         context,

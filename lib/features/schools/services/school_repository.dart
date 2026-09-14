@@ -79,7 +79,7 @@ class SchoolRepository {
     }
   }
 
-  /// 更新教务登录地址（仅 HTTPS），并把新主机并入白名单。
+  /// 更新教务登录地址（http/https 均可）并把新主机并入白名单。
   Future<void> updateLoginUrl(String schoolId, Uri uri) async {
     await appendConfirmedHost(schoolId, uri.host);
     await (_db.update(
@@ -197,6 +197,9 @@ class SchoolRepository {
       )..where((t) => t.schoolId.equals(schoolId))).go();
       await (_db.delete(
         _db.sectionTimeEntries,
+      )..where((t) => t.schoolId.equals(schoolId))).go();
+      await (_db.delete(
+        _db.calendarExceptions,
       )..where((t) => t.schoolId.equals(schoolId))).go();
       await (_db.delete(
         _db.semesters,

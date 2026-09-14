@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 
 import '../../models/bell_schedule.dart';
+import '../../models/calendar_exception.dart';
 import '../../models/school_profile.dart';
 import '../../models/semester.dart';
 import '../../models/course.dart';
@@ -81,6 +82,28 @@ class SectionTimeEntries extends Table {
   Set<Column> get primaryKey => {schoolId, sectionIndex};
 }
 
+/// 校历例外（调休 / 停课）。挂在学期上：同一天只保留一条。
+///
+/// 只提供「这一天停课」或「这一天按某星期课表上课」两种语义——
+/// 不表达「把某天的课移到另一天」，因为课表以周次 × 星期表达，重复一节课
+/// 会同时出现在两个日期，语义反而更差。
+/// 生成数据类名为 CalendarExceptionRow，避免与模型层 `CalendarException` 重名。
+@DataClassName('CalendarExceptionRow')
+class CalendarExceptions extends Table {
+  TextColumn get id => text()();
+  TextColumn get schoolId => text()();
+  TextColumn get semesterId => text()();
+  TextColumn get dateIso => text()();
+  TextColumn get kind => textEnum<CalendarExceptionKind>()();
+
+  /// makeup 生效：按星期几的课表上课（1=周一 … 7=周日）。
+  IntColumn get makeupWeekday => integer().nullable()();
+  TextColumn get note => text().withDefault(const Constant(''))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 class Settings extends Table {
   TextColumn get key => text()();
   TextColumn get value => text()();
@@ -138,6 +161,18 @@ extension SemesterRowMapping on SemesterRow {
   );
 }
 
+extension CalendarExceptionRowMapping on CalendarExceptionRow {
+  CalendarException toModel() => CalendarException(
+    id: id,
+    schoolId: schoolId,
+    semesterId: semesterId,
+    date: DateTime.parse(dateIso),
+    kind: kind,
+    makeupWeekday: makeupWeekday,
+    note: note,
+  );
+}
+
 BellSchedule bellScheduleFromRows(List<SectionTimeEntry> rows) =>
     BellSchedule(
       sections:
@@ -162,13 +197,14 @@ String encodeHosts(List<String> hosts) => jsonEncode(hosts);
   Semesters,
   CourseEntries,
   SectionTimeEntries,
+  CalendarExceptions,
   Settings,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -177,6 +213,11 @@ class AppDatabase extends _$AppDatabase {
         // v2：学校档案新增内置预设 id 与作息变体列；老数据走通用兜底语义不变。
         await migrator.addColumn(schools, schools.presetId);
         await migrator.addColumn(schools, schools.scheduleVariantsJson);
+      }
+      if (from < 3) {
+        // v3：新增校历例外（调休/停课）。新表对老数据是空表，
+        // 语义等于「没有任何例外」，课表显示与升级前完全一致。
+        await migrator.createTable(calendarExceptions);
       }
     },
   );

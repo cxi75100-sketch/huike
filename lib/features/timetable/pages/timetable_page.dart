@@ -7,8 +7,10 @@ import '../../../core/theme/app_theme.dart';
 import '../../../models/bell_schedule.dart';
 import '../../../models/course.dart';
 import '../../../models/semester.dart';
+import '../../../services/calendar_exception_service.dart';
 import '../../../services/course_time_service.dart';
 import '../../../services/semester_service.dart';
+import '../../schools/providers/calendar_exception_providers.dart';
 import '../../schools/providers/school_providers.dart';
 import '../providers/timetable_providers.dart';
 import '../widgets/course_listing_row.dart';
@@ -367,17 +369,89 @@ class _TodayList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final courses = ref.watch(todayCoursesProvider);
     final bell = ref.watch(bellForActiveSchoolProvider);
+    final schedule = ref.watch(todayDayScheduleProvider);
 
+    if (schedule?.suspended == true) {
+      return const EmptyDayPlate(
+        title: '今天停课',
+        subtitle: '校历例外里的停课日；在「设置 → 调休 / 停课」可修改',
+      );
+    }
+    // 调休提示要先于「今日无课」判定：这天到底上不上课由校历决定，
+    // 光说一句「无课」会让用户以为课表错了。
+    final makeup = schedule?.isMakeup == true
+        ? _MakeupLine(
+            weekday: schedule!.weekday,
+            note: schedule.exception?.note ?? '',
+          )
+        : null;
     if (courses.isEmpty) {
-      return const EmptyDayPlate(title: '今日无课', subtitle: '加课或导入教务课表都会显示在这里');
+      return Column(
+        children: [
+          ?makeup,
+          const Expanded(
+            child: EmptyDayPlate(
+              title: '今日无课',
+              subtitle: '加课或导入教务课表都会显示在这里',
+            ),
+          ),
+        ],
+      );
     }
     return Column(
       children: [
+        ?makeup,
         _NextCourseLine(courses: courses, bell: bell),
         Expanded(
           child: DayTimeline(courses: courses, schedule: bell ?? BellSchedule.fallback()),
         ),
       ],
+    );
+  }
+}
+
+/// 调休提示条：今天上的是别的星期那天的课。
+class _MakeupLine extends StatelessWidget {
+  const _MakeupLine({required this.weekday, required this.note});
+
+  final int weekday;
+  final String note;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = AppTheme.paletteOf(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 2, 20, 4),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: palette.accentSoft,
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Row(
+          children: [
+            Text(
+              '调休',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: palette.accent,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                '今天按${CalendarExceptionService.weekdayName(weekday)}的课表上课'
+                '${note.isEmpty ? '' : ' · $note'}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 13, color: palette.ink),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -480,6 +554,7 @@ class _WeekBoard extends ConsumerWidget {
         : (ref.watch(coursesForProvider((school.id, semester.id))).value ??
               const <Course>[]);
     final bell = ref.watch(bellForActiveSchoolProvider);
+    final calendarService = ref.watch(activeCalendarServiceProvider);
     final service = const SemesterService();
     final now = DateTime.now();
     final todayWeekday = service.weekdayOf(now);
@@ -502,13 +577,18 @@ class _WeekBoard extends ConsumerWidget {
       itemBuilder: (context, index) {
         final weekday = order[index];
         final date = service.dateFor(semester, week, weekday);
-        final dayCourses = courses
-            .where(
-              (course) =>
-                  course.weekday == weekday && course.weeks.contains(week),
-            )
-            .toList()
-          ..sort((a, b) => a.startSection.compareTo(b.startSection));
+        // 这一天到底按哪天的课表上课，由例外表决定（停课 → 空列）。
+        final daySchedule = calendarService.resolve(date);
+        final dayCourses = daySchedule.suspended
+            ? const <Course>[]
+            : (courses
+                    .where(
+                      (course) =>
+                          course.weekday == daySchedule.weekday &&
+                          course.weeks.contains(week),
+                    )
+                    .toList()
+                  ..sort((a, b) => a.startSection.compareTo(b.startSection)));
         final isToday = isCurrentWeek && todayWeekday == weekday;
         return _DayColumn(
           date: date,
@@ -516,6 +596,7 @@ class _WeekBoard extends ConsumerWidget {
           isToday: isToday,
           courses: dayCourses,
           bell: bell,
+          daySchedule: daySchedule,
         );
       },
     );
@@ -534,6 +615,7 @@ class _DayColumn extends StatelessWidget {
     required this.isToday,
     required this.courses,
     required this.bell,
+    required this.daySchedule,
   });
 
   final DateTime date;
@@ -541,6 +623,7 @@ class _DayColumn extends StatelessWidget {
   final bool isToday;
   final List<Course> courses;
   final BellSchedule? bell;
+  final DaySchedule daySchedule;
 
   @override
   Widget build(BuildContext context) {
@@ -606,6 +689,30 @@ class _DayColumn extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Divider(height: 1, thickness: 1, color: palette.hairline),
+            if (daySchedule.suspended || daySchedule.isMakeup) ...[
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: daySchedule.isMakeup
+                      ? palette.accentSoft
+                      : palette.hairline,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  daySchedule.suspended
+                      ? '停课'
+                      : '调休 · 按${CalendarExceptionService.weekdayName(daySchedule.weekday)}',
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w600,
+                    color: daySchedule.isMakeup
+                        ? palette.accent
+                        : palette.inkSecondary,
+                  ),
+                ),
+              ),
+            ],
             Expanded(
               child: SectionSlotBoard(
                 courses: courses,

@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../schools/providers/school_providers.dart';
 import '../../schools/services/adapter_catalog.dart';
+import '../../schools/services/school_repository.dart';
 import '../services/adapter_bridge.dart';
 import '../services/import_session.dart';
 import '../services/import_session_cleaner.dart';
@@ -16,13 +17,19 @@ import '../services/navigation_policy.dart';
 
 /// 受限 WebView：用户自行登录教务并在课表页面执行适配脚本。
 ///
-/// - 导航经 [NavigationPolicy] 白名单拦截（scheme=https、host=确认过的主机）。
-/// - 页面加载完成即注入桥；用户点「执行导入」后，App 依次尝试全部内置
-///   适配器：每个脚本自己校验当前页面，读不到课表就换下一个。用户
-///   不需要知道学校用什么教务系统。
+/// - 导航经 [NavigationPolicy] 判定：host 放行范围 = 入口地址 + 学校档案里
+///   已确认的主机；主框架跳到新主机时弹窗让用户确认一次并记住（只增不减），
+///   因此教务登录跳统一认证/CAS 不会被拦死。scheme 只允许 http/https。
+/// - 页面加载完成即注入桥；用户点「执行导入」后，App 自动依次尝试全部内置
+///   适配器：每个脚本自己校验当前页面，读不到课表就换下一个。用户不需要
+///   知道学校用什么教务系统，也看不到逐个尝试的过程。
 /// - 脚本的三类 save 只写入内存会话；成功尝试完成后进入预览确认。
 class ImportWebPage extends ConsumerStatefulWidget {
-  const ImportWebPage({super.key, required this.host, required this.initialUrl});
+  const ImportWebPage({
+    super.key,
+    required this.host,
+    required this.initialUrl,
+  });
 
   final String host;
   final String initialUrl;
@@ -35,6 +42,14 @@ class _ImportWebPageState extends ConsumerState<ImportWebPage> {
   InAppWebViewController? _controller;
   double _progress = 0;
   NavigationPolicy? _policy;
+
+  /// 放行主机（入口地址 + 学校已确认 + 会话中用户新确认），只增不减。
+  late final List<String> _allowedHosts;
+
+  /// 用户明确拒绝过的主机：同一会话不再重复弹窗。
+  final Set<String> _deniedHosts = {};
+
+  bool _hostDialogOpen = false;
   late final ImportSessionCleaner _cleaner;
   bool _running = false;
   bool _navigatedToPreview = false;
@@ -48,20 +63,24 @@ class _ImportWebPageState extends ConsumerState<ImportWebPage> {
 
   static const _attemptTimeout = Duration(seconds: 25);
 
+  /// 相邻两次适配尝试之间的间隔：同一教务站不连发请求。
+  static const _probeGap = Duration(milliseconds: 800);
+
   @override
   void initState() {
     super.initState();
     _cleaner = ImportSessionCleaner(
       () => ref.read(importSessionProvider.notifier).reset(),
     );
-    // 用户在入口页确认过的地址决定 scheme：明文白名单域名为 http，
-    // 其余一律 https。
-    final uri = Uri.tryParse(widget.initialUrl);
-    final schemes = (uri?.scheme == 'http') ? ['http'] : ['https'];
-    _policy = NavigationPolicy(
-      allowedHosts: [widget.host],
-      allowedSchemes: schemes,
-    );
+    // 放行主机 = 入口地址主机 + 学校档案里已确认过的主机。
+    // scheme 不按入口地址钉死：教务站 http↔https 互跳（登录跳 https、
+    // 内容页回 http）很常见，钉死会静默失败。
+    final school = ref.read(activeSchoolProvider);
+    _allowedHosts = <String>{
+      widget.host,
+      ...?school?.acceptedHosts,
+    }.where((host) => host.isNotEmpty).toList();
+    _policy = NavigationPolicy(allowedHosts: _allowedHosts);
   }
 
   @override
@@ -127,19 +146,8 @@ class _ImportWebPageState extends ConsumerState<ImportWebPage> {
                   source: AdapterBridge.bootstrapJs,
                 );
               },
-              shouldOverrideUrlLoading: (controller, action) async {
-                final uri = action.request.url;
-                final decision = uri == null
-                    ? NavigationDecision.allow
-                    : _policy!.decide(uri);
-                if (decision.allowed) return NavigationActionPolicy.ALLOW;
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('已拦截：${decision.blockedReason}')),
-                  );
-                }
-                return NavigationActionPolicy.CANCEL;
-              },
+              shouldOverrideUrlLoading: (controller, action) =>
+                  _handleNavigation(action),
               onProgressChanged: (controller, progress) {
                 setState(() => _progress = progress / 100);
               },
@@ -150,12 +158,90 @@ class _ImportWebPageState extends ConsumerState<ImportWebPage> {
     );
   }
 
+  /// 导航放行判定：白名单内直接放行；主框架要跳新主机时问用户一次。
+  ///
+  /// 子框架（教务页面常用 iframe 承载课表）不参与白名单判定——
+  /// 拦掉会更可能把页面弄坏，且框架内导航不改变用户看到的站点。
+  Future<NavigationActionPolicy> _handleNavigation(
+    NavigationAction action,
+  ) async {
+    final uri = action.request.url;
+    if (uri == null) return NavigationActionPolicy.ALLOW;
+    final decision = _policy!.decide(uri);
+    if (decision.allowed) return NavigationActionPolicy.ALLOW;
+
+    // 子框架只免「新主机确认」，不免 scheme 安全边界。否则 iframe 内的
+    // file:/intent:/tel: 等导航会绕过 NavigationPolicy。
+    if (!_policy!.allowsScheme(uri)) {
+      _showBlocked(decision.blockedReason);
+      return NavigationActionPolicy.CANCEL;
+    }
+    if (action.isForMainFrame == false) return NavigationActionPolicy.ALLOW;
+
+    final host = uri.host;
+    if (host.isEmpty || _deniedHosts.contains(host)) {
+      _showBlocked(decision.blockedReason);
+      return NavigationActionPolicy.CANCEL;
+    }
+    if (_hostDialogOpen) return NavigationActionPolicy.CANCEL;
+
+    if (await _confirmNewHost(host)) {
+      if (!_allowedHosts.contains(host)) _allowedHosts.add(host);
+      final schoolId = ref.read(activeSchoolProvider)?.id;
+      if (schoolId != null) {
+        await ref
+            .read(schoolRepositoryProvider)
+            .appendConfirmedHost(schoolId, host);
+      }
+      return NavigationActionPolicy.ALLOW;
+    }
+    _deniedHosts.add(host);
+    _showBlocked(decision.blockedReason);
+    return NavigationActionPolicy.CANCEL;
+  }
+
+  Future<bool> _confirmNewHost(String host) async {
+    if (!mounted) return false;
+    _hostDialogOpen = true;
+    try {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('允许访问新域名'),
+          content: Text(
+            '教务页面要跳到 $host。\n\n'
+            '账号与密码只在学校官方页面输入，本应用不接触登录凭据；'
+            '确认后会记住这个域名，本次不再询问。',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('不允许'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('允许'),
+            ),
+          ],
+        ),
+      );
+      return ok ?? false;
+    } finally {
+      _hostDialogOpen = false;
+    }
+  }
+
+  void _showBlocked(String? reason) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text('已拦截：${reason ?? '不在允许范围'}')));
+  }
+
   void _registerHandlers(InAppWebViewController controller) {
     Future<void> toast(List<dynamic> args) async {
       if (mounted && args.isNotEmpty) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('${args.first}')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('${args.first}')));
       }
       return;
     }
@@ -365,18 +451,17 @@ class _ImportWebPageState extends ConsumerState<ImportWebPage> {
       _navigatedToPreview = false;
     });
     final results = <String>[];
+    var attempted = false;
     try {
       await controller.evaluateJavascript(source: AdapterBridge.bootstrapJs);
       for (final entry in catalog.entries) {
         ref.read(importSessionProvider.notifier).reset();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('正在尝试 ${entry.name}…'),
-              duration: const Duration(seconds: 2),
-            ),
-          );
+        // 逐个尝试的过程不展示给用户（用户负责使用，机制由 App 承担）；
+        // 脚本之间留间隔，避免对同一教务连续发请求。
+        if (attempted) {
+          await Future<void>.delayed(_probeGap);
         }
+        attempted = true;
         final script = await catalog.scriptFor(entry);
         _attemptDone = Completer<bool>();
         try {
@@ -399,25 +484,22 @@ class _ImportWebPageState extends ConsumerState<ImportWebPage> {
       if (mounted) setState(() => _running = false);
     }
     if (mounted && results.isNotEmpty) {
+      // 常规失败（脚本没读到课表）不逐条罗列：对用户没有可操作价值。
+      // 只把「执行中断」这类异常报出来，便于排查。
+      String? error;
+      for (final line in results) {
+        if (line.startsWith('执行中断')) {
+          error = line;
+          break;
+        }
+      }
       await showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('没有适配器识别出课表'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('请确认已登录并打开了课表查询页面，然后重试。'),
-              const SizedBox(height: 12),
-              for (final line in results)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Text(
-                    line,
-                    style: const TextStyle(fontSize: 12.5),
-                  ),
-                ),
-            ],
+          title: const Text('没有适配到你的课表'),
+          content: Text(
+            '请确认已经登录教务、并停留在课表查询页面（学生个人课表），然后重试。'
+            '${error == null ? '' : '\n\n$error'}',
           ),
           actions: [
             FilledButton(

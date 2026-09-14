@@ -48,6 +48,14 @@ class SettingsPage extends ConsumerWidget {
             subtitle: '每节课的起止时间',
             onTap: () => context.push('/settings/bell'),
           ),
+          _tile(
+            context,
+            palette,
+            icon: Icons.event_busy_outlined,
+            title: '调休 / 停课',
+            subtitle: '放假与补课日',
+            onTap: () => context.push('/settings/calendar'),
+          ),
           const SizedBox(height: 20),
           _groupTitle(palette, '外观'),
           RadioGroup<ThemePreference>(
@@ -57,23 +65,32 @@ class SettingsPage extends ConsumerWidget {
                 ref.read(themePreferenceProvider.notifier).set(value);
               }
             },
-            child: Container(
-              decoration: _groupDecoration(palette),
-              child: Column(
-                children: [
-                  for (final preference in ThemePreference.values)
-                    RadioListTile<ThemePreference>(
-                      value: preference,
-                      title: Text(
-                        switch (preference) {
-                          ThemePreference.system => '跟随系统',
-                          ThemePreference.light => '日间',
-                          ThemePreference.dark => '夜间',
-                        },
+            // Material 必须在这里：ListTile 的背景与涟漪画在最近的 Material 上，
+            // 中间隔一层带背景的 Container 会被 Flutter 断言拦下（且涟漪看不见）。
+            child: Material(
+              color: palette.surface,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: palette.hairline),
+                ),
+                child: Column(
+                  children: [
+                    for (final preference in ThemePreference.values)
+                      RadioListTile<ThemePreference>(
+                        value: preference,
+                        title: Text(
+                          switch (preference) {
+                            ThemePreference.system => '跟随系统',
+                            ThemePreference.light => '日间',
+                            ThemePreference.dark => '夜间',
+                          },
+                        ),
+                        activeColor: palette.accent,
                       ),
-                      activeColor: palette.accent,
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -121,12 +138,6 @@ class SettingsPage extends ConsumerWidget {
         color: palette.inkTertiary,
       ),
     ),
-  );
-
-  BoxDecoration _groupDecoration(AppPalette palette) => BoxDecoration(
-    color: palette.surface,
-    borderRadius: BorderRadius.circular(12),
-    border: Border.all(color: palette.hairline),
   );
 
   Widget _tile(

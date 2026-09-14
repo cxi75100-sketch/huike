@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../schools/providers/school_providers.dart';
+import '../../schools/services/login_url_policy.dart';
 import '../../schools/services/school_repository.dart';
 import '../widgets/import_widgets.dart';
 
@@ -11,7 +12,8 @@ import '../widgets/import_widgets.dart';
 ///
 /// 学生不需要知道教务系统类型：执行导入时 App 会依次尝试全部内置
 /// 适配器，能识别当前页面的脚本自己会成功。安全准则不变：
-/// 候选地址必须显式确认；本构建只支持 HTTPS 教务。
+/// 候选地址必须显式确认（明文 HTTP 额外警示）；判定与建校/改址共用
+/// `checkLoginUrl`（见 knowledge/decisions.md DEC-006）。
 class ImportEntryPage extends ConsumerStatefulWidget {
   const ImportEntryPage({super.key});
 
@@ -73,10 +75,10 @@ class _ImportEntryPageState extends ConsumerState<ImportEntryPage> {
           const SizedBox(height: 20),
           SectionHeaderLabel('导入步骤'),
           Text(
-            '1. 在下面填入学校教务网址（HTTPS）。\n'
+            '1. 在下面填入学校教务网址。\n'
             '2. 登录教务系统（账号密码只在贵校官方页面输入）。\n'
             '3. 打开「学生课表」之类的页面并完成一次课表查询。\n'
-            '4. 点右上角「执行导入」，App 会自动逐个尝试内置适配器。',
+            '4. 点右上角「执行导入」，App 会自动适配并导入。',
             style: TextStyle(fontSize: 14, height: 1.9, color: palette.ink),
           ),
           const SizedBox(height: 20),
@@ -114,13 +116,13 @@ class _ImportEntryPageState extends ConsumerState<ImportEntryPage> {
 
   Future<void> _start(String schoolId) async {
     final messenger = ScaffoldMessenger.of(context);
-    final uri = Uri.tryParse(_urlController.text.trim());
-    if (uri == null || !uri.hasScheme || uri.host.isEmpty) {
-      messenger.showSnackBar(const SnackBar(content: Text('网址格式不正确')));
+    // 明文 HTTP 不按学校名单拦截（站点协议由学校决定），判定与建校/改址共用同一函数。
+    final check = checkLoginUrl(_urlController.text, required: true);
+    if (!check.ok) {
+      messenger.showSnackBar(SnackBar(content: Text(check.error!)));
       return;
     }
-    // 明文 HTTP 不按学校名单拦截：站点是否明文由学校决定，
-    // 拦截只会让功能不可用。风险由确认弹窗明示（见下）。
+    final uri = check.uri!;
 
     final ok = await showDialog<bool>(
       context: context,
