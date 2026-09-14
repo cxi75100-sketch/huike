@@ -1,7 +1,7 @@
 name: huike_timetable
 description: 汇课：多校通用课表 App。
 publish_to: 'none'
-version: 0.1.2+3
+version: 0.1.3+4
 
 environment:
   sdk: ^3.13.2

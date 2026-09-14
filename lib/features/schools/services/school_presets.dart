@@ -72,3 +72,14 @@ SchoolPreset? presetById(String id) {
   }
   return null;
 }
+
+/// 按学校名精确匹配内置档案（只用于数据修复：老学校的 `presetId` 为空时，
+/// 校名与档案一致才认定是同一所，不做模糊匹配）。
+SchoolPreset? presetByDisplayName(String displayName) {
+  final name = displayName.trim();
+  if (name.isEmpty) return null;
+  for (final preset in [ncpuPreset]) {
+    if (preset.displayName == name) return preset;
+  }
+  return null;
+}

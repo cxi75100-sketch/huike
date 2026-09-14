@@ -139,3 +139,21 @@ TASK-011。首页撤销两条没赢得位置的做法：「今日再画一条十
 验证：`flutter analyze` 无问题、`flutter test` **112/112**；装机 `ncpu_api36` 实测
 「引导页点南工 → 预填新地址 → 建校 → 导入页确认（含明文警示）→ WebView 成功加载
 南昌工学院正方登录页」，全程未输入任何凭据（真实登录仍为 `UNVERIFIED`，见 TASK-006）。
+
+## 0.1.3+4 (2026-09-14)：补齐老学校缺失的教学楼作息变体
+
+用户导入后反馈「有的教学楼时间不同，你没有做区分」。查证：档案与代码都没问题
+（新建学校实测 明志楼 3-4 节 = 10:15），问题是**老数据**——变体只在建校时播种，
+schema v2 之前建的学校变体列是迁移默认的 `'[]'`，没有任何路径补回来，
+于是这些学校永远显示基础时间（10:25）。详见 ISSUE-014。
+
+- 新增 `SchoolRepository.repairPresetVariants()`：只给「变体列为空」的学校补写档案变体
+  （`presetId` 缺失时按校名精确匹配档案），已有变体不动、幂等。
+- 新增启动钩子 `presetVariantRepairProvider`，由 App 外壳 watch 一次
+  （不放进 Drift 迁移：`core/database` 不应反向依赖 `features/schools`）。
+- 新增 `test/school_variant_seeding_test.dart` 7 条：建校播种、校区前缀教室文本匹配
+  （`九龙湖校区明志楼223`）、老数据补齐、不误伤其它学校、以及接线级断言。
+
+验证：`flutter analyze` 无问题、`flutter test` **119/119**。
+装机验证受限：模拟器只能用 ASCII 输入课程表单，无法造出中文教室名的课程，
+真机显示效果待用户反馈（`UNVERIFIED`）。

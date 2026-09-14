@@ -79,6 +79,33 @@ class SchoolRepository {
     }
   }
 
+  /// 数据修复：给「有内置档案但变体列为空」的学校补写按教室作息变体（ISSUE-014）。
+  ///
+  /// v2 之前的学校 `scheduleVariantsJson` 是迁移默认的 `'[]'`，而变体只在建校那一次
+  /// 播种，于是这些学校永远拿不到档案里的变体（表现：明志楼第 3、4 节没提前 10 分钟）。
+  /// 只填空值、幂等；已有变体或没有档案的学校不动。`presetId` 为空时按校名精确匹配档案。
+  Future<void> repairPresetVariants() async {
+    final rows = await _db.select(_db.schools).get();
+    for (final row in rows) {
+      if (schoolVariantsFromRow(row).isNotEmpty) continue;
+      final preset = row.presetId.isNotEmpty
+          ? presetById(row.presetId)
+          : presetByDisplayName(row.displayName);
+      if (preset == null || preset.bell.variants.isEmpty) continue;
+      await (_db.update(
+        _db.schools,
+      )..where((t) => t.id.equals(row.id))).write(
+        SchoolsCompanion(
+          scheduleVariantsJson: Value(
+            jsonEncode([
+              for (final variant in preset.bell.variants) variant.toJson(),
+            ]),
+          ),
+        ),
+      );
+    }
+  }
+
   /// 更新教务登录地址（http/https 均可）并把新主机并入白名单。
   Future<void> updateLoginUrl(String schoolId, Uri uri) async {
     await appendConfirmedHost(schoolId, uri.host);
@@ -226,4 +253,12 @@ class SchoolRepository {
 
 final schoolRepositoryProvider = Provider<SchoolRepository>(
   (ref) => SchoolRepository(ref.watch(databaseProvider)),
+);
+
+/// 启动时跑一次的数据修复：补齐老学校缺失的档案变体（ISSUE-014）。
+///
+/// 不放进 Drift 迁移，是因为 `core/database` 不应反向依赖 `features/schools`
+/// 的档案数据（分层约束）；这里由 App 外壳 watch 一次触发，方法本身幂等。
+final presetVariantRepairProvider = FutureProvider<void>(
+  (ref) => ref.watch(schoolRepositoryProvider).repairPresetVariants(),
 );

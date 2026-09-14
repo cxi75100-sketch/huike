@@ -172,7 +172,7 @@ knowledge/                                 知识库（结构见 §10）
 
 ---
 
-## 5. 测试清单（16 文件 / 110 条）
+## 5. 测试清单（17 文件 / 119 条）
 
 | 文件 | 覆盖 |
 | --- | --- |
@@ -192,6 +192,7 @@ knowledge/                                 知识库（结构见 §10）
 | `calendar_exception_repository_test.dart` | **新增**：内存库写入读回、同日二次写入是覆盖、编辑换日期不残留、停课忽略 makeupWeekday、删除只删指定、跨校隔离、删校级联清 |
 | `calendar_exception_ui_test.dart` | **新增**：今日停课空状态、调休提示条、「设置 → 调休 / 停课」路由 |
 | `app_shell_test.dart` | App 壳 widget：引导→建校→首页；空课日空状态；`today-agenda`/`week-agenda` 互斥切换、整周当天行 key、首页无「本周线路概览」语义标签 |
+| `school_variant_seeding_test.dart` | **新增**：建校播种按教室变体、`九龙湖校区明志楼223` 这类校区前缀仍命中变体、老学校（变体列为空）按 `presetId`/校名补齐、不误伤无档案或已有变体的学校、修复→provider 组装→解析出 10:15（ISSUE-014） |
 
 **缺口**：没有迁移测试（Drift `SchemaVerifier` 未接入），v2→v3 的 `createTable` 只在内存库
 新建成库的路径上被间接验证过；页面级 widget 测试只覆盖了设置与今日/整周的一小部分。
@@ -376,6 +377,17 @@ knowledge/
     （`name=huike` 是 ASCII，可放命令行；`description` 走文件传）。
 16. **Gitee API 不支持 DELETE 删分支**（405）→ 用
     `git push <url> --delete <branch>`（同样走上面的 Basic 头）。
+17. **`autoDispose` provider 不能用「轮询 + `container.read`」等待**：每轮 read 都会把
+    整条链重建、异步流来不及发出首帧，永远读到 null。要么挂一个常驻
+    `container.listen(..., fireImmediately: true)` 再 `sub.read()`，要么把依赖的流
+    provider `overrideWith` 成同步值。
+18. **`flutter test` 被杀掉后会留下 `flutter_tester.exe` 占着
+    `build/native_assets/windows/sqlite3.dll`**，下一次运行报「Flutter failed to delete
+    file」。用法：`taskkill //F //IM flutter_tester.exe` 后重跑（别删那个 dll，
+    它是构建产物，删了会触发重建）。
+19. **只看代码会漏掉「只在创建时播种」的数据类缺陷**：变体、白名单都属此类——
+    逻辑测试全绿，老用户仍然错（ISSUE-014）。碰到「创建时写入、之后只读」的数据，
+    先问「老数据怎么办」。
 
 ---
 

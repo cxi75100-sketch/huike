@@ -249,3 +249,32 @@ Evidence: `flutter analyze` 无问题、`flutter test` **112/112**；装机 `ncp
 
 Prevention: 预设里的学校数据（地址、作息、变体）要能随外部现实变化被复核；
 用户报「登不进去」时先做 DNS 与连通性验证，再怀疑代码。
+
+## ISSUE-014 老学校的「按教学楼作息变体」从未补齐，明志楼没提前 10 分钟
+
+Status: Resolved（2026-09-14，用户报障并提供课表截图）
+
+Observed: 用户导入后截图显示「九龙湖校区明志楼223」的工程力学，第 3-4 节是
+10:25-11:55（基础时间），而档案规定明志楼应为 10:15-11:45。
+
+Root Cause: 变体只在 `createSchool` 那一次播种。schema v2 之前建的学校，
+`scheduleVariantsJson` 是迁移新增列时的默认值 `'[]'`，**没有任何路径把它补回来**，
+于是这些学校永远按基础作息显示——即使档案、匹配逻辑、运行时组装全都正确。
+新建学校的路径经测试确认是好的，所以这是纯粹的历史数据缺口，不是逻辑缺陷。
+
+Impact: 凡是「先建校、后升级」的用户（先装 09-13 版本再升级的都算），
+明志/明德/至善的教学楼时间全部显示偏晚 10 分钟；用户会以为 App 不区分教学楼。
+
+Resolution: `SchoolRepository.repairPresetVariants()` —— 只对「变体列为空」的学校补写
+档案变体（`presetId` 缺失时按校名精确匹配档案），已有变体的学校一律不动，幂等。
+由 `presetVariantRepairProvider` 在 App 外壳启动时触发一次（不放进 Drift 迁移，
+因为 `core/database` 不应反向依赖 `features/schools` 的档案数据）。
+
+Evidence: `flutter analyze` 无问题、`flutter test` **119/119**；新增
+`test/school_variant_seeding_test.dart` 7 条，覆盖建校播种、校区前缀教室文本匹配、
+老数据补齐（按 presetId / 按校名）、不误伤无档案或已有变体的学校、
+以及「修复 → provider 组装 → 解析出 10:15」的接线级断言。
+装机验证受限：模拟器无法输入中文教室名，真机效果待用户反馈。
+
+Prevention: 新增「只在创建时播种」的数据时，要一并回答「老数据怎么办」；
+纯空值补写是安全的修复方式，覆盖式写入不是。

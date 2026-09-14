@@ -6,6 +6,7 @@ import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_preference.dart';
 import 'core/theme/theme_preference_provider.dart';
+import 'features/schools/services/school_repository.dart';
 
 class HuikeApp extends ConsumerWidget {
   const HuikeApp({super.key});
@@ -14,6 +15,8 @@ class HuikeApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
     final preference = ref.watch(themePreferenceProvider).value;
+    // 启动时补一次老学校缺失的档案变体（幂等，见 ISSUE-014），结果不参与渲染。
+    ref.watch(presetVariantRepairProvider);
 
     return MaterialApp.router(
       title: '汇课',
