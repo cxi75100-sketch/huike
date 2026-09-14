@@ -29,8 +29,61 @@
   （区块 12/控件 10/小签 4）、明暗双主题、数字 tabular figures。
 - 应用图标：朱砂印章 + 华文行楷「汇」+ 内框（tools/make_icon.py 生成；
   候选方案存 assets/icon/candidates/）。
-- Android 主清单声明 INTERNET；未开明文 HTTP（导入仅允许 HTTPS 教务）。
+- Android 主清单声明 INTERNET。**明文 HTTP 策略（2026-09-13 最终）**：多校教务大量为明文
+  且无法在运行期新增放行域名，故放开明文——Android `network_security_config` 的 base-config
+  允许明文、iOS `NSAllowsArbitraryLoadsInWebContent`（仅 WebView）；应用层保留两道门：
+  入口地址确认（明文额外警示）+ 导航仅限确认过的主机。引导页建校与导入入口策略一致。
+- 仓库上传 Gitee `chenxihh/huike` 并于 2026-09-14 转为公开（tag `v0.1.0`）；
+  推送前做过敏感信息扫描，构建产物未入库。
 
-验证：`flutter analyze` 无问题；`flutter test` 65/65；Debug APK 构建成功；
+验证：`flutter analyze` 无问题；`flutter test` **90/90**（明文策略变更后重新构建与复测，
+后续新增导航白名单与地址校验单测共 14 条）；
+Debug APK 构建成功；release 三 ABI 包复核 `INTERNET` 权限与 `networkSecurityConfig` 资源；
 `ncpu_api36` 模拟器冒烟（引导/建校/加课/周历/详情/设置/导入探测循环/删校）
 全程无致命异常。真实教务导入与 iOS 构建 `UNVERIFIED`。
+
+## 0.1.0+1 追加（2026-09-14，未发新版号）
+
+TASK-010 接手审查修复：
+
+- 子框架继续免去跨主机确认，但不再绕过 scheme 安全边界；`file:`、`intent:`、`tel:`
+  等非 HTTP(S) 导航在主框架和子框架中都由应用层拦截（ISSUE-011）。
+- 复核：`flutter analyze` 无问题，导航策略测试 6/6 通过；完整基线仍为 109/109。
+
+导入链路可用性修复（TASK-009，落实 DEC-005/DEC-006/DEC-007）：
+
+- **导航跨域确认**：WebView 放行范围 = 入口地址 + 学校档案已确认主机 + 会话中新确认主机。
+  主框架跳到新主机时弹窗问一次「允许访问 xxx」，同意即记住（落库只增不减），拒绝则本会话
+  不再问；子框架不参与判定（教务常用 iframe）。此前只放行入口那一台主机，
+  教务登录跳统一认证/CAS 会被静默拦截、导入卡在登录页。
+- **scheme 不再按入口地址钉死**：http 与 https 都允许，教务站协议互跳不再失败。
+- **地址校验统一**（DEC-006）：新增 `features/schools/services/login_url_policy.dart`，
+  引导页建校、学校管理改址、导入入口三处共用；学校管理页不再硬拦明文 HTTP。
+- **探测过程收敛**（DEC-007「机制归交付方」）：不再提示「正在尝试某个适配器」，全部失败不逐项
+  罗列、不征求是否继续，脚本之间间隔 800ms 控制请求节奏。
+
+验证：`flutter analyze` 无问题、`flutter test` **90/90**。跨域确认弹窗与探测节奏的
+UI 行为待装机复测（`UNVERIFIED`）。
+
+同日知识库按固定结构重构：新增 `README.md`（索引与项目边界）、`decisions.md`（DEC-001~010）、
+`issues.md`（ISSUE-001~009），`tasks.md` 拆出 `## Blocked` 段；并校正此前的过期陈述
+（schema 版本、作息节数、明文策略、应用名、发布状态、测试基线），见 ISSUE-009。
+
+## 0.1.0+1 追加（2026-09-14）：调休 / 停课例外
+
+TASK-004 校历例外（落实 DEC-009、DEC-010）：
+
+- schema 升 **v3**：新增 `calendar_exceptions`（`schoolId` + `semesterId` + `dateIso` +
+  `kind(holiday|makeup)` + `makeupWeekday?` + `note`）。v2→v3 是 `createTable`，
+  老数据升级后语义不变（空表 = 没有任何例外）。生成类名用 `@DataClassName('CalendarExceptionRow')`
+  避开与模型同名。
+- 只表达两种语义：**这天停课**、**这天按某个星期的课表上课**；同一天只保留一条，
+  再填即覆盖，不叠规则（DEC-010）。
+- 新增纯函数 `CalendarExceptionService.resolve(date) → DaySchedule{weekday, suspended}`，
+  今日与整周共用：今日页停课显示空状态牌、调休显示「今天按周X的课表上课」提示条；
+  整周列头给「停课 / 调休 · 按周X」小签，课程按折算后的星期取。
+- 设置新增「调休 / 停课」页：日期选择 + 停课/调休单选 + 星期选择 + 备注，可改可删；
+  删校时级联清例外。
+
+验证：`flutter analyze` 无问题、`flutter test` **109/109**（新增 19 条：服务 9 + 仓储 7 + 界面 3）。
+装机与视觉待验（`UNVERIFIED`，见 ISSUE-005）。

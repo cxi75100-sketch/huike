@@ -14,7 +14,7 @@ lib/
   app.dart                      # MaterialApp.router + 明暗主题 + 中文本地化
   core/
     database/
-      app_database.dart         # Drift schema v1 + 行→模型扩展
+      app_database.dart         # Drift schema v2（含 v1→v2 迁移）+ 行→模型扩展
       database_provider.dart    # 全局库（LazyDatabase；测试注入内存库）
     router/app_router.dart      # 路由表 + onboarding redirect
     theme/
@@ -28,25 +28,30 @@ lib/
     semester.dart               # 学期（开学周一锚点 + 总周数）
     bell_schedule.dart          # 节次规范 + 时段分组 + 通用兜底 + equalsFallback
     course.dart                 # Course + CourseSource{manual, imported}
+    calendar_exception.dart     # 校历例外（停课 / 调休补课）
   services/
     week_parser.dart            # 1-16周(单) 解析/格式化
     semester_service.dart       # currentWeek / termStatus / dateFor / weekdayOf
     course_time_service.dart    # 显式时间 > 作息表；缺失节次不猜
+    calendar_exception_service.dart # 例外 → 某天按哪天的课表（纯 Dart，UI 共用）
   features/
     schools/
       services/adapter_catalog.dart   # assets/adapters/catalog.json 加载
+      services/login_url_policy.dart  # 教务地址校验（建校/改址/导入入口三处共用）
       services/school_repository.dart # 建校/切换/删除/学期/作息（播种只一次）
+      services/calendar_exception_repository.dart # 调休/停课写路径（同日覆盖）
       providers/school_providers.dart # 学校流/激活学校/激活学期/作息流
+      providers/calendar_exception_providers.dart # 例外流 + 激活学校解析器
     import/
       models/adapter_batch.dart       # 脚本回传数据规范化（无效条目计数）
       services/adapter_bridge.dart    # shiguangBridge* 契约桥（8 处理器）
       services/import_session.dart    # 内存暂存 + 合并规范化
-      services/navigation_policy.dart # https + host 白名单（纯 Dart 可测）
+      services/navigation_policy.dart # scheme（http/https）+ host 白名单（纯 Dart 可测）
       services/import_diff.dart       # added/removed/changed
       services/course_repository.dart # 导入替换事务 + 手动 CRUD + 内容指纹 id
       services/import_session_cleaner.dart
-      pages/import_entry_page.dart    # 风险门 + HTTPS 强制 + URL 确认
-      pages/import_web_page.dart      # 受限 WebView + 执行导入 + 原生桥弹窗
+      pages/import_entry_page.dart    # 风险门（明文额外警示）+ 地址确认（共用 checkLoginUrl）
+      pages/import_web_page.dart      # 受限 WebView + 跨域逐主机确认 + 自动探测 + 原生桥弹窗
       pages/import_preview_page.dart  # 差异四类明细 + 附加选项 + 确认写入
       widgets/import_widgets.dart     # 分组标题 / 风险确认块
     timetable/
@@ -57,22 +62,26 @@ lib/
       widgets/course_listing_row.dart # EmptyDayPlate（列表行已由槽位网格取代）
       widgets/section_slot_board.dart # 节次槽位网格（今日宽版 / 整周窄列共用）
     settings/
-      pages/settings_page.dart        # 学校/学期/作息/外观/关于
+      pages/settings_page.dart        # 学校/学期/作息/调休停课/外观/关于
       pages/school_manage_page.dart   # 切换/菜单（改网址/删除）
       pages/semester_settings_page.dart
       pages/bell_settings_page.dart
+      pages/calendar_exception_page.dart # 调休/停课：按日期维护例外
     onboarding/pages/onboarding_page.dart  # 创建学校 + 第一学期（必经）
 ```
 
-## Data Model（schema v1）
+## Data Model（schema v3；v1→v2 为 `addColumn`，v2→v3 为 `createTable`）
 
-- `schools(id PK, displayName, adapterId, loginUrl, acceptedHostsJson, createdAt)`
-  —— 没有默认学校；空表 = 引导页。
+- `schools(id PK, displayName, adapterId, presetId, loginUrl, acceptedHostsJson,
+  scheduleVariantsJson, createdAt)`
+  —— 没有默认学校；空表 = 引导页。`presetId`/`scheduleVariantsJson` 为 v2 新增。
 - `semesters(id PK, schoolId, firstWeekMondayIso, totalWeeks)` —— 生成类名
   `SemesterRow`（@DataClassName，避免与模型 Semester 重名）。
 - `course_entries(id PK, schoolId, semesterId, source enum, name, teacher, classroom,
   weekday, startSection, endSection, weeksJson, startTime?, endTime?, note, colorKey)`。
 - `section_time_entries(schoolId+sectionIndex PK, start, end, periodGroup enum)`。
+- `calendar_exceptions(id PK, schoolId, semesterId, dateIso, kind enum, makeupWeekday?,
+  note)` —— 校历例外；同一天只保留一条（写路径保证），空表 = 没有例外。
 - `settings(key PK, value)` —— theme_mode / active_school_id / active_semester:<sid>。
 
 ## Data Flow
@@ -80,9 +89,16 @@ lib/
 页面 → Riverpod provider → repository → Drift → SQLite；列表页全部 watch 流，
 写入后自动刷新。激活学校决定首页内容；没有激活学校时路由 redirect 到引导页。
 
-导入：入口确认（HTTPS + 风险勾选）→ WebView（白名单）→ 桥处理器把三类 JSON
+导入：入口确认（地址 + 明文 HTTP 额外警示 + 风险勾选）→ WebView（主框架新主机弹窗确认，
+确认后只增不减）→ 桥处理器把三类 JSON
 规范化进内存会话 → `notifyTaskCompletion` 触发跳预览 → 差异与选项确认 →
 事务替换 imported + 可选替换作息/学期配置 → 清理会话与 HTTP 缓存（保留 Cookie）。
+探测期间不展示逐个尝试的过程（DEC-007）。
+
+课表显示：课程本身以「周次 × 星期」表达，某一天到底按哪天的课表上课由
+`calendar_exceptions` 经 `CalendarExceptionService` 折算——今日视图据此决定空状态还是
+时间轴，整周视图据此决定列里放哪个星期的课。**新增任何「按天取课」的消费方
+（小组件、提醒）都必须走同一个折算**，不要各自判星期。
 
 ## Conventions
 

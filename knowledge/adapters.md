@@ -51,8 +51,15 @@ Status: 代码与单测已验证（2026-09-13）；真实教务端到端 `UNVERI
   原始 JSON 离开导入页即丢弃（`ImportSessionCleaner`）。
 - 落库必须经预览页确认；差异按 (schoolId, semesterId, source=imported) 范围替换，
   手动课程永不触碰。
-- WebView 导航白名单：scheme 仅 https（V1 不支持明文 HTTP 教务，入口页显式拦截并说明），
-  host 仅用户确认过的主机（创建学校时的登录地址 + 运行期显式确认追加，只增不减）。
+- WebView 导航白名单：scheme 允许 http/https（明文教务已放开）。host 放行范围 =
+  入口地址主机 + 学校档案 `acceptedHosts` + **会话中用户新确认的主机**——主框架跳到新主机时
+  弹窗问一次「允许访问 xxx」，同意即加入白名单并通过 `appendConfirmedHost` 落库（只增不减），
+  拒绝过的主机本次会话不再询问。因此教务登录跳统一认证/CAS 可正常继续。
+  子框架（iframe）不参与判定：正方等教务常用 iframe 承载课表，拦掉会弄坏页面
+  （`import_web_page.dart` 的 `_handleNavigation`）。
+- 自动探测：点「执行导入」后依次尝试全部内置脚本，**不向用户展示逐个尝试的过程、失败也不
+  征求是否继续（DEC-007）；脚本之间固定间隔 800ms 控制请求节奏。全部失败只给一句
+  可操作提示（异常才附错误行）。
 - 账号密码只在用户学校官方页面输入；App 不接触凭据，不绕过验证码/认证。
 
 ## 4. 导入写路径

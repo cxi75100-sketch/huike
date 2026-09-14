@@ -2,10 +2,17 @@
 
 Date: 2026-09-13
 Version: 0.1.0+1（本地）
-Status: **可用**（Android 装机验证通过）；真实教务导入与 iOS 未验证；远端未上传（待令牌）
+Status: **可用**（Android 装机验证通过）；真实教务导入与 iOS 未验证；远端已上传 Gitee 并转公开
 
 本报告面向「在另一个会话里直接接手」的 Agent 或本人。**先读本文件，再读
 `knowledge/current_state.md` 与 `knowledge/tasks.md`**；`AGENTS.md` 是硬性工作规范。
+
+> **2026-09-14 追加**：本报告正文描述的是 2026-09-13 的状态。此后已完成
+> TASK-009（导入链路可用性修复，落实 DEC-005/DEC-006/DEC-007）：WebView 导航改为
+> 「跨域跳转 + 逐主机确认」、教务地址校验统一到 `login_url_policy.dart`（学校管理页
+> 也放开明文）、探测不再展示逐个尝试过程。因此 §3 的测试数（76/76）与 §6 的
+> 「全部失败弹逐项汇总」已过时：当前基线 **109/109**，失败提示改为单句可操作提示。
+> 规范与决策以 `architecture.md`、`decisions.md`、`issues.md` 为准（索引见 `README.md`）。
 
 ---
 
@@ -18,8 +25,8 @@ Status: **可用**（Android 装机验证通过）；真实教务导入与 iOS �
 | 代替路径 | S: 盘（`subst S: "D:\桌面\汇课"`），中文路径下 Flutter 工具链必须在 S: 下跑 |
 | 包名 | `com.huike.huike_timetable` |
 | 版本 | `0.1.0+1`（pubspec.yaml） |
-| 本地提交 | 7 笔，最新 `c1d56cd`；`git log --oneline` 为准 |
-| 远端 | `origin` = `https://gitee.com/chenxihh/huike.git`（**已推送**，当前为**私有**；公开需账号完成 2FA/绑定第三方，见 §11） |
+| 本地提交 | 以 `git log --oneline` 为准（写作时 7 笔 / `c1d56cd`；2026-09-14 已到 11 笔 / `251fea8`） |
+| 远端 | `origin` = `https://gitee.com/chenxihh/huike.git`（**已推送**，2026-09-14 起为**公开**；tag `v0.1.0`，见 §11） |
 | 签名 | release 用 Flutter 默认 debug 证书（自用试用可；正式发布需换正式 keystore） |
 | 知识库 | `D:\桌面\汇课\knowledge\`（本报告所在目录） |
 
@@ -256,7 +263,7 @@ adb shell am start -W -n com.huike.huike_timetable/.MainActivity
 
 ## 13. 需要用户提供/确认
 
-1. **Gitee 令牌**（projects 权限）→ 我建仓 + 推送 + 读回校验，用完请撤销。
+1. ~~Gitee 令牌~~（已于 2026-09-14 用毕：建仓 + 推送 + 读回校验完成）→ 用户已确认**撤销**。
 2. **真机导入结果**：南工执行导入后是否命中适配器；失败汇总截图。
 3. 是否要出正式签名（换 keystore 需卸载重装，会丢本机数据）。
 4. iOS 是否需要（需 mac 环境）。
@@ -266,4 +273,4 @@ adb shell am start -W -n com.huike.huike_timetable/.MainActivity
 - `CONFIRMED`：analyze 干净、测试 76/76、release 构建与包内权限/安全配置、模拟器全流程冒烟
   （含导入探测循环）、南工作息与变体（单测）、图标装机观感、老仓库决策提交推送读回。
 - `UNVERIFIED`：真实教务导入、真机 arm64 安装、iOS 构建、桌面小组件与提醒（未开始）。
-- `BLOCKED`：Gitee 上传（等令牌）；真实导入验收（等用户真机操作）。
+- `BLOCKED`：真实导入验收（等用户真机操作，TASK-006）。Gitee 上传已于 2026-09-14 完成并转公开。

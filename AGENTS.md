@@ -1,12 +1,12 @@
 # Agent 工作规范
 
 本项目是「汇课」：一个多校通用课表 App，与任何单校项目相互独立、代码与数据完全分离。
-任何 Agent 开工前必须按顺序阅读：
+本项目维护可供不同 Agent 接手的本地知识库。任何 Agent 开工前必须按顺序阅读：
 
 1. `AGENTS.md`
 2. `knowledge/current_state.md`
 3. `knowledge/tasks.md`
-4. 与当前任务有关的专题文档（`architecture.md`、`adapters.md`、`design.md` 等）
+4. 与当前任务有关的专题文档（索引见 `knowledge/README.md`）
 
 禁止仅依赖聊天上下文理解项目状态。代码、测试和知识库必须同步更新。
 
@@ -25,6 +25,27 @@
 - `UNVERIFIED`：尚未验证。
 - `BLOCKED`：缺少外部条件，当前无法确认。
 
+## 工程准则
+
+- **知识库同步属于同一笔提交**：改代码或改策略时，同一次提交内更新
+  `knowledge/current_state.md`（含顶部 Last Updated）、`knowledge/tasks.md` 及受影响的专题文档。
+  不允许遗留「文档说 A、代码说 B」；冲突时以代码与测试为准，先修文档再干活。
+- **一处策略，一处定义**：明文放行、主机白名单、地址校验这类跨页判定只允许存在一个函数，
+  各入口调用它；禁止每个页面各写一份校验（见 DEC-006）。
+- **放宽类改动先做入口盘点**：协议 / 域名 / 权限 / 超时类改动，动手前先列全部入口，
+  逐项改并逐项验证，缺一不算完成。当前入口清单：`onboarding_page.dart`（建校）、
+  `school_manage_page.dart`（改址）、`import_entry_page.dart`（导入确认）、
+  `import_web_page.dart` + `navigation_policy.dart`（WebView 导航）、
+  `AndroidManifest.xml` + `network_security_config`、`Info.plist`（iOS ATS）。
+- **宣称的能力必须在代码里有接线**：注释或文档写出的机制要有调用点；没有就补实现或删描述
+  （反例见 ISSUE-001）。
+- **未验证不得宣称可用**：真实教务、iOS、真机相关只能标 `UNVERIFIED`，
+  不得写进「已完成」或「Working Features」。
+- **大段代码改动整文件重写**：约 20 行以上的 Dart 改动禁止用 shell 字符串替换；
+  脚本式替换改完必须断言命中。
+- **机制归交付方**：不把内部机制的选择权交给用户，也不展示内部过程。
+  用户只做「填地址 → 登录 → 点导入 → 确认写入」（见 DEC-007）。
+
 ## 安全边界
 
 - 不保存或上传教务密码。
@@ -38,6 +59,7 @@
 
 ## 编码纪律
 
+Codex八荣八耻：
 以瞎猜接口为耻，以认真查询为荣；
 以模糊执行为耻，以寻求确认为荣；
 以臆想业务为耻，以人类确认为荣；

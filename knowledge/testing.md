@@ -12,7 +12,7 @@
 ```bash
 cd /s/
 flutter analyze          # 当前基线：No issues found
-flutter test             # 当前基线：65/65（含 3 个 App 壳 widget 测试）
+flutter test             # 当前基线：109/109（含 App 壳与界面 widget 测试）
 flutter build apk --debug
 adb install -r build/app/outputs/flutter-apk/app-debug.apk
 ```
@@ -28,6 +28,18 @@ adb install -r build/app/outputs/flutter-apk/app-debug.apk
 - 数据库/仓库语义（内存库）：作息只播种一次、导入替换保手动课、跨校隔离、
   内容指纹 id、级联删除、设置读写。
 - 适配器目录（4 条目、资产存在、脚本用桥契约）。
+- 导航白名单（`navigation_policy_test`）：白名单放行、http/https 都允许、未确认主机拦截、
+  子域名不自动放行、非 http(s) scheme 一律拦截、名单追加后原策略即刻生效。
+- 教务地址校验（`login_url_policy_test`）：空输入必填/非必填、http 标记明文、https、裁剪空白、
+  缺 scheme、非 http(s) scheme、无主机——三处入口共用同一函数（DEC-006）。
+- 校历例外解析（`calendar_exception_service_test`）：无例外按自然星期、停课当天、
+  同一天任意时刻都命中、调休按目标星期、未指定目标星期退回自然星期、
+  越界目标星期夹到 1-7、多条例外互不干扰、中文星期名。
+- 校历例外写路径（`calendar_exception_repository_test`，内存库）：写入可读回（时刻被裁掉）、
+  同一天二次写入是覆盖、带 id 编辑换日期不残留、停课忽略传入的 makeupWeekday、
+  删除只删指定记录、跨校隔离、删校级联清。
+- 校历例外界面（`calendar_exception_ui_test`）：今天标停课后首页显示停课空状态、
+  标调休后显示「今天按周五的课表上课」提示条、从设置能进入「调休 / 停课」页并列出例外。
 - App 壳 widget 流程（全新安装→引导；创建学校→首页；空课日→历书式空状态）。
 
 ## 真机/模拟器验证约定
