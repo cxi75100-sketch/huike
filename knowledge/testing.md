@@ -12,7 +12,7 @@
 ```bash
 cd /s/
 flutter analyze          # 当前基线：No issues found
-flutter test             # 当前基线：109/109（含 App 壳与界面 widget 测试）
+flutter test             # 当前基线：110/110（含 App 壳与界面 widget 测试）
 flutter build apk --debug
 adb install -r build/app/outputs/flutter-apk/app-debug.apk
 ```
@@ -40,7 +40,8 @@ adb install -r build/app/outputs/flutter-apk/app-debug.apk
   删除只删指定记录、跨校隔离、删校级联清。
 - 校历例外界面（`calendar_exception_ui_test`）：今天标停课后首页显示停课空状态、
   标调休后显示「今天按周五的课表上课」提示条、从设置能进入「调休 / 停课」页并列出例外。
-- App 壳 widget 流程（全新安装→引导；创建学校→首页；空课日→历书式空状态）。
+- App 壳 widget 流程（全新安装→引导；创建学校→首页；空课日→历书式空状态；
+  今日课程→详情页十站节次线）。
 
 ## 真机/模拟器验证约定
 
@@ -50,3 +51,13 @@ adb install -r build/app/outputs/flutter-apk/app-debug.apk
   不触碰其它应用的数据。
 - 导入探测的端到端验证可用任意 HTTPS 站点（如 example.com）：四个适配器应依次
   尝试并弹出逐项失败汇总；真实教务导入仍需用户本人登录（`UNVERIFIED`）。
+
+## 2026-09-14 TASK-010 模拟器实画
+
+- `CONFIRMED`：`ncpu_api36` / API 36 / x86_64 安装 release 包；日间首页、整周、设置与
+  夜间整周已实画检查，两列窄屏没有溢出，空槽在夜间模式的节次/时间对比度已调高。
+- `CONFIRMED`：冷启动约 0.7s；logcat 未命中 `FATAL EXCEPTION` / `E/flutter` /
+  `RenderFlex overflowed` / `MissingPluginException` / ANR。
+- `CONFIRMED`：release x86_64 APK 构建成功，已覆盖安装并保留测试学校。模拟器已停在
+  「导入教务课表」风险确认入口，等用户本人登录。
+- `UNVERIFIED`：真实教务站登录、课表解析、差异预览与确认写入。
