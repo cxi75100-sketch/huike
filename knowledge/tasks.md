@@ -10,10 +10,7 @@
 
 ## Now
 
-- [ ] TASK-008 仓库转公开（`BLOCKED` 等用户在 Gitee 完成 2FA 或绑定第三方账号）：
-  仓库 `chenxihh/huike` 已推送但为私有；Gitee 限制未完成 2FA 的账号发布公开内容。
-  2026-09-14 复试 `PATCH private=false` 仍返回同一拒绝（账号安全评级），**不能绕过**；
-  用户二选一后（绑定 QQ/微信/GitHub 等，或开启 2FA），执行同一条 PATCH 并读回确认。
+- （无）TASK-002～006 见 Next，真实教务导入验收等用户真机反馈。
 
 ## Next
 
@@ -26,6 +23,9 @@
 
 ## Done
 
+- [x] TASK-008 仓库转公开（2026-09-14 完成）：用户绑定第三方账号后执行
+      `PATCH private=false` 成功；**无令牌** `git ls-remote` 可读 master `ceb3686` 与
+      tag `v0.1.0`，网页描述可命中——公开可用性已复核。
 - [x] TASK-007 上传汇课仓库到 Gitee（2026-09-14 完成）：建仓 `chenxihh/huike` 并推送
       master 与 annotated tag `v0.1.0`；读回 master `8cdccda` = 本地 HEAD、tag `5bd42fb`
       指向同一提交。推送前扫描确认无凭据、无真实课表数据、构建产物未入库；`origin`

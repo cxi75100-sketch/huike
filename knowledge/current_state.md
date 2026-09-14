@@ -159,8 +159,9 @@ TASK-001（基座）+ 用户第一轮反馈迭代（自动适配探测、印章�
 - `CONFIRMED`（2026-09-14 00:05 +08:00）：仓库已上传 Gitee `chenxihh/huike`（**私有**）——
   master 读回 `8cdccda`（= 本地 HEAD）、annotated tag `v0.1.0`（`5bd42fb` → `8cdccda`）；
   推送前敏感扫描无命中、构建产物未入库；`origin` 已配为无令牌地址。
-- `BLOCKED`（需用户在 Gitee 操作）：仓库转公开——Gitee 要求账号完成 2FA 或绑定第三方账号
-  才允许发布公开内容；完成后可用 PATCH 改 `private=false`。
+- `CONFIRMED`（2026-09-14 00:20 +08:00）：**仓库已转公开**——用户绑定第三方账号后
+  `PATCH private=false` 成功；无令牌 `ls-remote` 读回 master `ceb3686`、tag `v0.1.0`，
+  网页可匿名访问。
 
 ## Recommended Next Action
 

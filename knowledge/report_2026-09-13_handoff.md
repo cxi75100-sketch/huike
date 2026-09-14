@@ -214,7 +214,7 @@ iOS `NSAllowsArbitraryLoadsInWebContent=true`，仅 WebView），应用层两道
 | 项 | 状态 | 说明 |
 | --- | --- | --- |
 | **上传 Gitee 新仓库** | **已完成（2026-09-13）** | 仓库 `chenxihh/huike`；master 读回 `8cdccda`、tag `v0.1.0` 指向同一提交；推送前做过敏感信息扫描（无凭据/无真实课表数据/构建产物未入库） |
-| 仓库转为公开 | **BLOCKED（需用户操作）** | Gitee 返回：`您的帐号安全评级较低，发布公开内容前请在「个人设置」完成2FA设置，或绑定可靠第三方帐号`。用户在 Gitee 完成 2FA 或绑定后，我可用同一条 PATCH 改公开（`private=false` + `name=huike`） |
+| 仓库转公开 | **已完成（2026-09-14）** | 用户绑定第三方账号后 `PATCH private=false` 成功；无令牌可读、网页可匿名访问 |
 | TASK-002 桌面小组件 | 未开始 | 建议载荷 v2：Dart 预计算整学期每日课程，原生只查表（消除双实现） |
 | TASK-003 上课提醒 | 未开始 | 迁移 + 按学校/学期排程，时区语义「课程所在地墙上时间」 |
 | TASK-004 调休/停课例外表 | 未开始 | 用户可编辑 CalendarException |
