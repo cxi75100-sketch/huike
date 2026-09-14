@@ -33,6 +33,15 @@ git log --oneline -5        # 确认 HEAD 与 tag v0.1.1 指向同一次提交
 `section_slot_board.dart`，首页撤下路线水印与七日站点概览；顺带修掉引导页把教务网址
 写死成「HTTPS」的文案（ISSUE-012）。
 
+### 0.2 南工入口地址已修正（`0.1.2+3`，见 ISSUE-013）
+
+档案里旧的 `http://jwxt.ncpu.edu.cn` 只剩 IPv6 解析、请求超时，用户报「登不进去」；
+已改为学校实际入口 `http://218.204.129.252:8088/jwglxt/xtgl/login_slogin.html`
+（明文 HTTP、正方 jwglxt V9.0）。装机验证 WebView 能打开登录页（未输入凭据）。
+**教训：预设里的学校数据会随外部现实失效，别把「写进档案」当「已验证」。**
+另有一个未决问题：教学楼作息差异只覆盖明志/明德/至善的第 3、4 节，
+用户反馈实际不止这些（TASK-012，等用户给规则）。
+
 `lib/core/database/app_database.g.dart` 是 build_runner 产物但**已入库**，schema 改动必须一起提交。
 
 ---
@@ -404,7 +413,8 @@ D:/Tools/android-sdk/platform-tools/adb.exe shell am start -W -n com.huike.huike
 # 装机后建议自测：
 # 引导页选「南昌工学院」→ 建校 → 加课 → 今日议程 / 整周议程
 # → 设置 → 调休 / 停课：加一条「今天停课」+ 一条「调休按周五」→ 回今日与整周核对
-# → 右上角导入 → 确认地址（默认 http://jwxt.ncpu.edu.cn）→ 登录 →
+# → 右上角导入 → 确认地址（南工已预填 http://218.204.129.252:8088/jwglxt/xtgl/login_slogin.html，
+#   实测能打开正方登录页；旧域名 jwxt.ncpu.edu.cn 已失效，见 ISSUE-013）→ 登录 →
 #   跨域时确认「允许访问新域名」→ 执行导入 → 预览 → 确认写入
 ```
 

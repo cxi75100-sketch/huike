@@ -122,3 +122,20 @@ TASK-011。首页撤销两条没赢得位置的做法：「今日再画一条十
 发布：master 已推送 Gitee（`bd0ecc8`），annotated tag `v0.1.1`，release 附件为该 APK
 （`huike-0.1.1-release.apk`，64,731,306 字节，SHA-256 `98510723…f396019`，
 无令牌可下载）。
+
+## 0.1.2+3 (2026-09-14)：修正南昌工学院教务地址
+
+用户报障：点「南昌工学院」建校后导入页 WebView 白屏，登录页打不开。查明档案里预填的
+`http://jwxt.ncpu.edu.cn` 当前只剩 IPv6 解析、请求直接超时（curl 返回 `000`），
+学校实际入口是明文 HTTP 的正方教务入口。
+
+- 内置档案 `defaultLoginUrl` 改为
+  `http://218.204.129.252:8088/jwglxt/xtgl/login_slogin.html`（IPv4 + 8088，
+  正方 jwglxt V9.0，UTF-8 登录页）；档案里留注释说明不要改回旧域名。
+- 测试锁定：`school_presets_test` 逐项断言 scheme/host/port/path 且断言不含旧域名；
+  `login_url_policy_test` 新增「IP + 端口 + 路径」用例；`navigation_policy_test`
+  新增「白名单按主机粒度、端口不参与判定」用例。
+
+验证：`flutter analyze` 无问题、`flutter test` **112/112**；装机 `ncpu_api36` 实测
+「引导页点南工 → 预填新地址 → 建校 → 导入页确认（含明文警示）→ WebView 成功加载
+南昌工学院正方登录页」，全程未输入任何凭据（真实登录仍为 `UNVERIFIED`，见 TASK-006）。

@@ -73,8 +73,17 @@ void main() {
     expect(presetById('nope'), isNull);
   });
 
-  test('南工教务默认地址为明文 HTTP（导入门会额外警示）', () {
-    expect(preset.defaultLoginUrl, 'http://jwxt.ncpu.edu.cn');
-    expect(Uri.parse(preset.defaultLoginUrl).scheme, 'http');
+  test('南工教务默认地址为正方登录页（明文 HTTP，IP + 端口）', () {
+    expect(
+      preset.defaultLoginUrl,
+      'http://218.204.129.252:8088/jwglxt/xtgl/login_slogin.html',
+    );
+    final uri = Uri.parse(preset.defaultLoginUrl);
+    expect(uri.scheme, 'http');
+    expect(uri.host, '218.204.129.252');
+    expect(uri.port, 8088);
+    expect(uri.path, '/jwglxt/xtgl/login_slogin.html');
+    // 旧域名只剩 IPv6 解析、请求超时，不能再写回预设。
+    expect(preset.defaultLoginUrl.contains('jwxt.ncpu.edu.cn'), isFalse);
   });
 }

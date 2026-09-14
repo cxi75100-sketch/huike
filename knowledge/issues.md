@@ -220,3 +220,32 @@ Evidence: 装机实画（`ncpu_api36`，`0.1.1+2`）；`flutter analyze` 无问�
 
 Prevention: 放宽类改动做入口盘点时，除了列出文件，还要覆盖「用户可见文案」——
 文案与策略不一致时用户看不到代码里的宽容度。
+
+## ISSUE-013 南工内置档案的教务地址已失效，导入入口打不开登录页
+
+Status: Resolved（2026-09-14，用户报障）
+
+Observed: 用户点「南昌工学院」建校后进导入页，WebView 一直白屏、登录页打不开，
+「根本登不进去」。档案里预填的是 `http://jwxt.ncpu.edu.cn`。
+
+Root Cause: 该域名当前只剩 IPv6 解析（`240e:980:4210:100::16:64` 等），
+本机请求 20 秒超时（curl 返回 `000`）；学校实际入口是明文 HTTP 的正方教务
+`http://218.204.129.252:8088/jwglxt/xtgl/login_slogin.html`。预设地址自建档起
+未复核过，属于「写进档案就再没验证」的数据陈旧，不是代码缺陷。
+
+Impact: 南工用户按预设建校后无法登录导入，等于导入功能对该校不可用
+（TASK-006 无法开始）。
+
+Resolution: 预设 `defaultLoginUrl` 改为学校实际入口；`school_presets_test`
+锁定新地址（scheme/host/port/path 逐项断言，并断言不再含旧域名）；
+`login_url_policy_test` 增加「IP + 端口 + 路径」用例，`navigation_policy_test`
+增加「白名单按主机粒度、端口不参与判定」用例，把这种地址形态固定下来。
+档案里留注释说明不要改回旧域名。
+
+Evidence: `flutter analyze` 无问题、`flutter test` **112/112**；装机 `ncpu_api36`
+实测——引导页点「南昌工学院」预填新地址 → 建校 → 导入页显示新地址 + 明文警示 →
+确认后 WebView 成功加载「南昌工学院教学综合信息服务平台」登录页（正方 V9.0），
+全程未输入任何凭据。
+
+Prevention: 预设里的学校数据（地址、作息、变体）要能随外部现实变化被复核；
+用户报「登不进去」时先做 DNS 与连通性验证，再怀疑代码。

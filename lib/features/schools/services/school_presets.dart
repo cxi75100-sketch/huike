@@ -32,7 +32,10 @@ final ncpuPreset = SchoolPreset(
   bell: _ncpuBell,
   defaultFirstWeekMonday: DateTime(2026, 8, 31),
   defaultTotalWeeks: 20,
-  defaultLoginUrl: 'http://jwxt.ncpu.edu.cn',
+  // 学校实际入口：正方教务（jwglxt）、明文 HTTP、IP + 8088 端口。
+  // 不要改回 http://jwxt.ncpu.edu.cn——该域名只剩 IPv6 解析且请求超时，
+  // 用它会导致导入 WebView 打不开登录页（2026-09-14 复核，见 knowledge/changelog.md）。
+  defaultLoginUrl: 'http://218.204.129.252:8088/jwglxt/xtgl/login_slogin.html',
 );
 
 /// 南昌工学院 2026-2027 学年校历作息（10 节；晚上最多两节）。

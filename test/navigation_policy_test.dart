@@ -58,5 +58,25 @@ void main() {
         isTrue,
       );
     });
+
+    test('白名单以主机为单位：同主机的其它端口与路径仍放行', () {
+      // 南工教务是 http://218.204.129.252:8088/jwglxt/... 这种 IP + 端口形态，
+      // 档案里存的是主机名，所以端口不参与判定（这是刻意的主机粒度）。
+      const policy = NavigationPolicy(allowedHosts: ['218.204.129.252']);
+      expect(
+        policy
+            .decide(
+              Uri.parse(
+                'http://218.204.129.252:8088/jwglxt/xtgl/login_slogin.html',
+              ),
+            )
+            .allowed,
+        isTrue,
+      );
+      expect(
+        policy.decide(Uri.parse('http://218.204.129.253:8088/')).allowed,
+        isFalse,
+      );
+    });
   });
 }

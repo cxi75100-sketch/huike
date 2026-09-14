@@ -23,9 +23,20 @@ void main() {
     });
 
     test('http 通过且标为明文（学校管理页与引导页同一判定）', () {
-      final check = checkLoginUrl('http://jwxt.ncpu.edu.cn');
+      final check = checkLoginUrl('http://jw.example.edu.cn/jwglxt');
       expect(check.ok, isTrue);
-      expect(check.uri!.host, 'jwxt.ncpu.edu.cn');
+      expect(check.uri!.host, 'jw.example.edu.cn');
+      expect(check.isCleartext, isTrue);
+    });
+
+    test('IP + 端口 + 路径的明文地址通过（南工正方入口就是这个形态）', () {
+      final check = checkLoginUrl(
+        'http://218.204.129.252:8088/jwglxt/xtgl/login_slogin.html',
+      );
+      expect(check.ok, isTrue);
+      expect(check.uri!.host, '218.204.129.252');
+      expect(check.uri!.port, 8088);
+      expect(check.uri!.path, '/jwglxt/xtgl/login_slogin.html');
       expect(check.isCleartext, isTrue);
     });
 
