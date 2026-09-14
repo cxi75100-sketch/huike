@@ -290,22 +290,14 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     final urlText = _urlController.text.trim();
     if (urlText.isNotEmpty) {
       final uri = Uri.tryParse(urlText);
-      final preset = presetById(_presetId);
-      final httpAllowed =
-          preset != null && preset.cleartextHosts.contains(uri?.host);
       final schemeOk = uri != null &&
           uri.host.isNotEmpty &&
-          (uri.scheme == 'https' || (uri.scheme == 'http' && httpAllowed));
+          (uri.scheme == 'https' || uri.scheme == 'http');
       if (uri == null || !schemeOk) {
+        // 明文 HTTP 与 HTTPS 都接受：站点协议由学校决定，
+        // 风险在导入页的确认弹窗里明示。
         messenger.showSnackBar(
-          SnackBar(
-            content: Text(
-              uri == null || (uri.scheme != 'https' && uri.scheme != 'http')
-                  ? '教务网址格式不正确，或留空'
-                  : '该教务站点为明文 HTTP，只有内置档案登记过的域名可用'
-                  '（当前构建仅南工）',
-            ),
-          ),
+          const SnackBar(content: Text('教务网址格式不正确，或留空')),
         );
         return;
       }
