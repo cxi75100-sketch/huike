@@ -56,11 +56,10 @@ lib/
       widgets/import_widgets.dart     # 分组标题 / 风险确认块
     timetable/
       providers/timetable_providers.dart
-      pages/timetable_page.dart       # 今日历牌 / 整周周历
+      pages/timetable_page.dart       # 今日议程 / 整周议程（TASK-011 后的首页全部在此文件内）
       pages/course_detail_page.dart   # 编辑排印详情
       pages/course_edit_page.dart     # 手动加课/编辑表单
-      widgets/course_listing_row.dart # EmptyDayPlate（列表行已由槽位网格取代）
-      widgets/section_slot_board.dart # 节次槽位网格（今日宽版 / 整周窄列共用）
+      widgets/course_listing_row.dart # CourseListingRow（今日议程行）+ EmptyDayPlate
     settings/
       pages/settings_page.dart        # 学校/学期/作息/调休停课/外观/关于
       pages/school_manage_page.dart   # 切换/菜单（改网址/删除）
@@ -96,8 +95,8 @@ lib/
 探测期间不展示逐个尝试的过程（DEC-007）。
 
 课表显示：课程本身以「周次 × 星期」表达，某一天到底按哪天的课表上课由
-`calendar_exceptions` 经 `CalendarExceptionService` 折算——今日视图据此决定空状态还是
-时间轴，整周视图据此决定列里放哪个星期的课。**新增任何「按天取课」的消费方
+`calendar_exceptions` 经 `CalendarExceptionService` 折算——今日视图据此决定是停课牌、
+调休提示条还是当日议程，整周视图据此决定每天分组取哪个星期的课。**新增任何「按天取课」的消费方
 （小组件、提醒）都必须走同一个折算**，不要各自判星期。
 
 ## Conventions

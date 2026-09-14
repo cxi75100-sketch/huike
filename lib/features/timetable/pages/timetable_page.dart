@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_theme.dart';
-import '../../../core/widgets/route_background.dart';
+import '../../../core/theme/course_colors.dart';
 import '../../../models/bell_schedule.dart';
 import '../../../models/course.dart';
 import '../../../models/semester.dart';
@@ -15,8 +15,6 @@ import '../../schools/providers/calendar_exception_providers.dart';
 import '../../schools/providers/school_providers.dart';
 import '../providers/timetable_providers.dart';
 import '../widgets/course_listing_row.dart';
-import '../widgets/section_slot_board.dart';
-import '../widgets/day_timeline.dart';
 
 /// 课表首页：今日历牌 / 整周周历两个栏目。
 class TimetablePage extends ConsumerStatefulWidget {
@@ -36,63 +34,56 @@ class _TimetablePageState extends ConsumerState<TimetablePage> {
     final school = ref.watch(activeSchoolProvider);
     final semester = ref.watch(activeSemesterRefProvider);
 
-    return RouteBackground(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          title: Text(school?.displayName ?? '汇课'),
-          actions: [
-            IconButton(
-              tooltip: '导入教务课表',
-              icon: const Icon(Icons.download_outlined),
-              onPressed: () => context.push('/import'),
-            ),
-            IconButton(
-              tooltip: '设置',
-              icon: const Icon(Icons.settings_outlined),
-              onPressed: () => context.push('/settings'),
-            ),
-          ],
-        ),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: () => context.push('/course/new'),
-          backgroundColor: palette.accent,
-          foregroundColor: palette.onAccent,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+    return Scaffold(
+      backgroundColor: palette.background,
+      appBar: AppBar(
+        title: Text(school?.displayName ?? '汇课'),
+        actions: [
+          IconButton(
+            tooltip: '导入教务课表',
+            icon: const Icon(Icons.download_outlined),
+            onPressed: () => context.push('/import'),
           ),
-          icon: const Icon(Icons.add),
-          label: const Text('加课'),
-        ),
-        body: semester == null
-            ? _noSemesterBody(context, school?.id)
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _showWeek
-                      ? _WeekHeader(
-                          semester: semester,
-                          weekOffset: _weekOffset,
-                          onMove: (delta) =>
-                              setState(() => _weekOffset += delta),
-                        )
-                      : const _TodayHero(),
-                  if (!_showWeek) _WeekRouteOverview(semester: semester),
-                  const SizedBox(height: 4),
-                  _modeSwitch(context),
-                  Expanded(
-                    child: _showWeek
-                        ? _WeekBoard(
-                            semester: semester,
-                            week: _currentWeek(semester),
-                          )
-                        : _TodayList(
-                            onShowWeek: () => setState(() => _showWeek = true),
-                          ),
-                  ),
-                ],
-              ),
+          IconButton(
+            tooltip: '设置',
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => context.push('/settings'),
+          ),
+        ],
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => context.push('/course/new'),
+        backgroundColor: palette.accent,
+        foregroundColor: palette.onAccent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        icon: const Icon(Icons.add),
+        label: const Text('加课'),
+      ),
+      body: semester == null
+          ? _noSemesterBody(context, school?.id)
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _modeSwitch(context),
+                _showWeek
+                    ? _WeekHeader(
+                        semester: semester,
+                        weekOffset: _weekOffset,
+                        onMove: (delta) => setState(() => _weekOffset += delta),
+                      )
+                    : const _TodayHero(),
+                Expanded(
+                  child: _showWeek
+                      ? _WeekBoard(
+                          semester: semester,
+                          week: _currentWeek(semester),
+                        )
+                      : _TodayList(
+                          onShowWeek: () => setState(() => _showWeek = true),
+                        ),
+                ),
+              ],
+            ),
     );
   }
 
@@ -105,31 +96,32 @@ class _TimetablePageState extends ConsumerState<TimetablePage> {
 
   Widget _modeSwitch(BuildContext context) {
     final palette = AppTheme.paletteOf(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+    return Container(
+      height: 58,
+      margin: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: palette.hairline),
+      ),
       child: Row(
         children: [
-          _ModeChip(
-            label: '今日',
-            selected: !_showWeek,
-            onTap: () => setState(() {
-              _showWeek = false;
-              _weekOffset = 0;
-            }),
+          Expanded(
+            child: _ModeChip(
+              label: '今日',
+              selected: !_showWeek,
+              onTap: () => setState(() {
+                _showWeek = false;
+                _weekOffset = 0;
+              }),
+            ),
           ),
-          const SizedBox(width: 8),
-          _ModeChip(
-            label: '整周',
-            selected: _showWeek,
-            onTap: () => setState(() => _showWeek = true),
-          ),
-          const Spacer(),
-          Text(
-            '第 ${_currentWeek(ref.watch(activeSemesterRefProvider)!)} 周',
-            style: TextStyle(
-              fontSize: 12.5,
-              fontFeatures: const [FontFeature.tabularFigures()],
-              color: palette.inkTertiary,
+          Expanded(
+            child: _ModeChip(
+              label: '整周',
+              selected: _showWeek,
+              onTap: () => setState(() => _showWeek = true),
             ),
           ),
         ],
@@ -188,171 +180,25 @@ class _ModeChip extends StatelessWidget {
       selected: selected,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(4),
-        child: Container(
-          constraints: const BoxConstraints(minWidth: 64, minHeight: 48),
+        borderRadius: BorderRadius.circular(8),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          constraints: const BoxConstraints(minHeight: 48),
           alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
           decoration: BoxDecoration(
-            color: selected ? palette.accent : Colors.transparent,
-            borderRadius: BorderRadius.circular(4),
-            border: Border.all(
-              color: selected ? palette.accent : palette.hairlineStrong,
-            ),
+            color: selected ? palette.accentSoft : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
           ),
           child: Text(
             label,
             style: TextStyle(
               fontSize: 13.5,
               fontWeight: FontWeight.w600,
-              color: selected ? palette.onAccent : palette.inkSecondary,
+              color: selected ? palette.accent : palette.inkSecondary,
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-/// 七日线路概览：把本周课程密度变成可扫读的站点，不增加第二套导航。
-class _WeekRouteOverview extends ConsumerWidget {
-  const _WeekRouteOverview({required this.semester});
-
-  final Semester semester;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final palette = AppTheme.paletteOf(context);
-    final school = ref.watch(activeSchoolProvider);
-    final courses = school == null
-        ? const <Course>[]
-        : (ref.watch(coursesForProvider((school.id, semester.id))).value ??
-              const <Course>[]);
-    final calendar = ref.watch(activeCalendarServiceProvider);
-    final service = const SemesterService();
-    final now = DateTime.now();
-    final rawWeek = service.currentWeek(semester, now);
-    final week = (rawWeek == 0 ? 1 : rawWeek).clamp(1, semester.totalWeeks);
-    final counts = <int>[];
-    final suspended = <bool>[];
-
-    for (var weekday = 1; weekday <= 7; weekday++) {
-      final date = service.dateFor(semester, week, weekday);
-      final schedule = calendar.resolve(date);
-      suspended.add(schedule.suspended);
-      counts.add(
-        schedule.suspended
-            ? 0
-            : courses
-                  .where(
-                    (course) =>
-                        course.weekday == schedule.weekday &&
-                        course.weeks.contains(week),
-                  )
-                  .length,
-      );
-    }
-
-    final summary = List.generate(
-      7,
-      (index) => suspended[index]
-          ? '周${'一二三四五六日'[index]}停课'
-          : '周${'一二三四五六日'[index]}${counts[index]}门课',
-    ).join('，');
-
-    return Semantics(
-      label: '本周线路概览，$summary',
-      child: Container(
-        height: 76,
-        margin: const EdgeInsets.fromLTRB(20, 10, 20, 0),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
-        decoration: BoxDecoration(
-          color: palette.surface.withValues(alpha: 0.88),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: palette.hairline),
-        ),
-        child: Stack(
-          children: [
-            Positioned(
-              top: 28,
-              left: 22,
-              right: 22,
-              child: Container(height: 1.5, color: palette.hairlineStrong),
-            ),
-            Row(
-              children: [
-                for (var index = 0; index < 7; index++)
-                  Expanded(
-                    child: _RouteDayNode(
-                      weekday: index + 1,
-                      count: counts[index],
-                      suspended: suspended[index],
-                      active: rawWeek == week && now.weekday == index + 1,
-                    ),
-                  ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _RouteDayNode extends StatelessWidget {
-  const _RouteDayNode({
-    required this.weekday,
-    required this.count,
-    required this.suspended,
-    required this.active,
-  });
-
-  final int weekday;
-  final int count;
-  final bool suspended;
-  final bool active;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = AppTheme.paletteOf(context);
-    return ExcludeSemantics(
-      child: Column(
-        children: [
-          Text(
-            '一二三四五六日'[weekday - 1],
-            style: TextStyle(
-              fontSize: 10.5,
-              fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-              color: active ? palette.accent : palette.inkTertiary,
-            ),
-          ),
-          const SizedBox(height: 5),
-          Container(
-            width: active ? 14 : 10,
-            height: active ? 14 : 10,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: active
-                  ? palette.accent
-                  : count > 0
-                  ? palette.surface
-                  : palette.background,
-              border: Border.all(
-                color: active ? palette.accent : palette.hairlineStrong,
-                width: 1.4,
-              ),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            suspended ? '停' : '$count',
-            style: TextStyle(
-              fontSize: 10,
-              fontFeatures: const [FontFeature.tabularFigures()],
-              color: active ? palette.accent : palette.inkSecondary,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -556,9 +402,23 @@ class _TodayList extends ConsumerWidget {
         ?makeup,
         _NextCourseLine(courses: courses, bell: bell),
         Expanded(
-          child: DayTimeline(
-            courses: courses,
-            schedule: bell ?? BellSchedule.fallback(),
+          child: ListView.separated(
+            key: const ValueKey('today-agenda'),
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 96),
+            itemCount: courses.length,
+            separatorBuilder: (context, index) => Divider(
+              height: 1,
+              thickness: 1,
+              color: AppTheme.paletteOf(context).hairline,
+            ),
+            itemBuilder: (context, index) {
+              final course = courses[index];
+              return CourseListingRow(
+                course: course,
+                schedule: bell ?? BellSchedule.fallback(),
+                onTap: () => context.push('/course/${course.id}'),
+              );
+            },
           ),
         ),
       ],
@@ -787,12 +647,10 @@ class _NextCourseLine extends StatelessWidget {
   }
 }
 
-/// 整周横向周历：一天一列，可横滑翻页。
+/// 整周议程：七天按日期分组，只展开真实课程。
 ///
-/// 「打开整周时眼前必须是当天」由两层保证：
-/// 1. 当前教学周的列序是「今天 → 之后的日期 → 本周已过去的日期」循环排列；
-/// 2. 每次从「今日」切到「整周」，PageView 都是新插入的，停在第 0 页。
-/// 其他教学周（过去/未来）不适用循环——今天不在那一周里，按周一到周日排。
+/// 空日只占一行，不再为 1–10 节预留空白。当前教学周仍以今天开头，
+/// 过去/未来周按周一到周日排列。
 class _WeekBoard extends ConsumerWidget {
   const _WeekBoard({required this.semester, required this.week});
 
@@ -822,10 +680,10 @@ class _WeekBoard extends ConsumerWidget {
         for (var d = 1; d <= 7; d++) d,
     ];
 
-    return PageView.builder(
-      allowImplicitScrolling: true,
+    return ListView.builder(
+      key: const ValueKey('week-agenda'),
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 96),
       itemCount: 7,
-      controller: PageController(viewportFraction: 0.5),
       itemBuilder: (context, index) {
         final weekday = order[index];
         final date = service.dateFor(semester, week, weekday);
@@ -842,7 +700,8 @@ class _WeekBoard extends ConsumerWidget {
                   .toList()
                 ..sort((a, b) => a.startSection.compareTo(b.startSection)));
         final isToday = isCurrentWeek && todayWeekday == weekday;
-        return _DayColumn(
+        return _WeekAgendaDay(
+          orderIndex: index,
           date: date,
           weekday: weekday,
           isToday: isToday,
@@ -855,13 +714,9 @@ class _WeekBoard extends ConsumerWidget {
   }
 }
 
-/// 一天的列：日期头（当天朱砂强调）+ 发丝线 + 课程按时段分段。
-///
-/// 上午 / 下午 / 晚间各自成段，段头有小组标题，段与段之间用发丝线 + 留白
-/// 分开；作息表缺该节次时按通用规则（<=4 上午，<=8 下午，其余晚上）归类。
-/// 一天的列：日期头（当天朱砂强调）+ 节次槽位网格。
-class _DayColumn extends StatelessWidget {
-  const _DayColumn({
+class _WeekAgendaDay extends StatelessWidget {
+  const _WeekAgendaDay({
+    required this.orderIndex,
     required this.date,
     required this.weekday,
     required this.isToday,
@@ -870,6 +725,7 @@ class _DayColumn extends StatelessWidget {
     required this.daySchedule,
   });
 
+  final int orderIndex;
   final DateTime date;
   final int weekday;
   final bool isToday;
@@ -881,99 +737,184 @@ class _DayColumn extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = AppTheme.paletteOf(context);
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(6, 8, 6, 8),
-      child: Container(
-        decoration: BoxDecoration(
-          color: isToday ? palette.surface : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isToday ? palette.accent : palette.hairline,
-            width: isToday ? 1.2 : 1,
-          ),
-        ),
-        padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                Text(
-                  '周${'一二三四五六日'[weekday - 1]}',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: isToday ? FontWeight.w700 : FontWeight.w600,
-                    color: isToday ? palette.accent : palette.ink,
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  '${date.month}.${date.day}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                    color: palette.inkTertiary,
-                  ),
-                ),
-                const Spacer(),
-                if (isToday)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 1,
-                    ),
-                    decoration: BoxDecoration(
-                      color: palette.accent,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
+    final stateLabel = daySchedule.suspended
+        ? '停课'
+        : courses.isEmpty
+        ? '无课'
+        : '${courses.length} 门';
+
+    return Container(
+      key: ValueKey('week-day-$orderIndex-$weekday'),
+      decoration: BoxDecoration(
+        color: isToday ? palette.accentSoft.withValues(alpha: 0.42) : null,
+        border: Border(bottom: BorderSide(color: palette.hairline)),
+      ),
+      child: Column(
+        children: [
+          ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 52),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 48,
                     child: Text(
-                      '今',
+                      '周${'一二三四五六日'[weekday - 1]}',
                       style: TextStyle(
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w600,
-                        color: palette.onAccent,
+                        fontSize: 16,
+                        fontWeight: isToday ? FontWeight.w700 : FontWeight.w600,
+                        color: isToday ? palette.accent : palette.ink,
                       ),
                     ),
                   ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Divider(height: 1, thickness: 1, color: palette.hairline),
-            if (daySchedule.suspended || daySchedule.isMakeup) ...[
-              const SizedBox(height: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: daySchedule.isMakeup
-                      ? palette.accentSoft
-                      : palette.hairline,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  daySchedule.suspended
-                      ? '停课'
-                      : '调休 · 按${CalendarExceptionService.weekdayName(daySchedule.weekday)}',
-                  style: TextStyle(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w600,
-                    color: daySchedule.isMakeup
-                        ? palette.accent
-                        : palette.inkSecondary,
+                  Text(
+                    '${date.month}月${date.day}日',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                      color: palette.inkTertiary,
+                    ),
                   ),
-                ),
-              ),
-            ],
-            Expanded(
-              child: SectionSlotBoard(
-                courses: courses,
-                schedule: bell ?? BellSchedule.fallback(),
-                compact: true,
-                onCourseTap: (course) => context.push('/course/${course.id}'),
+                  if (daySchedule.isMakeup) ...[
+                    const SizedBox(width: 8),
+                    Text(
+                      '按${CalendarExceptionService.weekdayName(daySchedule.weekday)}上课',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: palette.accent,
+                      ),
+                    ),
+                  ],
+                  const Spacer(),
+                  Text(
+                    stateLabel,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: courses.isEmpty
+                          ? FontWeight.w400
+                          : FontWeight.w600,
+                      color: courses.isEmpty
+                          ? palette.inkTertiary
+                          : palette.accent,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
+          for (final course in courses)
+            _WeekCourseRow(
+              course: course,
+              schedule: bell ?? BellSchedule.fallback(),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WeekCourseRow extends StatelessWidget {
+  const _WeekCourseRow({required this.course, required this.schedule});
+
+  final Course course;
+  final BellSchedule schedule;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = AppTheme.paletteOf(context);
+    final tint = courseTint(course.colorKey, Theme.of(context).brightness);
+    final range = const CourseTimeService().resolve(course, schedule);
+    final section = course.startSection == course.endSection
+        ? '${course.startSection}节'
+        : '${course.startSection}-${course.endSection}节';
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(48, 0, 8, 8),
+      child: Material(
+        color: tint.chip,
+        borderRadius: BorderRadius.circular(10),
+        child: InkWell(
+          onTap: () => context.push('/course/${course.id}'),
+          borderRadius: BorderRadius.circular(10),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 60),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 64,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          range?.$1 ?? '待定',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                            color: tint.onChip,
+                          ),
+                        ),
+                        Text(
+                          section,
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            color: tint.onChip.withValues(alpha: 0.68),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    width: 3,
+                    height: 32,
+                    color: tint.onChip.withValues(alpha: 0.72),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          course.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: tint.onChip,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          [
+                            if (course.classroom.isNotEmpty) course.classroom,
+                            if (course.teacher.isNotEmpty) course.teacher,
+                          ].join('  '),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            color: tint.onChip.withValues(alpha: 0.76),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.chevron_right,
+                    size: 18,
+                    color: palette.inkTertiary,
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );

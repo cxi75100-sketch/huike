@@ -41,7 +41,8 @@ adb install -r build/app/outputs/flutter-apk/app-debug.apk
 - 校历例外界面（`calendar_exception_ui_test`）：今天标停课后首页显示停课空状态、
   标调休后显示「今天按周五的课表上课」提示条、从设置能进入「调休 / 停课」页并列出例外。
 - App 壳 widget 流程（全新安装→引导；创建学校→首页；空课日→历书式空状态；
-  今日课程→详情页十站节次线）。
+  `today-agenda` 与 `week-agenda` 互斥切换、整周当天行 `week-day-0-<weekday>` 存在、
+  今日课程→详情页十站节次线；首页不再出现「本周线路概览」语义标签）。
 
 ## 真机/模拟器验证约定
 

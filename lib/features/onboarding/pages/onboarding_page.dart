@@ -160,7 +160,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             controller: _urlController,
             keyboardType: TextInputType.url,
             decoration: const InputDecoration(
-              labelText: '教务网址（选填，HTTPS）',
+              labelText: '教务网址（选填，http/https）',
               hintText: 'https://jw.example.edu.cn',
             ),
           ),

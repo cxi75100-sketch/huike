@@ -1,9 +1,9 @@
 # 汇课 · 进度与技术交接报告（2026-09-14）
 
 Date: 2026-09-14
-Version: `0.1.0+1`（pubspec），工作区比 HEAD 领先 34 个文件（**未提交**，见 §0）
-Status: **可用**（Android 装机验证通过，最近一次为 2026-09-13）；真实教务导入与 iOS 未验证
-分支: `master`，HEAD `251fea8`；远端 Gitee `chenxihh/huike`（**公开**，tag `v0.1.0` 指 `8cdccda`）
+Version: `0.1.1+2`（pubspec），工作区应当干净（TASK-009/010/011 与知识库同步均已提交）
+Status: **可用**（Android 装机验证通过，最近一次为 2026-09-14 于 `ncpu_api36`）；真实教务导入与 iOS 未验证
+分支: `master`，HEAD 见 `git log -1`；远端 Gitee `chenxihh/huike`（**公开**）；tag `v0.1.0` 指 `8cdccda`，本版 tag `v0.1.1`（APK 挂在对应 release 附件）
 
 本报告面向「在另一个会话里直接接手」的 Agent。**先读本文件 §0 与 §1，再按
 `knowledge/README.md` 的推荐顺序读 `current_state.md` → `tasks.md` → 专题文档。**
@@ -11,28 +11,29 @@ Status: **可用**（Android 装机验证通过，最近一次为 2026-09-13）�
 
 ---
 
-## 0. 接手第一件事：工作区未提交
+## 0. 接手第一件事：确认起点干净
 
-自 `251fea8` 起有 **34 个文件改动/新增尚未提交**，全部是可用状态（`analyze` 干净、
-`flutter test` 109/109 通过），但一旦误操作（`git checkout .`、`git stash`、切分支）
-会全部丢失。接手后建议先做一件事：
+工作区应当干净——TASK-009/010/011 与知识库同步都已提交，HEAD 即 §3 的验证基线，
+本版打 tag `v0.1.1`（对应 release 附件里是同一份 APK）。先做一件事：
 
 ```bash
 cd "D:\桌面\汇课"
-git status --short          # 应为 34 项
-git diff --stat             # 8 个已跟踪文件的改动
+git status --short          # 期望：无输出
+git log --oneline -5        # 确认 HEAD 与 tag v0.1.1 指向同一次提交
 ```
 
-先审查再分笔提交（见 §0.1 的建议切分）。**不要**直接 `git checkout .` / `git clean -fd`。
+如果 `git status` 有输出，先按 `knowledge/tasks.md` 的 Now 判断这些改动属于谁，
+**不要**直接 `git checkout .` / `git clean -fd`。
 
-### 0.1 建议的提交切分（尚未执行）
+### 0.1 TASK-011 改了什么（最近一轮）
 
-1. `feat: 导入链路可用性修复（跨域逐主机确认 / 地址校验统一 / 探测过程收敛）` → TASK-009
-2. `docs: 知识库改为 README+decisions+issues 固定结构，校正过期陈述` → ISSUE-009
-3. `feat: 校历例外（调休/停课）与今日整周接入；schema v3` → TASK-004
-4. `fix: 设置页单选组补 Material 祖先并加入界面测试` → ISSUE-010
+首页信息架构重做（细节见 `tasks.md` 的 Done 与 `changelog.md` 的 `0.1.1+2`）：
+今日从「十节轨道竖向时间轴」改为**当日议程**，整周从「节次槽位网格 / 横向翻页周历」
+改为**七日议程**；删除 `lib/features/timetable/widgets/day_timeline.dart` 与
+`section_slot_board.dart`，首页撤下路线水印与七日站点概览；顺带修掉引导页把教务网址
+写死成「HTTPS」的文案（ISSUE-012）。
 
-`lib/core/database/app_database.g.dart` 是 build_runner 产物但**已入库**，改动必须一起提交。
+`lib/core/database/app_database.g.dart` 是 build_runner 产物但**已入库**，schema 改动必须一起提交。
 
 ---
 
@@ -44,8 +45,8 @@ git diff --stat             # 8 个已跟踪文件的改动
 | 目录 | `D:\桌面\汇课`（独立 git 仓库） |
 | 代替路径 | `subst S: "D:\桌面\汇课"`，中文路径下 Flutter 工具链必须在 `S:\` 下跑 |
 | 包名 | `com.huike.huike_timetable` |
-| 版本 | `0.1.0+1`（pubspec.yaml） |
-| 远端 | `origin` = `https://gitee.com/chenxihh/huike.git`（公开，无令牌地址） |
+| 版本 | `0.1.1+2`（pubspec.yaml；versionCode 2 / versionName 0.1.1） |
+| 远端 | `origin` = `https://gitee.com/chenxihh/huike.git`（公开，无令牌地址）；tag `v0.1.0`/`v0.1.1` |
 | 签名 | release 仍用 Flutter 默认 debug 证书（见 ISSUE-006） |
 | 知识库 | `knowledge/`（索引 `README.md`，规范 `../AGENTS.md`） |
 
@@ -76,7 +77,7 @@ subst S: "D:\桌面\汇课"; cd /s/
 flutter analyze && flutter test
 dart run build_runner build          # schema 改动后必须重跑（生成 app_database.g.dart）
 export MSYS_NO_PATHCONV=1            # 否则 adb 的 /sdcard/... 路径会被 Git Bash 改写
-D:/Tools/android-sdk/platform-tools/adb.exe install -r 'S:\build\app\outputs\flutter-apk\app-arm64-v8a-release.apk'
+D:/Tools/android-sdk/platform-tools/adb.exe install -r 'S:\build\app\outputs\flutter-apk\app-release.apk'
 ```
 
 ---
@@ -86,14 +87,15 @@ D:/Tools/android-sdk/platform-tools/adb.exe install -r 'S:\build\app\outputs\flu
 | 检查 | 结果 | 证据时间 |
 | --- | --- | --- |
 | `flutter analyze` | **No issues found** | 2026-09-14 |
-| `flutter test` | **109/109 通过**（16 个测试文件） | 2026-09-14 |
-| 装机冒烟 | 最近一次 2026-09-13（模拟器 `ncpu_api36`），**早于 TASK-009 / TASK-004** | 2026-09-13 |
-| release APK | `build/app/outputs/flutter-apk/` 里的三个包时间戳为 09-13 20:47，**已过期于当前代码** | 2026-09-13 |
+| `flutter test` | **110/110 通过**（16 个测试文件） | 2026-09-14 |
+| 装机冒烟 | 2026-09-14（`ncpu_api36`）：建校 → 今日议程（空课 / 单课 / 两课）→ 整周议程 → 夜间两视图 → 窄屏 360dp，logcat 0 致命异常 | 2026-09-14 |
+| release APK | `build/app/outputs/flutter-apk/app-release.apk` = `0.1.1+2`（versionCode 2），通用包 61.7MB（arm64-v8a / armeabi-v7a / x86_64） | 2026-09-14 |
 | 真实教务导入 | 无证据 | `UNVERIFIED` |
 | iOS | 未构建 | `UNVERIFIED` |
 
-**注意**：不要拿 `build/` 里现成的 APK 去验收新功能——它不含 TASK-009 的跨域确认与
-TASK-004 的调休功能。需要装机时必须重新 `flutter build apk`。
+**注意**：APK 不入库（`/build/` 在 `.gitignore`），对外分发走 Gitee release 附件
+（tag `v0.1.1` 对应包 SHA-256 `98510723…f396019`）。改代码后必须重新
+`flutter build apk --release` 再装机，不要复用旧包。
 
 ---
 
@@ -138,11 +140,11 @@ lib/
       pages/import_preview_page.dart       差异预览 + 附加选项 + 确认写入
     timetable/
       providers/timetable_providers.dart   课程流 / todayDaySchedule / todayCourses
-      pages/timetable_page.dart            首页：今日时间轴 / 整周槽位网格
+      pages/timetable_page.dart            首页（TASK-011 后两个视图都在此文件内）：
+                                           历牌 / 模式切换 / 今日议程 / 整周议程
       pages/course_detail_page.dart, course_edit_page.dart
-      widgets/day_timeline.dart            今日：竖向时间轴
-      widgets/section_slot_board.dart      整周：节次槽位网格
-      widgets/course_listing_row.dart      EmptyDayPlate 等
+      widgets/course_listing_row.dart      CourseListingRow（今日议程行）+ EmptyDayPlate
+      （TASK-011 已删除 widgets/day_timeline.dart 与 widgets/section_slot_board.dart）
     settings/
       pages/settings_page.dart             学校/学期/作息/**调休停课**/外观/关于
       pages/semester_settings_page.dart, bell_settings_page.dart
@@ -160,7 +162,7 @@ knowledge/                                 知识库（结构见 §10）
 
 ---
 
-## 5. 测试清单（16 文件 / 109 条）
+## 5. 测试清单（16 文件 / 110 条）
 
 | 文件 | 覆盖 |
 | --- | --- |
@@ -179,7 +181,7 @@ knowledge/                                 知识库（结构见 §10）
 | `calendar_exception_service_test.dart` | **新增**：停课/调休折算、同一天任意时刻命中、未指定目标星期退回自然星期、越界夹取、多条例外互不干扰 |
 | `calendar_exception_repository_test.dart` | **新增**：内存库写入读回、同日二次写入是覆盖、编辑换日期不残留、停课忽略 makeupWeekday、删除只删指定、跨校隔离、删校级联清 |
 | `calendar_exception_ui_test.dart` | **新增**：今日停课空状态、调休提示条、「设置 → 调休 / 停课」路由 |
-| `app_shell_test.dart` | App 壳 widget：引导→建校→首页；空课日空状态 |
+| `app_shell_test.dart` | App 壳 widget：引导→建校→首页；空课日空状态；`today-agenda`/`week-agenda` 互斥切换、整周当天行 key、首页无「本周线路概览」语义标签 |
 
 **缺口**：没有迁移测试（Drift `SchemaVerifier` 未接入），v2→v3 的 `createTable` 只在内存库
 新建成库的路径上被间接验证过；页面级 widget 测试只覆盖了设置与今日/整周的一小部分。
@@ -263,8 +265,12 @@ iOS `NSAllowsArbitraryLoadsInWebContent=true`（仅 WebView）。应用层两道
 单朱砂强调色（日 `#C3402B` / 夜 `#E0604A`）；纸白与墨；结构靠发丝线不堆卡片；
 圆角系统锁（区块 12 / 控件 10 / 小签 4）；课程签 8 色低饱和且只在小块面；
 数字用 tabular figures；动效克制。
-**两个课表视图刻意不同**：整周 = 节次槽位网格（一天一列、横向翻页、当前周今天优先循环排列）；
-今日 = 竖向时间轴（轴线 + 圆点 + 进行中朱砂强调 + 卡片贴内容高度 + 「下一节」提示条）。
+**两个课表视图（TASK-011 后）**：都是「只排真实有课项」的议程，不再画节次轨道。
+今日 = 历牌 hero + 「下一节」提示条 + 当天课程行（`CourseListingRow`）；
+整周 = 七天分组，每天表头写「周X + 日期 + 调休小签 + N门/无课/停课」，表头下展开当天课程，
+空日只占一行；当前周仍以今天开头、今天行朱砂浅底。
+首页不使用路线水印（`RouteBackground` 只在设置页与课程详情页），
+课程详情保留「十站节次线」。
 图标 = 朱砂印章 + 华文行楷「汇」+ 白内框。
 
 ---
@@ -301,7 +307,9 @@ knowledge/
 - TASK-001 多校基座（模型 / 导入链路 / 两视图 / 主题 / 图标）+ 五轮用户反馈迭代
 - TASK-007/008 上传 Gitee 并转公开（公开可匿名读，无令牌）
 - TASK-009 导入链路可用性修复（§7 的三处）
+- TASK-010 接手收口与 UI 融合（线路语言进入详情与设置）
 - TASK-004 校历例外（§8）
+- TASK-011 首页信息架构重做（§0.1：今日/整周都改为议程），release `0.1.1+2` 已挂到 Gitee release
 
 **未完成**：
 
@@ -336,8 +344,12 @@ knowledge/
 10. **Git Bash 调 adb 传 `/sdcard/...` 要 `export MSYS_NO_PATHCONV=1`**；
     native python 读 dump 用 Windows 路径。
 11. **模拟器是共用的**：`ncpu_api36` 上有本项目冒烟留下的学校/课程时，删掉自己的即可；
-    不要碰其它应用的数据。
+    不要碰其它应用的数据。收尾用 `adb shell pm clear com.huike.huike_timetable` 回到全新安装态；
+    改过 `wm size`/`wm density` 必须 `reset`（TASK-011 核验用了 720x1600 + density 320）。
 12. **大段 Dart 改动不要用 shell 字符串替换**（曾把一个文件打坏成 47 个错误）→ 整文件重写。
+13. **截图坐标不可直接当点击坐标**：`android_screenshot` 返回的图会被缩放，
+    直接用肉眼估的像素点会点偏（本轮踩到过）。要点哪个控件先用 `android_ui_resolve` /
+    `android_ui_describe` 拿真实 bounds，再按 `centerX/centerY` 点。
 
 ---
 
@@ -350,7 +362,8 @@ knowledge/
 | TASK-005 适配器联网更新 | 未开始 | 先定配置源与哈希/签名策略（DEC-008） |
 | TASK-006 真实导入验收 | **`BLOCKED` 等用户** | 需要用户装机走一次导入；先重装新包 |
 | ISSUE-004 真实导入未验收 | Open | 无任何真实教务证据 |
-| ISSUE-005 新 UI 未装机验证 | Open | 跨域确认弹窗、800ms 节奏、调休页与整周小签的观感 |
+| ISSUE-005 新 UI 未装机验证 | 部分关闭 | 跨域确认弹窗、800ms 节奏、调休页与整周小签仍未装机复测；首页两视图已由 TASK-011 装机核验（§3） |
+| ISSUE-012 引导页网址文案写死 HTTPS | Resolved（2026-09-14） | 标签改为「http/https」，与 DEC-004 一致 |
 | ISSUE-006 签名仍为 debug 证书 | Open | 正式分发前必须换（换签要卸载重装） |
 | ISSUE-007 iOS 未构建 | Open | 需要 mac |
 | ISSUE-008 历史遗留物未清理 | Open | `tools/patch_*.py`、`assets/icon/candidates/` 按 DEC 保留到发版前 |
@@ -363,15 +376,16 @@ knowledge/
 subst S: "D:\桌面\汇课"; cd /s/
 flutter pub get
 dart run build_runner build                 # schema 有改动时必须重跑
-flutter analyze && flutter test             # 期望：无问题 + 109/109
-flutter build apk --release --split-per-abi # 期望：三个 APK
+flutter analyze && flutter test             # 期望：无问题 + 110/110
+flutter build apk --release                 # 期望：app-release.apk（通用包，三 ABI，约 62MB）
+# 需要按 ABI 分包的签名档时：flutter build apk --release --split-per-abi
 
 export MSYS_NO_PATHCONV=1
-D:/Tools/android-sdk/platform-tools/adb.exe install -r 'S:\build\app\outputs\flutter-apk\app-arm64-v8a-release.apk'
+D:/Tools/android-sdk/platform-tools/adb.exe install -r 'S:\build\app\outputs\flutter-apk\app-release.apk'
 D:/Tools/android-sdk/platform-tools/adb.exe shell am start -W -n com.huike.huike_timetable/.MainActivity
 
 # 装机后建议自测：
-# 引导页选「南昌工学院」→ 建校 → 加课 → 今日时间轴 / 整周网格
+# 引导页选「南昌工学院」→ 建校 → 加课 → 今日议程 / 整周议程
 # → 设置 → 调休 / 停课：加一条「今天停课」+ 一条「调休按周五」→ 回今日与整周核对
 # → 右上角导入 → 确认地址（默认 http://jwxt.ncpu.edu.cn）→ 登录 →
 #   跨域时确认「允许访问新域名」→ 执行导入 → 预览 → 确认写入
@@ -388,12 +402,12 @@ D:/Tools/android-sdk/platform-tools/adb.exe shell am start -W -n com.huike.huike
 
 ## 16. 事实等级
 
-- `CONFIRMED`：`analyze` 干净、`flutter test` 109/109（2026-09-14）、schema v3 代码生成与
+- `CONFIRMED`：`analyze` 干净、`flutter test` **110/110**（2026-09-14）、schema v3 代码生成与
   内存库读写、导入链路与地址校验的逻辑层（单测）、校历例外的折算与界面接线（单测 + widget 测试）、
-  南工作息与档案（单测）、release 包内的 `INTERNET` 与明文配置（2026-09-13 复核，包已过期）、
-  仓库公开可匿名读。
-- `UNVERIFIED`：真实教务导入、TASK-009 与 TASK-004 的装机观感、arm64 真机安装、
-  **v2→v3 迁移在真机老库上的执行**（无迁移测试）、iOS 构建、小组件与提醒（未开始）。
+  南工作息与档案（单测）、首页两视图（今日/整周议程）在 `ncpu_api36` 上的空课/单课/多课、
+  夜间与窄屏 360dp 实画、release `0.1.1+2` 的 `INTERNET` 与明文配置、仓库公开可匿名读。
+- `UNVERIFIED`：真实教务导入、跨域确认弹窗与 800ms 探测节奏的装机观感、调休页与整周调休小签的观感、
+  arm64 真机安装、**v2→v3 迁移在真机老库上的执行**（无迁移测试）、iOS 构建、小组件与提醒（未开始）。
 - `BLOCKED`：TASK-006 真实导入验收（等用户真机操作）。
 
 ---

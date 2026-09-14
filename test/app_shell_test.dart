@@ -58,7 +58,7 @@ void main() {
     expect(find.text('今日'), findsOneWidget);
     expect(find.text('整周'), findsOneWidget);
     expect(find.text('加课'), findsOneWidget);
-    expect(find.bySemanticsLabel(RegExp(r'^本周线路概览')), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp(r'^本周线路概览')), findsNothing);
 
     final todayTarget = find.ancestor(
       of: find.text('今日'),
@@ -127,6 +127,18 @@ void main() {
     await schools.setActiveSchool(school.id);
 
     await pumpApp(tester);
+    expect(find.byKey(const ValueKey('today-agenda')), findsOneWidget);
+    expect(find.byKey(const ValueKey('week-agenda')), findsNothing);
+
+    await tester.tap(find.text('整周'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('today-agenda')), findsNothing);
+    expect(find.byKey(const ValueKey('week-agenda')), findsOneWidget);
+    expect(find.byKey(ValueKey('week-day-0-${now.weekday}')), findsOneWidget);
+    expect(find.text('无课'), findsWidgets);
+
+    await tester.tap(find.text('今日'));
+    await tester.pumpAndSettle();
     final courseCard = find.ancestor(
       of: find.text('城市设计').first,
       matching: find.byType(GestureDetector),

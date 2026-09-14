@@ -197,3 +197,26 @@ Resolution: 按代码逐项校正 `current_state.md` / `architecture.md` / `adap
 
 Prevention: 知识库同步属于同一笔提交（`AGENTS.md` 工程准则第一条）；
 文档与代码冲突时以代码与测试为准，先修文档再干活。
+
+## ISSUE-012 引导页把教务网址写死为「HTTPS」，与明文放开策略冲突
+
+Status: Resolved（2026-09-14，TASK-011 装机核验时发现）
+
+Observed: 引导页建校表单的网址字段标签是「教务网址（选填，HTTPS）」，输入框本身
+接受 `http://`，只有文案在劝退明文学校。而 DEC-004 之后策略已放开明文 HTTP
+（`network_security_config` base-config 允许明文、`checkLoginUrl` 三处入口都收 http/https）。
+
+Root Cause: 明文放开的入口盘点（ISSUE-002）只核对了校验逻辑与学校管理页的硬拦，
+没有把「用户可见文案」纳入盘点。
+
+Impact: 大量只有明文 HTTP 教务的学校会以为本 App 不支持自己的学校——与 DEC-004
+的结论相反；属「文档说 A、代码说 B」在界面文案上的同类问题。
+
+Resolution: 标签改为「教务网址（选填，http/https）」；复查 `import_entry_page.dart`、
+`school_manage_page.dart` 的同类文案，未见其它把协议写死的位置。
+
+Evidence: 装机实画（`ncpu_api36`，`0.1.1+2`）；`flutter analyze` 无问题、
+`flutter test` **110/110**。
+
+Prevention: 放宽类改动做入口盘点时，除了列出文件，还要覆盖「用户可见文案」——
+文案与策略不一致时用户看不到代码里的宽容度。
