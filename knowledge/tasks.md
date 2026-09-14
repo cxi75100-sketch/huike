@@ -8,6 +8,13 @@
   替换等价、手动课程保留」。目前导入链路只有代码、单测与 example.com 探测循环
   的证据，真实教务形状为 `UNVERIFIED`。
 
+## Now
+
+- [ ] TASK-007 上传汇课仓库到 Gitee（2026-09-13 起 `BLOCKED`）：用户选择「提供 Gitee 令牌、
+      由 Agent 建仓并推送」的路径，令牌待提供。到手后按
+      `knowledge/report_2026-09-13_handoff.md` §11 的命令模板执行（令牌只经环境变量、
+      不落盘；用完提醒用户撤销），推送后必须 `git ls-remote` 读回校验。
+
 ## Next
 
 - [ ] TASK-002 Android 桌面小组件（迁移自既有单校实现，载荷 schema 升级：

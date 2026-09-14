@@ -10,6 +10,11 @@
 - 本项目与任何单校课表项目相互独立：不共享代码、数据库、签名或知识库；公开文档中不出现彼此的名称与归属关系。
 - 参考与引用边界：教务适配脚本来自社区开源仓库（MIT），署名固定在 `THIRD_PARTY_NOTICES.md`，不得删除。
 
+## Handoff
+
+- 完整交接报告：`knowledge/report_2026-09-13_handoff.md`（文件地图、适配契约、错误报告、
+  恢复命令、上传模板）。新会话接手请先读它。
+
 ## Current Milestone
 
 TASK-001（基座）+ 用户第一轮反馈迭代（自动适配探测、印章行楷图标、
@@ -64,8 +69,12 @@ TASK-001（基座）+ 用户第一轮反馈迭代（自动适配探测、印章�
 - 外观三档（跟随系统/日间/夜间）持久化到 settings 表，系统栏图标随明暗切换。
 - 学校管理：列表、点按切换激活、修改教务网址（仅 HTTPS、白名单只增不减）、
   删除学校（级联清数据 + 清激活键，确认弹窗）。切换后另一校数据保留但不显示。
-- Android 主清单已声明 `INTERNET`（吸取单校版 release 缺权限的教训）；
-  未声明 `usesCleartextTraffic`，明文 HTTP 由系统默认拒绝，导入页只放行 HTTPS。
+- Android 主清单已声明 `INTERNET`（吸取单校版 release 缺权限的教训）。
+- **明文 HTTP 策略（2026-09-13 变更，取代此前的「仅南工白名单」）**：多校现实是大量教务为
+  明文且无法运行期新增放行域名，故放开明文——Android `network_security_config`
+  base-config 允许明文、iOS `NSAllowsArbitraryLoadsInWebContent`（仅 WebView）；
+  应用层两道门保留：导入入口地址确认（明文额外警示）+ 导航仅限确认过的主机。
+  本应用唯一网络消费是导入 WebView。
 
 ## In Progress
 
@@ -141,7 +150,13 @@ TASK-001（基座）+ 用户第一轮反馈迭代（自动适配探测、印章�
   完整起止时间 + 教室·教师），第 2 周周次正确；变体路径（明志楼→10:15）由
   `school_presets_test` 锁定（adb 无法输中文故 UI 只验了基础时间分支）。
   `flutter analyze` 无问题、`flutter test` 75/75、冒烟课已删、logcat 0 致命。
-- `UNVERIFIED`：真实教务系统导入（需用户账号脱敏验证）；arm64 真机安装；iOS。
+- `CONFIRMED`（2026-09-13 23:40 +08:00）：明文 HTTP 策略变更完成后重建 release 包并复核：
+  `aapt2 dump xmltree` 确认 manifest 带 `networkSecurityConfig=@0x7f110001`、
+  `dump resources` 确认该资源在包内、`dump permissions` 确认 `INTERNET`；
+  `flutter analyze` 无问题、`flutter test` 76/76。
+- `UNVERIFIED`：真实教务系统导入（用户已取 release 包在真机试用，结果待反馈）；
+  arm64 真机安装；iOS 构建；应用名「汇课」为用户 2026-09-13 确认定稿。
+- `BLOCKED`：Gitee 新仓库上传（等用户提供 projects 权限令牌；命令模板见交接报告 §11）。
 
 ## Recommended Next Action
 
