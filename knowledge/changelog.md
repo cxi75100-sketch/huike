@@ -118,3 +118,7 @@ TASK-011。首页撤销两条没赢得位置的做法：「今日再画一条十
 已移除的断言）。release APK（`0.1.1+2`，通用包三 ABI）装机 `ncpu_api36` 实画核验：
 日间空课/单课/多课、整周议程、夜间两视图、窄屏 360dp（`wm size 720x1600` +
 `wm density 320`，历牌行与议程行均无溢出），logcat 无 `FATAL EXCEPTION` / `E/flutter`。
+
+发布：master 已推送 Gitee（`bd0ecc8`），annotated tag `v0.1.1`，release 附件为该 APK
+（`huike-0.1.1-release.apk`，64,731,306 字节，SHA-256 `98510723…f396019`，
+无令牌可下载）。

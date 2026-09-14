@@ -93,9 +93,10 @@ D:/Tools/android-sdk/platform-tools/adb.exe install -r 'S:\build\app\outputs\flu
 | 真实教务导入 | 无证据 | `UNVERIFIED` |
 | iOS | 未构建 | `UNVERIFIED` |
 
-**注意**：APK 不入库（`/build/` 在 `.gitignore`），对外分发走 Gitee release 附件
-（tag `v0.1.1` 对应包 SHA-256 `98510723…f396019`）。改代码后必须重新
-`flutter build apk --release` 再装机，不要复用旧包。
+**注意**：APK 不入库（`/build/` 在 `.gitignore`），对外分发走 Gitee release 附件——
+`v0.1.1` 的包在 <https://gitee.com/chenxihh/huike/releases/download/v0.1.1/huike-0.1.1-release.apk>
+（64,731,306 字节，SHA-256 `98510723772fb06aaaf4bffebfe11fa6e151de4fe70e0af46a531af62f396019`，
+无令牌可下载）。改代码后必须重新 `flutter build apk --release` 再装机，不要复用旧包。
 
 ---
 
@@ -350,6 +351,17 @@ knowledge/
 13. **截图坐标不可直接当点击坐标**：`android_screenshot` 返回的图会被缩放，
     直接用肉眼估的像素点会点偏（本轮踩到过）。要点哪个控件先用 `android_ui_resolve` /
     `android_ui_describe` 拿真实 bounds，再按 `centerX/centerY` 点。
+14. **Gitee 推送不能用 `https://用户名:令牌@gitee.com/...` 的 URL 形式**——会返回
+    `Incorrect username or password (access token)`，而同一个令牌用 `?access_token=` 调
+    API 完全正常，容易误判成「令牌没权限」。可行做法是显式发 Basic 头：
+    `git -c credential.helper= -c http.extraHeader="Authorization: Basic $(printf '用户名:%s' "$GITEE_TOKEN" | base64 -w0)" push https://gitee.com/chenxihh/huike.git master`
+    （不要 `git remote set-url` 写入令牌；`credential.helper=manager-core` 也会干扰，记得用 `-c` 关掉）。
+15. **Git Bash 给 curl 传中文参数会被转成本地代码页**（GBK）→ Gitee release 的
+    `name`/`body` 变成「锟斤拷」。做法：用 Write 工具写成 UTF-8 文件，再
+    `--data-urlencode "body@文件路径"`；验证时用 python 读 JSON 断言中文字符串存在，
+    不要靠肉眼看终端。
+16. **Gitee API 不支持 DELETE 删分支**（405）→ 用
+    `git push <url> --delete <branch>`（同样走上面的 Basic 头）。
 
 ---
 
@@ -389,6 +401,27 @@ D:/Tools/android-sdk/platform-tools/adb.exe shell am start -W -n com.huike.huike
 # → 设置 → 调休 / 停课：加一条「今天停课」+ 一条「调休按周五」→ 回今日与整周核对
 # → 右上角导入 → 确认地址（默认 http://jwxt.ncpu.edu.cn）→ 登录 →
 #   跨域时确认「允许访问新域名」→ 执行导入 → 预览 → 确认写入
+```
+
+推送与发版（Gitee 的坑见 §12 坑 14~16）：
+
+```bash
+export GITEE_TOKEN='<用户的私人令牌，勿落盘>'
+BASIC=$(printf 'chenxihh:%s' "$GITEE_TOKEN" | base64 -w0)
+
+git -c credential.helper= -c http.extraHeader="Authorization: Basic $BASIC" \
+    push https://gitee.com/chenxihh/huike.git master
+git -c credential.helper= -c http.extraHeader="Authorization: Basic $BASIC" \
+    push https://gitee.com/chenxihh/huike.git refs/tags/vX.Y.Z
+
+# 建 release（name/body 用 Write 写的 UTF-8 文件，避免中文被转码）
+curl -X POST "https://gitee.com/api/v5/repos/chenxihh/huike/releases" \
+  -d "access_token=$GITEE_TOKEN" -d "tag_name=vX.Y.Z" -d "target_commitish=master" \
+  --data-urlencode "name@release_name.txt" --data-urlencode "body@release_body.md"
+# 挂 APK 附件（APK 在 build/ 里，不入库）
+curl -X POST "https://gitee.com/api/v5/repos/chenxihh/huike/releases/<release_id>/attach_files" \
+  -F "access_token=$GITEE_TOKEN" -F "file=@huike-x.y.z-release.apk"
+# 复核：无令牌 HEAD 下载地址应返回 200 且 Content-Length 与本地 APK 一致
 ```
 
 ---

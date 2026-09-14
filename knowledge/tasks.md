@@ -32,6 +32,7 @@
       而是议程列表。验证：`flutter analyze` 无问题、`flutter test` **110/110**；
       release APK（`0.1.1+2`）装机 `ncpu_api36` 实画核验日间/夜间、空课/单课/多课、
       窄屏 360dp 与整周议程，logcat 无致命异常（详见 `current_state.md` 验证快照）。
+      已推送 Gitee（master `bd0ecc8`、tag `v0.1.1`）并在 release 附件发布该 APK。
 
 - [x] TASK-010 接手收口与 UI 融合验收（2026-09-14 完成）：审查并分批提交原 34 项
       工作区改动，修复子框架非 HTTP(S) 导航绕过（ISSUE-011）。按用户方向将既有校园

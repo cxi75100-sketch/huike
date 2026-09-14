@@ -116,6 +116,12 @@ UI 融合，以及首页信息架构重做（今日改为当日议程、整周�
 - 「汇课」为用户 2026-09-13 确认定稿的名称；改名是纯文案工作。
 - 应用包名 `com.huike.huike_timetable`（`flutter create --org com.huike`）。
 - 中文路径下 Flutter 工具链需 `subst S: "D:\桌面\汇课"` 后在 `S:\` 执行（同单校项目经验）。
+- Gitee 推送：`origin` 是无令牌的公开地址；令牌只经环境变量传入、不落盘。
+  **不能用 `https://用户名:令牌@gitee.com/...` 的 URL 形式**（会被拒为
+  `Incorrect username or password (access token)`），要用
+  `git -c credential.helper= -c http.extraHeader="Authorization: Basic <base64(用户名:令牌)>"`。
+  给 Gitee API 传中文参数也要走 UTF-8 文件（`--data-urlencode "body@文件"`），否则变成乱码。
+  细节见 `report_2026-09-14_handoff.md` §12 坑 14~16 与 §14。
 - sqlite3（3.5.2）的 Dart hook 构建期从 GitHub 下载预编译库并缓存在项目内
   `.dart_tool/hooks_runner/shared/sqlite3/build/download-<hash>/`，带 sha256 校验；
   同版本工程的缓存可直接复用（2026-09-13 已这样完成离线构建）。
@@ -215,6 +221,12 @@ UI 融合，以及首页信息架构重做（今日改为当日议程、整周�
   课程详情「十站节次线」和调休/停课回归行为由 widget 测试锁定。
   （该版首页的竖向时间轴与节次槽位网格已被 TASK-011 取代。）
 - `UNVERIFIED`：TASK-006 真实教务登录、课表解析、差异预览与确认写入；arm64 真机安装；iOS 构建。
+- `CONFIRMED`（2026-09-14）：本轮改动已推送并发布——master 读回 `bd0ecc8`（= 本地 HEAD），
+  annotated tag `v0.1.1`（`a5f215a` → `bd0ecc8`）；release「汇课 0.1.1+2（首页信息架构重做）」
+  挂 APK 附件 `huike-0.1.1-release.apk`，64,731,306 字节、与本地构建产物 sha256 一致
+  （`98510723772fb06aaaf4bffebfe11fa6e151de4fe70e0af46a531af62f396019`）；
+  **无令牌** HEAD 该附件返回 `200` 且 `Content-Length` 相同，说明公开可下载。
+  推送前确认构建产物未入库（`/build/` 在 `.gitignore`）、仓库内无令牌。
 
 ## Recommended Next Action
 
