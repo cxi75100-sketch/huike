@@ -227,6 +227,11 @@ UI 融合，以及首页信息架构重做（今日改为当日议程、整周�
   （`98510723772fb06aaaf4bffebfe11fa6e151de4fe70e0af46a531af62f396019`）；
   **无令牌** HEAD 该附件返回 `200` 且 `Content-Length` 相同，说明公开可下载。
   推送前确认构建产物未入库（`/build/` 在 `.gitignore`）、仓库内无令牌。
+- `CONFIRMED`（2026-09-14）：Gitee 仓库简介原为乱码（历史遗留，UTF-8 被按 GBK 读后又被二次误编码，
+  原文不可还原），已重写为「汇课：多校通用课表 App。在学生自己学校的官方教务页面登录后本地导入课表，
+  离线保存与展示；不保存账号与密码。」；**无令牌**请求读回一致、不含替换字符。
+  同时复核 release 与附件文案均正常。改简介的命令见 `report_2026-09-14_handoff.md` §12 坑 15
+  （`PATCH /repos/{owner}/{repo}` 必须带 `name`，中文参数走 UTF-8 文件）。
 
 ## Recommended Next Action
 

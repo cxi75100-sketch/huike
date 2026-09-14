@@ -356,10 +356,15 @@ knowledge/
     API 完全正常，容易误判成「令牌没权限」。可行做法是显式发 Basic 头：
     `git -c credential.helper= -c http.extraHeader="Authorization: Basic $(printf '用户名:%s' "$GITEE_TOKEN" | base64 -w0)" push https://gitee.com/chenxihh/huike.git master`
     （不要 `git remote set-url` 写入令牌；`credential.helper=manager-core` 也会干扰，记得用 `-c` 关掉）。
-15. **Git Bash 给 curl 传中文参数会被转成本地代码页**（GBK）→ Gitee release 的
-    `name`/`body` 变成「锟斤拷」。做法：用 Write 工具写成 UTF-8 文件，再
-    `--data-urlencode "body@文件路径"`；验证时用 python 读 JSON 断言中文字符串存在，
-    不要靠肉眼看终端。
+15. **Git Bash 给 curl 传中文参数会被转成本地代码页**（GBK）→ Gitee 上的中文变成
+    「锟斤拷」甚至乱码方框。已踩过两处并修复：0.1.1 的 release `name`/`body`，
+    以及**仓库简介**（更早就坏了、坏了两轮原文已不可还原，2026-09-14 重写为
+    「汇课：多校通用课表 App。在学生自己学校的官方教务页面登录后本地导入课表，离线保存与展示；不保存账号与密码。」——
+    要改简介用同一句话，别再手打中文进命令行）。
+    做法：用 Write 工具写成 UTF-8 文件，再 `--data-urlencode "body@文件路径"`；
+    验证时用 python 读 JSON 断言中文存在且不含 `\ufffd`，不要靠肉眼看终端。
+    另：`PATCH /repos/{owner}/{repo}` **必须带 `name`**，否则 400 `name is missing`
+    （`name=huike` 是 ASCII，可放命令行；`description` 走文件传）。
 16. **Gitee API 不支持 DELETE 删分支**（405）→ 用
     `git push <url> --delete <branch>`（同样走上面的 Basic 头）。
 
