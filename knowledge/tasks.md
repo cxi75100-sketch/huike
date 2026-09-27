@@ -46,16 +46,19 @@
 
 ## Done
 
-- [x] 归档提交与推送（2026-09-27）：自 2026-09-15 起的未提交工作区（TASK-013～TASK-026）整体归档为
-      `e804223`（图标与启动底色）与 `f9eccc9`（Weekly/Today、Liquid Glass、动效、测试与知识库），
-      工作区干净；归档前 analyze 无问题、283/283 通过。随后推送成功：远端 master 由 `79c9267`
-      前进到 `5e5972a`，无令牌读回一致。同日的对外发布见下一条。
+- [x] 归档提交与推送（2026-09-27 17:11–17:15 +08:00）：自 2026-09-15 起的未提交工作区
+      （TASK-013～TASK-026）整体归档为 `e804223`（17:11:01，图标与启动底色）与 `f9eccc9`
+      （17:11:28，Weekly/Today、Liquid Glass、动效、测试与知识库），工作区干净；归档前
+      analyze 无问题、283/283 通过（17:09 跑完）。随后推送成功：远端 master 由 `79c9267`
+      前进到 `5e5972a`（17:12:02，记录提交 `14c1b52` 17:14:48），无令牌读回一致。
+      本节以下各条结尾的「无commit/push」都是当时轮次状态，已由本条收口。
 
-- [x] 发布 v0.1.4（2026-09-27）：release APK 通用包三 ABI、63,982,250 字节、SHA-256 `720f0eb1…cb545`，
-      `aapt2` 读回 versionCode 5 / 0.1.4 / minSdk 24 / targetSdk 36；annotated tag `v0.1.4` → `14c1b52`，
-      Gitee release id `1170081` 挂 APK 附件，无令牌下载读回 `200` 且长度一致、中文无乱码。
-      同时补记此前遗漏的 `v0.1.2`/`v0.1.3` release。签名仍为 debug 证书（ISSUE-006 未决）；
-      真机 GPU、iOS 与无障碍遍历未验。
+- [x] 发布 v0.1.4（2026-09-27 17:20–17:22 +08:00）：release APK 通用包三 ABI、63,982,250 字节、
+      SHA-256 `720f0eb1…cb545`（17:20:01 产出）；annotated tag `v0.1.4`（tagger 17:20:53）
+      → `14c1b52`，Gitee release id `1170081`（17:21:36 创建、17:22 附件上传完成）挂 APK，
+      无令牌下载读回 `200` 且长度一致、中文无乱码。同时补记此前遗漏的 `v0.1.2`/`v0.1.3` release
+      （均创建于 2026-09-14）。签名仍为 debug 证书（ISSUE-006 未决）；真机 GPU、iOS 与
+      无障碍遍历未验。
 
 - [x] TASK-020B Floating Liquid Glass Switcher（2026-09-27，本次新增范围）：Today/Weekly保留分支、共享280ms capsule/12dp fade、root-only与FAB避让完成；268→283测试、analyze/build/diff通过；API36约390dp Light/Dark双向录屏已查。真机/iOS未验；保护69文件不变，无commit/push。见report_2026-09-27_root_switcher.md。
 

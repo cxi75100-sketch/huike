@@ -2,19 +2,22 @@
 
 ## 2026-09-27 — 累积工作区归档并推送 Gitee
 
-TASK-013～TASK-026 的未提交工作区整体归档为 `e804223`（图标与启动底色）与 `f9eccc9`
-（Weekly/Today、Liquid Glass、动效、测试与知识库），工作区随之干净；归档前 `S:\` 下
-analyze 无问题、`flutter test` 283/283，敏感扫描与构建产物检查通过。
-用户提供令牌后推送成功：远端 master 由 `79c9267` 前进到 `5e5972a`（显式 Basic 头，
-未用 URL 内嵌令牌），无令牌 `git ls-remote` 读回同一提交、本地与 origin/master 一致。
+TASK-013～TASK-026 的未提交工作区整体归档为 `e804223`（17:11:01，图标与启动底色）与
+`f9eccc9`（17:11:28，Weekly/Today、Liquid Glass、动效、测试与知识库），工作区随之干净；
+归档前 `S:\` 下 analyze 无问题、`flutter test` 283/283（17:09 跑完），敏感扫描与构建产物检查通过。
+用户提供令牌后推送成功（17:12:02 推送 `5e5972a`，17:14:48 推送 `14c1b52`）：远端 master 由
+`79c9267` 前进到 `5e5972a`（显式 Basic 头，未用 URL 内嵌令牌），无令牌 `git ls-remote` 读回
+同一提交、本地与 origin/master 一致。本文件下方各条结尾的「未commit/push」都是当时轮次状态，
+已由本次归档收口。
 
 ## 2026-09-27 — 发布 v0.1.4（Gitee release 挂 APK）
 
-- `flutter build apk --release --no-pub` 产出通用包（arm64-v8a / armeabi-v7a / x86_64）
+- `flutter build apk --release --no-pub` 17:20:01 产出通用包（arm64-v8a / armeabi-v7a / x86_64）
   `build/huike-0.1.4-release.apk`：63,982,250 字节，SHA-256 `720f0eb1…cb545`；
   `aapt2` 读回 versionCode 5 / versionName 0.1.4 / minSdk 24 / targetSdk 36 / label「汇课」。
-- annotated tag `v0.1.4` → `14c1b52`；Gitee release id `1170081` 挂该 APK，
-  无令牌下载读回 `200` 且 `Content-Length` 一致，中文名与正文无乱码。
+- annotated tag `v0.1.4`（tagger 17:20:53）→ `14c1b52`；Gitee release id `1170081`
+  （创建于 17:21:36，附件 17:22 上传完成）挂该 APK，无令牌下载读回 `200` 且 `Content-Length`
+  一致，中文名与正文无乱码（17:23 复核）。
 - 核对 API 补记：`v0.1.2`(1143378)、`v0.1.3`(1143514) 也早已有 release 与 APK 附件
   （均创建于 2026-09-14），知识库此前只记到 `v0.1.1`。
 - 签名仍是 debug 证书（ISSUE-006 未决），release 正文标注「仅内测分发」。
@@ -127,7 +130,9 @@ Today/Weekly平级保留状态，两原root路径接入最小StatefulShellRoute�
   `6baece6da43bbf5c3705b6fd8daf350497ddbd3e328f91143c922d948dc130e5`，
   versionCode 5 / minSdk 24 / targetSdk 36，debug 密钥签名）；
   release 包在 `ncpu_api36` 上装机冒烟通过（引导页 → 建校 → 新首页玻璃层级与
-  布局正常，logcat 0 致命），**未推送 Gitee、未打 tag**。
+  布局正常，logcat 0 致命），**未推送 Gitee、未打 tag**（该 2026-09-23 快照的状态已于
+  2026-09-27 收口：v0.1.4 已推送并发布，见本文件顶部；同一路径的文件已被重新构建的
+  发布包覆盖，哈希以顶部记录为准）。
 
 ## 0.1.3+4 追加（2026-09-22，未发新版号）：TASK-014 Weekly Timetable
 
