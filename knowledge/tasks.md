@@ -46,10 +46,10 @@
 
 ## Done
 
-- [x] 归档提交（2026-09-27）：自 2026-09-15 起的未提交工作区（TASK-013～TASK-026）整体归档为
+- [x] 归档提交与推送（2026-09-27）：自 2026-09-15 起的未提交工作区（TASK-013～TASK-026）整体归档为
       `e804223`（图标与启动底色）与 `f9eccc9`（Weekly/Today、Liquid Glass、动效、测试与知识库），
-      工作区干净；归档前 analyze 无问题、283/283 通过。**推送未完成**：本机无可用 Gitee 凭据，
-      `git push origin master` 返回 `Unauthorized`，本地领先 origin/master 7 个提交。
+      工作区干净；归档前 analyze 无问题、283/283 通过。随后推送成功：远端 master 由 `79c9267`
+      前进到 `5e5972a`，无令牌读回一致。未打 tag、未建 release。
 
 - [x] TASK-020B Floating Liquid Glass Switcher（2026-09-27，本次新增范围）：Today/Weekly保留分支、共享280ms capsule/12dp fade、root-only与FAB避让完成；268→283测试、analyze/build/diff通过；API36约390dp Light/Dark双向录屏已查。真机/iOS未验；保护69文件不变，无commit/push。见report_2026-09-27_root_switcher.md。
 

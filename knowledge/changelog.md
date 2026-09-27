@@ -1,12 +1,13 @@
 # Changelog
 
-## 2026-09-27 — 累积工作区归档（本地提交，推送待令牌）
+## 2026-09-27 — 累积工作区归档并推送 Gitee
 
 TASK-013～TASK-026 的未提交工作区整体归档为 `e804223`（图标与启动底色）与 `f9eccc9`
 （Weekly/Today、Liquid Glass、动效、测试与知识库），工作区随之干净；归档前 `S:\` 下
 analyze 无问题、`flutter test` 283/283，敏感扫描与构建产物检查通过。
-推送仍未完成：本机无可用 Gitee 凭据，`git push origin master` 返回 `Unauthorized`，
-本地 master 领先 origin/master 7 个提交。
+用户提供令牌后推送成功：远端 master 由 `79c9267` 前进到 `5e5972a`（显式 Basic 头，
+未用 URL 内嵌令牌），无令牌 `git ls-remote` 读回同一提交、本地与 origin/master 一致。
+未打 tag、未建 release——Gitee 上最新 release 仍是 `v0.1.1`。
 
 ## 2026-09-27 — TASK-020B Floating Liquid Glass Switcher
 

@@ -2,19 +2,24 @@
 
 ## Last Updated
 
-2026-09-27 +08:00（累积工作区已归档为本地提交；推送待 Gitee 令牌）
+2026-09-27 +08:00（累积工作区已归档并推送 Gitee，远端 master `5e5972a`）
 
 ## 归档与推送（2026-09-27）
 
-- 自 2026-09-15 起一直留在未提交工作区的 TASK-013～TASK-026 改动已整体归档为两笔提交：
+- 自 2026-09-15 起一直留在未提交工作区的 TASK-013～TASK-026 改动已整体归档为三笔提交：
   `e804223` 图标与启动底色（TASK-026 与 TASK-022B 的 Android 资源部分）、
-  `f9eccc9` Weekly/Today、Liquid Glass、动效、测试与知识库（0.1.4+5）。工作区已干净。
+  `f9eccc9` Weekly/Today、Liquid Glass、动效、测试与知识库（0.1.4+5）、
+  `5e5972a` 归档与推送记录。工作区已干净。
 - 归档前验证：`S:\` 下 `flutter analyze --no-pub` 无问题、`flutter test --no-pub` **283/283**；
   推送前敏感扫描无凭据命中（命中的都是 third_party 源码与策略文档表述），构建产物未入库。
-- **推送未完成**：本机没有任何可用的 Gitee 凭据——Windows 凭据管理器无 gitee 条目、
-  `~/.ssh` 密钥被 Gitee 拒为 `Permission denied (publickey)`、环境变量无令牌、
-  无 `~/.git-credentials`；`git push origin master` 返回 `remote: Unauthorized`。
-  本地 master 领先 origin/master **7 个提交**（含此前 0.1.1～0.1.3 的 5 笔）。
+- `CONFIRMED`（2026-09-27）：**已推送 Gitee**——用户提供令牌后以
+  `git -c credential.helper= -c http.extraHeader="Authorization: Basic …"` 推送成功，
+  远端 master 由 `79c9267` 前进到 `5e5972a`；**无令牌** `git ls-remote origin master` 读回同一
+  提交 `5e5972a83b5dea234adb0cca3de6a1aa3770bba6`，本地与 origin/master 已一致（0/0）。
+  推送前本地 `origin/master` 引用是陈旧的（停在 `5a6bbf0`），实际远端早已含 0.1.1～0.1.3 的
+  5 笔提交（`bd0ecc8`…`79c9267`），即本轮真正新传的是 3 笔归档提交。
+- 未打 tag、未建 release：Gitee 上最新 release 仍是 `v0.1.1`，当前版本 `0.1.4+5` 还没有
+  tag 与 APK 附件（是否发布待用户决定）。
 - 下方各任务段落结尾的「未commit/push」是当时轮次的状态记录；归档与推送结果以本节为准。
 
 ## TASK-020B Floating Liquid Glass Switcher
@@ -435,10 +440,8 @@ UI 融合，以及首页信息架构重做（今日改为当日议程、整周�
 
 ## Recommended Next Action
 
-当前阻塞：本地 7 个提交尚未推到 Gitee，需要用户提供令牌（见「归档与推送」一节）。
-令牌就绪后用
-`git -c credential.helper= -c http.extraHeader="Authorization: Basic <base64(用户名:令牌)>" push origin master`
-推送，不要用 URL 内嵌令牌的形式。
+推送已完成（见「归档与推送」一节）。若要把 `0.1.4+5` 对外发布，还需用户决定是否打 annotated
+tag `v0.1.4` 并建 release 挂 APK 附件——本轮只推了 master，未打 tag。
 
 TASK-002 Android 桌面小组件（载荷 schema v2：由 Dart 预计算整学期每日课程，
 原生只按日期查表）。预计算必须经 `CalendarExceptionService` 折算「某天按哪天的课表」，
