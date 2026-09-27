@@ -33,6 +33,28 @@ class SemesterService {
     return today.isBefore(endExclusive) ? TermStatus.within : TermStatus.after;
   }
 
+  /// 学期「翻页」进度与落款：翻到第 [week] 周时这一卷读到哪了。
+  ///
+  /// 只有这一处算进度，整周页的学期进度弹层与后续任何入口都读它，
+  /// 不允许各自再算一遍。进度夹取在 0..1；[date] 用于判学期前 / 学期后。
+  ({double progress, String mark}) readingProgress(
+    Semester semester,
+    int week,
+    DateTime date,
+  ) {
+    switch (termStatus(semester, date)) {
+      case TermStatus.before:
+        return (progress: 0, mark: '尚未开卷');
+      case TermStatus.after:
+        return (progress: 1, mark: '此卷已毕');
+      case TermStatus.within:
+        return (
+          progress: (week / semester.totalWeeks).clamp(0.0, 1.0),
+          mark: '阅至此处',
+        );
+    }
+  }
+
   /// 第 [week] 周星期 [weekday]（1=周一）的日期。
   ///
   /// 不把 [week] 夹到学期范围内：周历需要如实显示用户翻到的那一周。

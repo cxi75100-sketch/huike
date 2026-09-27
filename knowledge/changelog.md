@@ -1,5 +1,130 @@
 # Changelog
 
+## 2026-09-27 — TASK-020B Floating Liquid Glass Switcher
+
+Today/Weekly平级保留状态，两原root路径接入最小StatefulShellRoute；共享中性capsule与12dp fade，280ms现有token，Reduced直接。
+删除重复顶部Today入口/Today返回按钮，FAB只上移避让；root-only栏覆盖规则含两类Preview。
+268→283测试、analyze/build/diff通过，API36明暗双向录屏已查；保护69文件无变化，未提交推送。
+详细报告：report_2026-09-27_root_switcher.md。此前TASK-020B去summary历史结果保留。
+
+## 2026-09-27 TASK-026 App Icon Redesign
+
+- 单方案三白课程块向中心汇聚+纯冷蓝，复用既有生成工具替换全部Android/iOS活动图标。
+- 补可重复mask/安全区/48与64px/尺寸/旧图检查；API36桌面/最近应用/应用列表已查。
+- Flutter源码不改、无依赖/签名/锁文件变更；268/268与工程检查通过，iOS设备/真机未验。
+- 无commit/push，详见report_2026-09-27_app_icon.md。
+
+## 2026-09-27 TASK-022B App Launch → Home Motion
+
+- 修首帧保存主题与初始错误空状态；稳定环境背景接一次180ms轻量reveal，Reduced直接显示。
+- Android旧版/12+仅对齐启动/窗口底色，保留品牌，系统栏图标与Flutter实际主题一致。
+- 新增6例，268/268及工程检查通过；API36四模式cold/warm已执行，真机/iOS/性能仍未验。
+- 不改普通transition与禁止业务范围；无commit/push，详见launch_motion报告。
+
+## 2026-09-27 TASK-022A App Motion / Transition Audit
+
+- A–E盘点并集中普通motion语义token；普通route/Dialog短距离绘制过渡，iOS保留边缘返回。
+- 菜单连续收起、删除旋转；普通Detail删除重复stagger；Sheet/焦点/按压/Snackbar局部统一。
+- Reduced无多余scale/translation；新增10例和四模式widget画面检查；262/262与完整工程检查通过。
+- 启动/Preview/Weekly分页/Today布局不改；无设备性能验收。未commit/push，详见motion_audit报告。
+
+## 2026-09-27 TASK-021 Today Compact Semantic Timeline
+
+- Today固定164dp节次轨道改为内容驱动课程节点与连续语义时间轴；间隔分级且上限40dp。
+- 日期标题适度压缩；当前时间关联课程/课间/首尾状态，30秒时钟检查分钟更新，不假造分钟Y坐标。
+- 保留原Glass/tint/Hero及预览类/路由；新增20例回归与390dp明暗中文widget实画。
+- Weekly源码哈希保持不变，所有禁止范围未改。无commit/push；最终验证见本轮报告。
+
+## 2026-09-27 TASK-020B Separate Today From Weekly
+
+- 移除Weekly的Today summary横条、摘要计算与无用组件文件。顶部学校行「今日」按钮复用原/today入口；周导航直接衔接星期栏/网格。
+- 新增三个屏宽×1.3字体行为测试，更新原入口测试；保留Today功能与所选周返回状态。
+- 本轮仅修改Weekly组合、header与测试；未修改Timeline、导航架构、手势或其它禁止范围。验证见本轮报告。
+
+## 2026-09-27 TASK-020A Weekly Swipe Paging
+
+- Weekly pager增加手势资格/消费门禁，禁止动画期间新手势接管，cancel只回弹，弹簧同步共享offset。
+- 保留原跟手、位置/速度判据及箭头路径；新增12个widget行为测试。
+- 完整验证及未复现边界见 `report_2026-09-27_weekly_swipe_paging.md`；未改禁止范围，不commit/push。
+
+## 2026-09-26 TASK-019 最后视觉收尾
+
+- 仅Weekly课程块fill/border/glow参数：light tint 8–10%、dark 12–16%，基底更透明、左上微亮；边框课程混色70%降到6%，glow降至0.8%/1.5%。不改字体、布局、网格及算法。
+- 基线与最终analyze无问题、217/217通过；生产Debug APK成功、diff check通过；API36内存QA七色周Light/Dark已检查，真机/iOS未验。
+- 禁止范围未改，已有加号遮挡仅记录；未开始TASK-020，未commit/push/reset/clean。
+
+## 2026-09-24 TASK-018A（已完成，保留未提交工作区）
+
+- 修复 Liquid Glass 引入的布局回归：`GlassButton` 的 `Center` 在 `Scaffold.bottomNavigationBar` 的松约束下纵向撑满整屏，把 `page body` 挤成 0 高，导致「导入教务课表」正文整块消失、风险确认项不在页面上、CTA 永远 disabled。改为 `heightFactor: 1`，只收缩纵向并保留原有横向占满行为与 `tapTarget` 最小尺寸；同根因的引导页（`创建学校`）与导入预览页一并恢复。
+- 导入入口补齐三种非正常状态：读取中显示加载态、读取失败显示错误文案与「重试」、确实未建校显示空态与「去创建学校」，不再三者都渲染成空白；底部 CTA 追加 `MediaQuery.viewInsetsOf(context).bottom`，键盘弹起时 CTA 停在键盘上方。
+- 修掉离开导入 WebView 时两条 dispose 期异常（`Using "ref" … unmounted`、`Tried to modify a provider while the widget tree was building`）：cleaner 改为在 `initState` 抓取 `ImportSessionNotifier` 实例，并把清会话推到 `Future.microtask`。此前两条异常都发生在 `reset()` 之前/之时，内存导入会话实际没有被清（见 ISSUE-018）。
+- 新增 `test/import_flow_regression_test.dart`（13 例）：正文非空白、CTA 前置条件与启用、进入 `/import/web` 且 host/URL 传参正确、取消与非法地址、加载/错误/空态、390dp、1.3 倍字号、键盘与系统返回、离开导入页清空会话。`app_shell_test` 的建校用例从「直调 `onPressed`」改回真实 `enterText` + `tap`（原写法是为绕开本回归而写）。
+- 验证：`flutter analyze --no-pub` 通过；`flutter test --no-pub` **207 个用例、205 通过**（改动前基线 194 个用例、其中 2 例已失败，见 `knowledge/testing.md`）；`flutter build apk --debug --no-pub` 成功；`git diff --check` 无空白错误。API 36 `ncpu_api36` 实机走通建校 → 导入页 → 勾选 → CTA 可用 → 确认弹窗 → 教务 WebView，并验证键盘态与返回，logcat 无 Flutter 异常；未登录任何真实教务账号。适配器 JS、桥协议、`NavigationPolicy`、Drift schema 未改动。未创建 commit。
+
+## 2026-09-23 TASK-017（已完成，保留未提交工作区）
+
+- 增加稳定的 `CourseHeroTag`（课程/学校/学期/来源/目标）与共用课程 Hero 表面。Weekly 预览 → 详情和 Today 卡片 → 预览 → 详情均有跨 PageRoute Hero；Today 预览改为透明页面路由承载的玻璃底部面板。Reduced Motion 下不运行 Hero，详情改短淡入。
+- 新增 `GlassTextField`、`GlassSelectionRow`、`GlassToggleRow`、`GlassChoiceChip`、`GlassPickerRow` 与 `GlassDialog`。收敛用户可见的输入、单选/勾选/选择器、导入桥弹窗、校历/作息/课程/学校确认框与页面 CTA；删除/重置操作明确标注。
+- 一致性扫描确认业务 UI 中不再直接使用 `TextField`、Material 表单列表项、ChoiceChip、IconButton、传统按钮或 `AlertDialog`；仅共享玻璃封装内部保留 Flutter `TextField`/`showDialog`，学校/校历溢出菜单与日期/时间选择器保留平台控件。
+- 新增输入、选择、危险确认、1.3 倍字号、设置外观、weekly/today Hero 身份、往返与 Reduced Motion 测试。`flutter analyze --no-pub` 通过，`flutter test --no-pub` **194/194**，Android debug APK 成功构建。当前无连接设备，因此本轮未做模拟器/真机实画；iOS、GPU 与 TalkBack/VoiceOver 仍为 `UNVERIFIED`。未创建 commit。
+- 交付报告：`knowledge/report_2026-09-23_liquid_glass_final.md`。
+
+## 2026-09-23 TASK-016（已完成，保留未提交工作区）
+
+- 周课表改为 10/12 节由视口均分一屏，14 节可滚动；课程块自适应信息密度，完整字段由预览与 Today 展示。
+- 新增 `/today` 时间轴路由、添加菜单及单周事件入口；浅/深色改为中性 Apple 式玻璃，设置页改分组玻璃。
+- 修 D1–D8 的核心逻辑：视觉切周判据、直接冲突 peers、统一节次数、长按触觉、dispose 解绑、布局一次计算、空周次、首帧加载态。
+- 已清理 `CourseListingRow`、`TodayCoursesSheet`、`RouteBackground` 死代码。以下旧版本叙述保留为历史，不再代表当前 UI；本轮验证见 `knowledge/testing.md`。
+- 追加玻璃背景到引导、课程详情/编辑、学校、学期、作息及导入入口；设置页及课程详情改用分组玻璃表面。
+- 最终验证：`flutter analyze --no-pub` 通过，`flutter test --no-pub` 189/189，`flutter build apk --debug --no-pub` 成功；APK 安装后的 API 36 空周实画通过。最终报告：`knowledge/report_2026-09-23_liquid_glass.md`。
+
+## 0.1.4+5 (2026-09-23)：TASK-015 Dynamic Liquid Glass + 内容完整显示
+
+- 新增 `lib/core/glass/`：`GlassSurface`（五层材质：BackdropFilter / 半透明底色 /
+  方向性照明 / 触摸高光 / 发丝边缘 + 投影）、`PressPhysics`（全 App 唯一一份指针物理：
+  按下压缩、指针移动驱动高光位置、松手弹簧回位）、`GlassButton`、
+  `GlassSheetHost`/`GlassSheetPanel`（**一个进度**同时驱动 Sheet 位移、背景缩放、
+  背景模糊与压暗）、`GlassMotion`（110/180/280ms 与四个弹簧的唯一来源）；
+  新增 `AmbientBackdrop` 环境底色。全部交互不再使用 InkWell / splash。
+- 顶部改为浮动玻璃 island：学校行 + 周导航（一块玻璃内的 `‹ 第 N 周 · 日期范围 ›`，
+  换周时旧值滑出、新值按方向滑入）+ 今日快捷条。
+- 今日课程保留但不跳页：点今日快捷升起 Today Glass Sheet（名称 / 起止时间 / 地点 /
+  教师完整，标注「下一节」），拖动进度与背景效果同步。
+- 跟手切周：三页（上一周 / 本周 / 下一周）1:1 跟手平移、周导航高光随手势方向偏移；
+  位置（15% 页宽）与速度（380px/s）共同判定提交，未达阈值弹簧回位，
+  新手势可中断进行中的动画，边界不橡皮筋。
+- **课程内容完整显示**：移除课程块全部 `TextOverflow.ellipsis` 与截断用 `maxLines`；
+  行高改由 `course_block_layout.dart` 在与绘制完全相同的样式与 `TextScaler` 下测量
+  （`max(下限, 铺满值, 内容值)`），放不下就整体变高并纵向滚动。星期栏改为 sticky 玻璃浮层，
+  今天用小型液体选择器表达，「回本周」给它一次柔和起伏。
+- 冲突课程不再并排（七列宽度下会把文字挤成一行一个字，见 ISSUE-016）：显示一门课的
+  完整全宽信息 + 顶部 `+N` 小签进入全部课程。
+- 验证：`flutter analyze` 无问题，`flutter test` **177/177**（新增
+  `glass_interaction_test` 6 条、`course_block_content_test` 5 条、
+  Weekly Grid 交互当时新增 8 条）；debug APK 与 API 36 模拟器日间 390dp / 夜间 / 360dp /
+  今日 Sheet / 课程预览 Sheet 实画通过，logcat 0 致命；iOS 与真机 GPU 性能 `UNVERIFIED`。
+- 产物：`build/huike-0.1.4-release.apk`（通用包，arm64-v8a / armeabi-v7a / x86_64，
+  65,338,262 字节，sha256
+  `6baece6da43bbf5c3705b6fd8daf350497ddbd3e328f91143c922d948dc130e5`，
+  versionCode 5 / minSdk 24 / targetSdk 36，debug 密钥签名）；
+  release 包在 `ncpu_api36` 上装机冒烟通过（引导页 → 建校 → 新首页玻璃层级与
+  布局正常，logcat 0 致命），**未推送 Gitee、未打 tag**。
+
+## 0.1.3+4 追加（2026-09-22，未发新版号）：TASK-014 Weekly Timetable
+
+- 首页废弃「今日 / 整周」切换，默认即周一至周日完整二维课表；今天降为日期、列底与
+  当前节次的上下文提示。
+- 新增固定七列 Day Header、节次轴、按 `startSection..endSection` 定位的专用课程块。
+  Compact 手机保留单节精确定位，但将两节合成一个视觉时段（`1–2…9–10`），十节只形成
+  五个主要格区并自适应铺满剩余屏幕；两节课块分行显示名称、教室、教师与起止时间。
+- 新增纯函数 collision layout：稳定分簇/分 lane，两路并排，三路以上折叠为 `+N`。
+- 新增方向性周切换、水平 swipe、课程玻璃预览 Sheet、自定义添加按钮、Loading/Error/
+  Empty/Ready 叠层、完整语义与 Reduced Motion。
+- 玻璃模糊限制在顶部导航与 Sheet；课程块使用廉价 tint/border。详情与编辑页做轻量视觉
+  对齐，不改 CRUD、数据库、导入和 imported/manual 语义，未新增 dependency。
+- 验证：`flutter analyze` 无问题，`flutter test` 158/158，debug APK 与 API 36 模拟器
+  明暗实画通过；iOS/真机未验证。
+
 ## 0.1.0+1 (2026-09-13)
 
 首个可运行版本（TASK-001 基座）。
@@ -157,3 +282,63 @@ schema v2 之前建的学校变体列是迁移默认的 `'[]'`，没有任何路
 验证：`flutter analyze` 无问题、`flutter test` **119/119**。
 装机验证受限：模拟器只能用 ASCII 输入课程表单，无法造出中文教室名的课程，
 真机显示效果待用户反馈（`UNVERIFIED`）。
+
+## 0.1.3+4 追加（2026-09-15，未发新版号）：TASK-013 整周自然日期顺序与 UI 细节
+
+用户反馈「整周周日下面又出现本周周一」，并同步要求重做整周 UI、补细节与克制彩蛋。
+按 `knowledge/plan_2026-09-15_week_agenda_ui.md` 实施，**未改版本号、未提交、未推送、
+未发 release**（计划书把这些明确排除在授权外）。
+
+- **日期顺序**：整周固定为周一 → 周日自然顺序。顺序只有一个来源：
+  新增 `features/timetable/services/week_agenda.dart` 的 `buildWeekAgenda`，
+  一次性给出每天的日期、校历例外折算结果、当天课程、isToday / isPast / showMonth，
+  以及今天在七天里的下标；Widget 里不再排序，循环排列彻底删除。
+- **当前周锚定**：当前周用 `CustomScrollView` 的 `center` sliver 把今天做成初始视口
+  锚点——今天为首个可见日期，本周已过去的日子留在它上方（向上滚可回看）；
+  周日后不再接回本周周一，也不混入相邻教学周。其它周一律从周一开始，
+  离开本周时出现「回本周」文本按钮。没有引入任何第三方滚动包。
+- **UI**：整周课程不再是大面积课程色卡片，改为复用 `CourseListingRow` 的排印列表
+  （色条收窄到 4×36dp，色只落在这一小块面上，行间发丝线）；日期分组为 60dp 日期栏
+  （26sp 数字 + 13sp 星期，月份只在周一/跨月首日）+「今天/停课/按周X上课」4dp 小签 +
+  「N 门 / 无课」；今天用朱砂日期数字 +「今天」小签 + 左侧 3dp 短线 + 极浅朱砂底四重表达；
+  过去日期只降低日期元信息对比度，课程正文不跟着变淡。日期分组给整行读屏语义
+  （「9月15日，周二，今天，1门课」），装饰线与小签不进语义树。
+  分段控件收紧到 52dp（可点高度仍 48dp），周导航文字加大、离开本周才出现「回本周」，
+  列表底部避让按 FAB 高度 + 安全区计算（104dp + inset）。
+- **彩蛋**：长按周标题 500ms → 一次轻触觉 + 学期翻页弹层（大号周次 +
+  「第 N / 总周数 周」+ 4dp 进度条 + 朱砂印章式落款「阅至此处 / 尚未开卷 / 此卷已毕」）。
+  进度只由 `SemesterService.readingProgress` 一处计算并夹取 0..1；无网络、无埋点、
+  无数据库写入；Reduced Motion 下弹层动画与分段控件过渡直接归零。
+- 节次文案统一：新增 `sectionRangeLabel`（`course_time_service.dart`），
+  今日与整周都写作「第 3-4 节」，同页不再混用「3-4节」。
+- 顺带修掉新测试查出的既有缺陷：引导页与学期设置的「开学第一周周一」一行在
+  360dp + 1.3 倍字体下溢出（ISSUE-015）；同时在 360dp + 1.3 倍字体下实测
+  今日页 hero 的周次标签会挤爆，改为可省略的次级信息。
+- 与计划书的差异（未做 / 改法不同）已逐条记在计划书顶部状态段，例如
+  「上课中 / 下一门」实时标签、AppBar 滚动发丝线、课程行右侧箭头、
+  「本周收卷」落款按计划本身的 MAY/SHOULD 逃生口未实现。
+
+验证：`flutter analyze` 无问题、`flutter test` **149/149**（新增
+`test/week_agenda_test.dart` 21 条、`test/week_agenda_ui_test.dart` 9 条）；
+`ncpu_api36` 装机实画（日间/夜间/窄屏 360dp/1.3 倍字体/其它周与回本周/长按弹层/停课日），
+logcat 0 致命异常；核验后 `pm clear`，共用模拟器未留冒烟数据。
+# 2026-09-26 TASK-019 Weekly Timetable Information Density
+
+- Weekly 普通两节块补齐紧凑地点与教师；删除宽度门槛，按实际主题字体与缩放测量内部行数。
+- 新增纯展示地点 formatter，不保存 compact 值。收紧节次轴与课程横向留白，辅助字号 10sp。
+- 保留七列、10/12 节一屏、14 节滚动、冲突与切周；未改 Today/Preview/Import/数据库。
+- 新增 6 例测试并加强 13 例 viewport 验证；API 36 有课周明暗实画。详见 TASK-019 报告。
+# 2026-09-26 TASK-019B Weekly 完整玻璃轮廓
+
+- 明确废弃左侧课程色竖条，删除独立装饰区与占位；文字区域增加4dp。
+- 课程色改为克制整卡 tint、均匀细边缘、微弱光晕及按压增强；保留固定网格与三字段。
+- 新增明暗课程色/按压回归，强化无竖条和文字全宽断言；API36约390dp七色有课周实画。
+# 2026-09-26 TASK-019C Weekly 课程分隔
+
+- 用户反馈前版边界过弱：卡间距1→3dp；均匀边框0.7→0.9dp并增加中性轮廓对比，玻璃基底更清楚，增加微弱中性投影。
+- 不恢复色条；课程信息、颜色和固定网格保持，跨节/冲突测试精确匹配新间距。
+# 2026-09-26 TASK-019D Weekly 明显课程色差
+
+- 按用户进一步明确的偏好提高整卡颜色饱和度和染色强度，保留色相，不再仅增强边框。
+- 中间渐变也染色；地点/教师小字增强对比度。新增八色明暗/静止按压的小字对比度测试。
+- 无竖条、3dp间隔、字段排版与固定网格保持。

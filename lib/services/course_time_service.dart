@@ -27,3 +27,11 @@ class CourseTimeService {
     return '${range.$1} - ${range.$2}';
   }
 }
+
+/// 节次区间的统一文案：「第 3 节」/「第 3-4 节」。
+///
+/// 今日与整周共用同一个格式化，禁止同页混用「3-4节」这类无空格写法。
+String sectionRangeLabel(Course course) =>
+    course.startSection == course.endSection
+    ? '第 ${course.startSection} 节'
+    : '第 ${course.startSection}-${course.endSection} 节';

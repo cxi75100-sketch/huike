@@ -2,7 +2,98 @@
 
 ## Last Updated
 
-2026-09-14 +08:00
+2026-09-27 +08:00（TASK-020B Floating Liquid Glass Switcher；未提交工作区）
+
+## TASK-020B Floating Liquid Glass Switcher
+
+- Today / Weekly复用既有路径成为StatefulShellRoute两个保留分支，默认Weekly；普通子路由不变。
+- 底部中性Glass岛仅root可见；单capsule与内容共享280ms easeOutCubic，内容12dp+fade。Reduced直接到位。
+- Weekly非当前周、Today滚动保持；无root横滑；FAB只上移80dp避让，不改变grid viewport。
+- 基线268/268；新增15例，最终283/283、analyze无问题、Debug APK与diff check通过。
+- API36约390dp明暗双向录屏/抽帧已查，返回第2周保持；69个保护文件哈希未变。真机/iOS/GPU帧耗时UNVERIFIED。
+- 详细文件与验证见report_2026-09-27_root_switcher.md；未commit/push。旧TASK-020B移除summary记录属于前一次范围。
+
+## TASK-026 App Icon
+
+- 附件指定单方案：三厚圆角白课程块向中心汇聚，纯冷蓝#3057D5；中间长20%，上下内倾9°，无字/日历细节/Glass层。
+- 复用既有Python与flutter_launcher_icons；Android 5legacy+5foreground+5monochrome、iOS全部21PNG/25slot更新；16% adaptive inset保留，66-unit安全圆及三mask×48/64px通过。
+- analyze无问题、268/268、Debug APK与diff check通过；API36 Launcher/Recent Apps/Settings应用列表已查。Android真机/其它launcher与iOS设备UNVERIFIED。
+- 全部79个Flutter源码哈希未变，未改签名/依赖/锁文件；历史候选保留但无活动引用。未commit/push，见report_2026-09-27_app_icon.md。
+
+## TASK-022B 启动连续性
+
+- 保存主题首帧解析、初始数据ready与一次性180ms/4dp/92%→100% reveal；Reduced直接显示，初始环境背景持续可见。
+- Android旧版/12+启动和窗口背景对齐App基础明暗色，保留品牌；系统与App固定主题相反时仍有预期颜色切换。
+- 基线262；新增6例，268/268、analyze/build/diff check通过。API36四模式cold/warm及前台恢复已执行，静态画面已查；完整GPU动效、非空课程真机/iOS与耗时无回归仍UNVERIFIED。
+- 不改普通transition/Weekly/Today/Preview/Import/DB/导航架构，不新增package；无commit/push，详见report_2026-09-27_launch_motion.md。
+
+## TASK-022A 普通Motion审计
+
+- 普通页面短距离12dp+opacity，Dialog8dp+opacity；集中280/180/90ms语义token。iOS保留原生边缘返回，Reduced无translation/scale。
+- 学期Sheet补统一曲线；菜单统一尺寸/opacity且关闭完成再隐藏，删除旋转；普通Detail删除重复分批淡入；按压/焦点/Snackbar局部统一。
+- 基线252/252；新增10例，最终262/262、analyze无问题、Debug APK成功、diff check通过。四种明暗/Reduced widget画面人工检查；无设备，真机/GPU/iOS设备仍UNVERIFIED。
+- 未修改Weekly分页、Today布局、Preview专用transition/dismiss、Import内部或启动；详见report_2026-09-27_motion_audit.md。未commit/push，完成后停止。
+
+## TASK-021 Today Compact Semantic Timeline
+
+- Today由固定164dp节次轨道改为内容高度课程节点、连续左侧时间轴、分级16/24/40dp空档。普通卡最小134dp，内容增多自然长高；duration与卡片高度无关。大标题30sp缩至22sp。
+- 当前时间采用单个语义标记：进行中关联课程节点、课间放在两课之间、首课前与末课后有状态带；无有效时间不伪造节点。30秒检查设备时间，分钟变化更新状态，dispose取消timer。
+- 复用CourseTimeService、Glass/tint、Today CourseHero及既有/today/course/:id预览路径；预览类原文保留，不改router或全局Motion。
+- 基线analyze无问题、232/232；新增20例涵盖时长独立高度/内容增高、空档、排序、全部时间位置、未知/空/单课/四课/重叠及360/390/430×1.0/1.3×Light/Dark。390dp中文字体widget渲染已检查，不等同于设备验收。
+- 最终analyze无问题、252/252通过、生产Debug APK成功、diff check退出0；详见 `report_2026-09-27_today_semantic_timeline.md`。全部Weekly源码哈希保持开工时内容。未commit/push/reset/clean，不开始其它任务。
+
+## TASK-020B Separate Today From Weekly
+
+- Weekly删除Today摘要整条（课程数量、下一节、课名及相关summary计算），学校行增加明确的「今日」按钮复用既有`/today`。周导航之后直接接星期栏/网格，无横条占位。
+- 删除不再被使用的`today_glass_shortcut.dart`；不改TodayPage、Timeline、router、Weekly paging、Course Block或其它禁止范围。
+- 基线analyze无问题、229/229；新增360/390/430dp ×1.3字体三例：Weekly无summary、七列/顶部衔接、今日按钮44dp目标、选择其它周后Today仍显示今天课程、返回保留所选周；原Today预览/详情测试保留。
+- 最终analyze无问题、232/232通过、生产Debug APK成功、diff check退出0；详见 `report_2026-09-27_separate_today_from_weekly.md`。本轮无设备验收，不开始Timeline重构，未commit/push。
+
+## TASK-020A Weekly Swipe Paging
+
+- 单次手势的资格在 down 时锁定；落位/回弹期间开始的整次手势忽略。drag end 在启动弹簧前消费会话，取消手势只回弹；成功提交仍只由 pager 完成回调修改一次周次。
+- 保留三页1:1跟手、15%页宽距离阈值、380px/s速度阈值、原有箭头切周路径。共享offset现在也跟随弹簧更新。
+- 基线 analyze 无问题、217/217。新增12个widget行为测试验证双向普通/高速/超长拖动、阈值回弹、连续独立手势、动画中触摸、cancel、箭头、Reduced Motion、第二指取消及标题/网格日期一致性。
+- 单次高速/超长连跳在原实现widget测试中未复现；已复现cancel错误提交，确认原实现允许动画接管且缺少明确会话消费。最终验证见 `report_2026-09-27_weekly_swipe_paging.md`。本轮设备/真机/iOS交互为 `UNVERIFIED`。
+- 仅修Weekly pager，不启动Today或全局Motion；保留既有未提交改动，无commit/push。
+
+## TASK-019 最后视觉收尾（当前策略）
+
+- 本轮用户要求玻璃优先、课程色次之，覆盖下方 TASK-019D 的明显色差要求。
+- 仅调整 `timetable_course_block.dart` 的 fill/border/glow：浅色 tint 8–10%，深色12–16%，中性边框仅混入6%课程色；更透明的基底与左上微亮反射。不新增模糊、装饰条或依赖。
+- 三字段、字号、compact地点、测量/空间分配、10/12/14节、冲突与切周均未修改；所有禁止范围保持本轮开始时内容。右下角加号遮挡仅记录，不修复。不开始TASK-020。
+- 本轮验证详见 `report_2026-09-26_weekly_glass_surface.md` 顶部最终收尾记录；旧段落为历史快照。
+
+## TASK-019D 历史增量（已由最后视觉收尾覆盖）
+
+- 用户明确要求明显课程色差，覆盖前版过于克制的染色要求：保留课程色相，提高Weekly材质饱和度至0.70，整面渐变各处都有染色；light混色alpha为0.23–0.32，dark为0.20–0.28，按压略增强。
+- 小号地点/教师文字由palette secondary向ink混合50%，配合彩色背景维持可读性；八色、明暗、静止/按压状态及两种基底的对比度测试均≥4.5:1。
+- 仍无独立竖条、保持3dp卡间距和固定网格；下方019B/C是历史增量，当前色彩以本段为准。
+- `CONFIRMED`：API36约390dp七色Light/Dark实画已检查；analyze无问题、217/217、生产Debug APK与diff check通过。真机/iOS未验。
+
+## TASK-019C 当前增量
+
+- 用户反馈前版课程边界难区分；恢复卡片间3dp间隔，以完整0.9dp中性色混tint边框、微弱投影及较清楚的玻璃基底分离课程。
+- 不恢复独立竖条，三字段、字号和固定10/12节一屏策略保持；以下TASK-019B材质数值为历史增量。
+- `CONFIRMED`：API36约390dp七门相邻课程Light/Dark截图已检查；analyze无问题、215/215、生产Debug APK及diff check通过。真机/iOS未验。完整说明见TASK-019B报告追加的TASK-019C记录。
+
+## TASK-019B 当前增量
+
+- `CONFIRMED`：Weekly 彻底删除独立课程色竖条、横向占位及 marker 常量；文字仅留左右各1dp，释放4dp宽度。
+- `CONFIRMED`：课程颜色融入三段低透明度整卡渐变、均匀0.7dp半透明边框与极轻 tinted shadow；按压时 tint/边缘略增强。没有独立彩色装饰区、连续实心边条或逐卡 BackdropFilter。
+- `CONFIRMED`：API 36 约390dp 匿名七色课程 Light/Dark 实画，颜色克制且可区分，三字段可读；仍12节一屏。
+- TASK-019B 验证收口见 `report_2026-09-26_weekly_glass_surface.md`。TASK-019 下方描述为前一增量，当前视觉以本段为准。
+
+## TASK-019 当前增量
+
+- `CONFIRMED`：Weekly 普通两节课块依次显示名称、compact 地点、教师；不绘制起止时间。
+  使用主题合并后的样式测量真实行数，先为每项预留一行，再补足地点/教师换行，最后扩展名称。
+  极短空间依次保留名称、地点、教师；长名称在固定高度内最多四行并可淡出，不反向扩大网格。
+- `CONFIRMED`：compact 地点仅展示时移除开头校区；实训中心前的东西南北区可移除。
+  原始地点、导入与数据库保持不变；无已知校区结构的地址不猜测缩写。
+- `CONFIRMED`：360/390/430dp、文字 1.0/1.3 下 10/12 节一屏，14 节保留网格纵向滚动。
+  本轮 API 36 模拟器约 390dp 的匿名有课周已检查 Light/Dark；真机/iOS 未验。
+- 详细测试结果与边界见 `report_2026-09-26_weekly_information_density.md`。
 
 ## Project Boundary
 
@@ -19,15 +110,32 @@
 
 ## Current Milestone
 
+`TASK-019` 已完成，代码与文档保留在未提交工作区供用户检查。下方 TASK-011～018 段落是版本历史快照；当前 Weekly 行为以 TASK-019 增量、Working Features 与实际代码/测试为准。历史模拟器与测试数字不代表本轮验证。
+
 TASK-001（基座）+ 用户第一轮反馈迭代（自动适配探测、印章行楷图标、
 横向周历今天优先、南工内置档案与变体作息、卡片信息完整、晚上两节）
-全部完成并经模拟器实测。当前版本 `0.1.3+4`（含 TASK-011 首页信息架构重做、
-南工教务地址修正与老学校变体补齐）。
+全部完成并经模拟器实测。当前版本 `0.1.4+5`（含 TASK-011 首页信息架构重做、
+南工教务地址修正与老学校变体补齐、TASK-014 Weekly Timetable、TASK-015
+动态玻璃 + 课程内容完整显示）。
 应用图标为「朱砂印章 + 华文行楷汇 + 内框」（用户两轮否定日历卡片方案后定稿；
 候选与生成脚本在 assets/icon/candidates/ 与 tools/make_icon*.py）。
 2026-09-14 完成 TASK-004/009/010/011：校历例外、导入链路收口、「新历书 × 校园线路」
 UI 融合，以及首页信息架构重做（今日改为当日议程、整周改为七日议程，撤销节次轨道与
-站点概览装饰）。下一步是用户本人执行 TASK-006 真实教务导入验收。
+站点概览装饰）。2026-09-15 完成 TASK-013：整周日期改回周一 → 周日自然顺序、当前周
+以今天为初始视口锚点（周日后不再循环接回本周一），整周课程改为复用
+`CourseListingRow` 的排印列表，并加上长按周次的学期翻页彩蛋。
+2026-09-22 完成 TASK-014：旧「今日 / 整周」双入口被 Weekly Timetable 取代，首页直接
+显示周一至周日二维网格；手机把两节组成一个紧凑视觉时段（仍以单节为精确定位单位），
+课程预览、冲突布局、周滑动、明暗模式、Reduced Motion 与可访问语义均已接线。
+2026-09-23 完成 TASK-015：建立 `lib/core/glass/` 统一动态玻璃系统（触摸跟随高光、
+按压弹簧、Sheet 进度同时驱动背景缩放/模糊/压暗、跟手切周），并把课程块改成
+「内容测量驱动行高」——课程名称、地点、教师、起止时间一律完整折行显示，
+禁止省略号，空间不足时课表变高并纵向滚动。
+2026-09-24 完成 TASK-018A：修掉 Liquid Glass 引入的布局回归——`GlassButton` 在
+`Scaffold.bottomNavigationBar` 的松约束下纵向撑满整屏，把「导入教务课表」「创建学校」
+「导入预览」三页 body 挤成 0 高、CTA 恒不可用（ISSUE-017）；导入入口补齐加载/失败/空态，
+底部 CTA 补键盘高度；离开导入 WebView 时不再抛 dispose 期异常，内存导入会话确实被清空
+（ISSUE-018）。下一步是用户本人执行 TASK-006 真实教务导入验收。
 
 ## Working Features
 
@@ -66,19 +174,14 @@ UI 融合，以及首页信息架构重做（今日改为当日议程、整周�
 - 导入规范化器 `AdapterBatchNormalizer`：课程（name/day/startSection/endSection/weeks 必需，
   weeks 接受数组或周次文本）、节次时间、学期配置；不满足契约的条目丢弃并计数，
   预览页明示「N 条无效」与原因，不猜语义。
-- 课表首页「今日 / 整周」双栏目（新历书设计；信息架构见 TASK-011）。模式切换为
-  58dp 分段控件（`今日 / 整周`，各段最小高度 48dp）。
-- 今日为**当日议程**（不为节次留白）：历牌 hero（大字日期 + 星期 + 右侧朱砂周次 +
-  学期状态提示条）+「下一节」提示条（按作息表结束时间取最近未结束的一节）+
-  只列出当天真实有课项（`CourseListingRow`：左侧色条 + 起时/节次 + 课程名 + 教室·教师），
-  发丝线分隔。空课日给「今日无课」字牌与「看整周 / 加课程 / 教务导入」三个 56dp 快捷入口。
-- 整周为**七日议程**（`_WeekBoard`）：一周按日期分组，每天一行表头（周X + `M月D日` +
-  调休「按周X上课」小签 + 右侧「N 门 / 无课 / 停课」状态），表头下只展开当天真实课程
-  （`_WeekCourseRow`：时间栏 + 节次 + 课程名 + 教室·教师）；空日只占一行，不再为
-  1–10 节预留空白。当前教学周仍以今天开头（今天 → 之后 → 本周已过去日期），
-  其他周按周一到周日；今天所在行朱砂浅底强调，周切换器 `‹ 第 N 周 (M.d-M.d) ›` 保留。
-- 首页不再使用路线水印与七日站点概览（TASK-011 判定其未赢得位置）；
-  `RouteBackground` 只保留在设置页与课程详情页作低噪声底层。
+- TASK-019 更新周卡：固定七列，10/12 节依视口均分一屏；超过 12 节只滚动网格，星期栏固定。普通两节块显示名称、compact 地点、教师；极短块按物理空间降级。原始完整信息在预览、Today 和详情。课程块无逐卡 BackdropFilter。
+- 课程冲突保持一门全宽 + `+N`，按当前课程直接重叠的 peers 计数；切周判据使用画面偏移和松手速度，`stepRequest` 在销毁时解除引用。冲突布局每次 build 为七天各算一次，测量与绘制共享。
+- `/today` 是独立时间轴页面，学校行「今日」按钮点击跳转；Weekly不展示今日摘要。课程点击打开预览。加号展开添加课程、导入课表、添加事件菜单，事件复用 Course 模型/编辑页。
+- `SectionCountResolver` 是网格、编辑、详情的节次上限共享来源；详情区分 Loading/Data/Error/Not Found，空周次有安全兜底。
+- `lib/core/glass/` 管理玻璃材质、动效、尺寸、指针物理、Sheet、用户可见表单与对话框；`AmbientBackdrop` 提供环境背景。浅/深色采用独立语义色。系统日期/时间选择器保留平台控件。Reduced Motion 降级动画过程，终态材质保持正确。
+- TASK-017：Weekly 预览 → 详情、Today 课程卡 → 预览 → 详情均接入真实 PageRoute Hero，身份包含课程、学校、学期、来源与目标；Today 预览是透明 PageRoute 承载的玻璃底部面板。Reduced Motion 跳过 Hero 并短淡入。用户可见输入、选项、选择器与确认框统一为共享玻璃控件；日期/时间选择器继续使用平台控件。
+- TASK-016 设备验收记录（历史）：当时 API 36 隔离 QA 用户实画检查匿名空周首页；模拟器 QA 用户已删除，主用户应用数据未清理。该实画不覆盖 TASK-017 的 Hero/表单。
+- 最终验证（2026-09-23，TASK-017）：`flutter analyze --no-pub` 通过，`flutter test --no-pub` 194/194，Android debug APK 构建成功（`build/app/outputs/flutter-apk/app-debug.apk`，207,085,563 字节，SHA-256 `B41FED2C23A339F7332B72BE2C6533F98A60DE1C3A9B7BD25C4D7B1B02E010ED`）。本轮 `adb devices -l` 无连接设备，未做模拟器/真机实画；iOS、真机 GPU、TalkBack/VoiceOver 仍为 `UNVERIFIED`。教务脚本、桥、NavigationPolicy、Drift schema 均未变。未创建 commit。
 - 课程 CRUD：手动新增/编辑/删除（表单含星期签、节次下拉、周次文本解析、备注），
   详情页完整元数据。导入课程 id 由内容指纹生成，同内容同 id，供差异比对。
 - 学期设置（开学周一选择后自动对齐所在周周一、总周数 1-30）、默认作息编辑（时间选择器，
@@ -96,7 +199,7 @@ UI 融合，以及首页信息架构重做（今日改为当日议程、整周�
 
 ## In Progress
 
-- TASK-006：等用户本人装机执行真实教务导入（模拟器已恢复全新安装态，不留现场）。
+- TASK-006：等用户本人在设备上执行真实教务导入；本轮没有连接 Android 设备，也没有留下模拟器现场。
 
 ## Not Started
 
@@ -109,8 +212,8 @@ UI 融合，以及首页信息架构重做（今日改为当日议程、整周�
 
 - `BLOCKED`：TASK-006 真实教务导入验收，等用户本人装机完成登录与导入（见 `tasks.md` Now）。
   模拟器上没有留待办现场：TASK-011 核验后已删除冒烟学校并 `pm clear`，应用回到全新安装的引导页。
-  本机 GitHub 直连不可用；`flutter build` 时 sqlite3 hook 需要
-  从 GitHub 下载预编译库（见 testing.md 的离线缓存办法），Clash 未开时构建会失败。
+  该任务需要用户本人登录真实教务；本轮无连接设备。TASK-017 的 Android debug 构建使用本机
+  已缓存的 sqlite3 hook 成功完成；若未来缓存缺失，hook 可能需要网络下载。
 
 ## Important Context
 
@@ -139,7 +242,7 @@ UI 融合，以及首页信息架构重做（今日改为当日议程、整周�
 ## Validation Snapshot
 
 以下按时间顺序记录，**最新基线在末尾**；早期条目里的测试数（65/65、75/75）是当时基线，
-不是当前状态（当前 109/109）。
+不是当前状态（当前 207 个用例 / 205 通过，2 个既有 430dp 失败见 `knowledge/testing.md`）。
 
 - `CONFIRMED`（2026-09-13 19:10 +08:00）：`flutter analyze`（`S:\`）No issues found。
 - `CONFIRMED`（2026-09-13 19:12 +08:00）：`flutter test` **65/65 通过**。覆盖：周次解析、
@@ -252,9 +355,76 @@ UI 融合，以及首页信息架构重做（今日改为当日议程、整周�
   同时复核 release 与附件文案均正常。改简介的命令见 `report_2026-09-14_handoff.md` §12 坑 15
   （`PATCH /repos/{owner}/{repo}` 必须带 `name`，中文参数走 UTF-8 文件）。
 
+- `CONFIRMED`（2026-09-15）：TASK-013 完成后 `flutter analyze`（`S:\`）No issues found、
+  `flutter test` **149/149**（新增 `test/week_agenda_test.dart` 21 条覆盖自然顺序、
+  周一/周日/学期前后的锚点、例外折算与学期进度边界；`test/week_agenda_ui_test.dart`
+  9 条覆盖整周自然顺序与「今天为首个可见日期、过去日期在上方」、其它周从周一开始、
+  「回本周」重新定位到今天、停课与调休的文字表达、`CourseListingRow` 复用与节次文案唯一、
+  长按周次弹层与普通点击不误触、360dp + 1.3 倍字体不溢出）。同一次运行里
+  改掉了既有的窄屏大字体缺陷（见 ISSUE-015）。
+- `CONFIRMED`（2026-09-15，`ncpu_api36` 模拟器 / API 36 / x86_64，debug APK）：TASK-013
+  装机实画——建校（SmokeUniversity，开学周一 2026-09-14、20 周）后加两门课，
+  整周首屏**以今天（9/15 周二）为首个可见日期**、周一 9/14 在上方（上滑回看后可见，
+  顺序为 9/14 → 9/20，周日之后没有第二个周一、也没有下周日期）；周切换器
+  `‹ 第 1 周 9.14 - 9.20 ›` 在第一周时「上一周」为真实 disabled，「下一周」进入第 2 周后
+  从周一开头并出现「回本周」，点它回到第 1 周并重新锚定到今天；长按周标题弹出学期
+  翻页弹层（大号 2 +「第 2 / 20 周」+ 进度条 +「阅至此处」）；把 9/15 标为停课后该行显示
+  「停课」小签、课程隐藏且仍然保持今天的四重强调。夜间（`cmd uimode night yes`）、
+  窄屏 360dp（`wm size 720x1600` + `wm density 320`）、1.3 倍字体（`settings put system
+  font_scale 1.3`）三种条件下整周均无溢出、无裁切。logcat 全程 0 命中
+  `FATAL EXCEPTION` / `E/flutter` / `RenderFlex overflowed` / `ANR` / `MissingPluginException`。
+  核验后 `pm clear` 恢复全新安装态并把 `wm size/density`、`font_scale`、夜间模式复原
+  （共用模拟器未被污染）。
+- `UNVERIFIED`：TASK-013 的调休「按周X上课」小签、平板宽度居中与 Reduced Motion
+  三种形态只由 widget 测试/代码保证，未在模拟器实画（模拟器输入限制与耗时取舍）。
+
+- `CONFIRMED`（2026-09-23）：TASK-015 完成后 `flutter analyze`（`S:\`）No issues found、
+  `flutter test` **177/177**。新增 `test/course_block_content_test.dart` 5 条
+  （360/390/430dp 下七天完整可见、超长课程名 / 完整地点 / 完整教师 / 起止时间全部落在
+  课程块内且互不重叠、块内不存在 `ellipsis`/`fade`/`maxLines`、1.3 倍字体同样完整、
+  内容超视口时纵向滚动且星期栏仍 sticky）、`test/glass_interaction_test.dart` 6 条
+  （按下压缩与弹簧回位、指针位置驱动高光并抬手归位、进度可由外部驱动、
+  玻璃表面无 InkWell/InkResponse、blurSigma 为 0 时不建滤镜层、弹簧阻尼比与时长令牌），
+  并在 `week_agenda_ui_test` 当时新增 8 条（跟手位移 1:1、邻周同时在场、动画可中断、
+  位置阈值提交、`weekSwipeTarget` 位置+速度判定、周次标签滑入、按压后升起预览 Sheet、
+  今日 Sheet 的背景缩放/模糊同步与拖动关闭、课程块无 BackdropFilter）。
+  既有「两路并排」用例按 ISSUE-016 的新行为改写。
+- `CONFIRMED`（2026-09-23，`ncpu_api36` / API 36 / x86_64，debug APK）：装机实画
+  （用一个只存在于模拟器的 NCPU 预设学校 + 16 门中文课程，看完即 `pm clear` 清除；
+  不涉及任何真实账号或课表）——
+  ① 日间 390dp：七天同屏，`高等数学 / 大学英语 / 大学生心理健康教育 /
+  线性代数与解析几何 / 马克思主义基本原理 / 思想道德与法治 / 计算机科学与技术导论 /
+  大学物理实验 / 体育` 全部完整折行显示，`九龙湖校区教学楼 A201`、`物理实验中心 203`
+  等长地点同样完整，教师与 `08:20 / 09:50` 起止时间同屏可读，无任何省略号；
+  ② 星期栏滚动时固定在顶部且课程块从其下方滑过（玻璃折射可见）；
+  ③ 今日快捷显示 `今天 · 3 节课 | 今天课已上完`，点按升起 Today Glass Sheet
+  （三节课的名称 / 起止时间 / 地点 / 教师完整）；
+  ④ 点课程块先压缩再升起课程预览 Glass Sheet，背景课表被模糊 + 缩放 + 压暗；
+  ⑤ 冲突课（周五 1-2 两门）显示一门完整课 + 顶部 `+1` 小签，文字未被挤成竖排；
+  ⑥ 夜间：深墨玻璃层级、课程签色可读；⑦ 360dp（`wm size 720x1600` + `density 320`）
+  仍无溢出、文字完整。logcat 全程 0 命中 `FATAL EXCEPTION` / `E/flutter` /
+  `RenderFlex overflowed` / ANR。核验后 `wm size/density`、夜间模式复原并 `pm clear`。
+- `UNVERIFIED`：真机 GPU 上的模糊性能（多块 BackdropFilter 同时在场时的帧率）、
+  iOS、TalkBack/VoiceOver 完整人工遍历；以及用户在真机输入中文长课程名后的实际观感。
+- `CONFIRMED`（2026-09-23）：release 产物 `build/huike-0.1.4-release.apk`
+  （通用包 arm64-v8a / armeabi-v7a / x86_64，65,338,262 字节，sha256
+  `6baece6da43bbf5c3705b6fd8daf350497ddbd3e328f91143c922d948dc130e5`，
+  versionCode 5 / versionName 0.1.4 / minSdk 24 / targetSdk 36 / INTERNET 权限齐全，
+  标签「汇课」）。`aapt2 dump` 核验元数据；在 `ncpu_api36` 上装机冒烟（引导页 →
+  NCPU 预设建校 → 新首页渲染正常），logcat 0 命中致命；核验后 `pm clear` 并复原环境。
+  **未推送 Gitee、未打 tag**（等用户确认）。
+
+- `CONFIRMED`（2026-09-23，TASK-017）：`flutter analyze --no-pub` 无问题；
+  `flutter test --no-pub` **194/194**；`flutter build apk --debug --no-pub` 成功。
+  本轮 `adb devices -l` 返回无连接设备，没有执行模拟器或真机实画，也没有安装 APK。
+  Debug APK 路径/哈希见 Working Features。iOS、真机 GPU 与 TalkBack/VoiceOver 为
+  `UNVERIFIED`。未创建 commit。
+
 ## Recommended Next Action
 
 TASK-002 Android 桌面小组件（载荷 schema v2：由 Dart 预计算整学期每日课程，
 原生只按日期查表）。预计算必须经 `CalendarExceptionService` 折算「某天按哪天的课表」，
 否则调休日会显示错的那天。TASK-003 同理。与之并行不冲突的是 TASK-006 真实教务导入验收
 （需要用户装机走一次导入，见 `tasks.md` Blocked）。
+另外，真机 GPU 性能与 iOS 未验证（TASK-015 的模糊层数量已受控并有测试锁定，
+但真机帧率仍建议用户在常用机型上确认）。

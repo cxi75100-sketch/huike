@@ -7,6 +7,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/glass/glass_button.dart';
+import '../../../core/glass/glass_dialog.dart';
+import '../../../core/glass/glass_form.dart';
 import '../../schools/providers/school_providers.dart';
 import '../../schools/services/adapter_catalog.dart';
 import '../../schools/services/school_repository.dart';
@@ -69,9 +72,11 @@ class _ImportWebPageState extends ConsumerState<ImportWebPage> {
   @override
   void initState() {
     super.initState();
-    _cleaner = ImportSessionCleaner(
-      () => ref.read(importSessionProvider.notifier).reset(),
-    );
+    // 清理回调持有 Notifier 实例而不是 `ref`：dispose 阶段再用 ref 会抛
+    // 「Using "ref" when a widget … has been unmounted」，结果是离开导入页
+    // 时内存会话根本没被清掉（TASK-018A 回归测试发现）。
+    final session = ref.read(importSessionProvider.notifier);
+    _cleaner = ImportSessionCleaner(session.reset);
     // 放行主机 = 入口地址主机 + 学校档案里已确认过的主机。
     // scheme 不按入口地址钉死：教务站 http↔https 互跳（登录跳 https、
     // 内容页回 http）很常见，钉死会静默失败。
@@ -106,16 +111,13 @@ class _ImportWebPageState extends ConsumerState<ImportWebPage> {
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12),
-            child: TextButton.icon(
+            child: GlassButton(
               onPressed: _running ? null : _runAutoImport,
-              icon: _running
-                  ? const SizedBox(
-                      width: 14,
-                      height: 14,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.play_arrow_outlined, size: 18),
-              label: const Text('执行导入'),
+              icon: _running ? Icons.hourglass_top : Icons.play_arrow_outlined,
+              label: _running ? '正在识别' : '执行导入',
+              semanticLabel: _running ? '正在识别课表' : '执行导入',
+              size: 40,
+              iconColor: palette.accent,
             ),
           ),
         ],
@@ -204,9 +206,9 @@ class _ImportWebPageState extends ConsumerState<ImportWebPage> {
     if (!mounted) return false;
     _hostDialogOpen = true;
     try {
-      final ok = await showDialog<bool>(
+      final ok = await showGlassDialog<bool>(
         context: context,
-        builder: (context) => AlertDialog(
+        builder: (dialogContext) => GlassDialog(
           title: const Text('允许访问新域名'),
           content: Text(
             '教务页面要跳到 $host。\n\n'
@@ -214,13 +216,14 @@ class _ImportWebPageState extends ConsumerState<ImportWebPage> {
             '确认后会记住这个域名，本次不再询问。',
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('不允许'),
+            GlassDialogAction(
+              label: '不允许',
+              onPressed: () => Navigator.pop(dialogContext, false),
             ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('允许'),
+            GlassDialogAction(
+              label: '允许',
+              primary: true,
+              onPressed: () => Navigator.pop(dialogContext, true),
             ),
           ],
         ),
@@ -253,20 +256,21 @@ class _ImportWebPageState extends ConsumerState<ImportWebPage> {
       if (!mounted) return false;
       _bridgeDialogDepth++;
       try {
-        final result = await showDialog<bool>(
+        final result = await showGlassDialog<bool>(
           context: context,
           barrierDismissible: false,
-          builder: (context) => AlertDialog(
+          builder: (dialogContext) => GlassDialog(
             title: Text(title),
             content: Text(message),
             actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('取消'),
+              GlassDialogAction(
+                label: '取消',
+                onPressed: () => Navigator.pop(dialogContext, false),
               ),
-              FilledButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: Text(button),
+              GlassDialogAction(
+                label: button,
+                primary: true,
+                onPressed: () => Navigator.pop(dialogContext, true),
               ),
             ],
           ),
@@ -295,36 +299,33 @@ class _ImportWebPageState extends ConsumerState<ImportWebPage> {
       var selected = defaultIndex.clamp(0, options.length - 1);
       _bridgeDialogDepth++;
       try {
-        return await showDialog<int>(
+        return await showGlassDialog<int>(
           context: context,
-          builder: (context) => StatefulBuilder(
-            builder: (context, setState) => AlertDialog(
+          builder: (dialogContext) => StatefulBuilder(
+            builder: (dialogContext, setDialogState) => GlassDialog(
               title: Text(title),
-              contentPadding: const EdgeInsets.symmetric(vertical: 8),
-              content: SizedBox(
-                width: 320,
-                child: RadioGroup<int>(
-                  groupValue: selected,
-                  onChanged: (value) => Navigator.pop(context, value),
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: options.length,
-                    itemBuilder: (context, index) => RadioListTile<int>(
-                      value: index,
-                      title: Text(options[index]),
-                      dense: true,
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (var index = 0; index < options.length; index++) ...[
+                    if (index > 0) const SizedBox(height: 6),
+                    GlassSelectionRow(
+                      label: options[index],
+                      selected: index == selected,
+                      onSelected: () => setDialogState(() => selected = index),
                     ),
-                  ),
-                ),
+                  ],
+                ],
               ),
               actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('取消'),
+                GlassDialogAction(
+                  label: '取消',
+                  onPressed: () => Navigator.pop(dialogContext),
                 ),
-                FilledButton(
-                  onPressed: () => Navigator.pop(context, selected),
-                  child: const Text('确定'),
+                GlassDialogAction(
+                  label: '确定',
+                  primary: true,
+                  onPressed: () => Navigator.pop(dialogContext, selected),
                 ),
               ],
             ),
@@ -343,9 +344,9 @@ class _ImportWebPageState extends ConsumerState<ImportWebPage> {
       final controller = TextEditingController(text: initial);
       _bridgeDialogDepth++;
       try {
-        return await showDialog<String>(
+        final result = await showGlassDialog<String>(
           context: context,
-          builder: (context) => AlertDialog(
+          builder: (dialogContext) => GlassDialog(
             title: Text(title),
             content: Column(
               mainAxisSize: MainAxisSize.min,
@@ -353,21 +354,28 @@ class _ImportWebPageState extends ConsumerState<ImportWebPage> {
               children: [
                 if (message.isNotEmpty) Text(message),
                 const SizedBox(height: 12),
-                TextField(controller: controller, autofocus: true),
+                GlassTextField(
+                  controller: controller,
+                  autofocus: true,
+                  decoration: const InputDecoration(),
+                ),
               ],
             ),
             actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('取消'),
+              GlassDialogAction(
+                label: '取消',
+                onPressed: () => Navigator.pop(dialogContext),
               ),
-              FilledButton(
-                onPressed: () => Navigator.pop(context, controller.text),
-                child: const Text('确定'),
+              GlassDialogAction(
+                label: '确定',
+                primary: true,
+                onPressed: () => Navigator.pop(dialogContext, controller.text),
               ),
             ],
           ),
         );
+        controller.dispose();
+        return result;
       } finally {
         _bridgeDialogDepth--;
       }
@@ -493,18 +501,19 @@ class _ImportWebPageState extends ConsumerState<ImportWebPage> {
           break;
         }
       }
-      await showDialog<void>(
+      await showGlassDialog<void>(
         context: context,
-        builder: (context) => AlertDialog(
+        builder: (dialogContext) => GlassDialog(
           title: const Text('没有适配到你的课表'),
           content: Text(
             '请确认已经登录教务、并停留在课表查询页面（学生个人课表），然后重试。'
             '${error == null ? '' : '\n\n$error'}',
           ),
           actions: [
-            FilledButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('知道了'),
+            GlassDialogAction(
+              label: '知道了',
+              primary: true,
+              onPressed: () => Navigator.pop(dialogContext),
             ),
           ],
         ),

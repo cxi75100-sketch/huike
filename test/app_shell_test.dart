@@ -5,6 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:huike_timetable/app.dart';
 import 'package:huike_timetable/core/database/app_database.dart';
 import 'package:huike_timetable/core/database/database_provider.dart';
+import 'package:huike_timetable/core/glass/glass_dialog.dart';
+import 'package:huike_timetable/core/theme/theme_preference.dart';
+import 'package:huike_timetable/core/theme/theme_preference_provider.dart';
 import 'package:huike_timetable/features/import/services/course_repository.dart';
 import 'package:huike_timetable/features/schools/providers/school_providers.dart';
 import 'package:huike_timetable/features/schools/services/adapter_catalog.dart';
@@ -47,6 +50,7 @@ void main() {
   testWidgets('创建学校与学期后进入课表首页', (tester) async {
     final container = await pumpApp(tester);
 
+    // 走真实交互：填名称 → 点底部 CTA。
     await tester.enterText(find.widgetWithText(TextField, '学校名称（必填）'), '测试大学');
     await tester.tap(find.text('创建学校'));
     await tester.pumpAndSettle();
@@ -54,20 +58,23 @@ void main() {
     final activeId = container.read(activeSchoolIdProvider).value;
     expect(activeId, isNotNull);
 
-    // 首页出现「今日 / 整周」两个栏目与加课入口。
-    expect(find.text('今日'), findsOneWidget);
-    expect(find.text('整周'), findsOneWidget);
-    expect(find.text('加课'), findsOneWidget);
-    expect(find.bySemanticsLabel(RegExp(r'^本周线路概览')), findsNothing);
-
-    final todayTarget = find.ancestor(
-      of: find.text('今日'),
-      matching: find.byType(InkWell),
+    // 首页直接进入完整周课表，不再要求先选「今日 / 整周」。
+    expect(find.byTooltip('今日课程'), findsOneWidget);
+    expect(find.text('整周'), findsNothing);
+    expect(find.byKey(const ValueKey('weekly-grid')), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is Semantics && widget.properties.label == '打开添加菜单',
+      ),
+      findsOneWidget,
     );
-    expect(tester.getSize(todayTarget).height, greaterThanOrEqualTo(48));
+    expect(find.bySemanticsLabel(RegExp(r'^本周线路概览')), findsNothing);
+    for (var day = 1; day <= 7; day++) {
+      expect(find.byKey(ValueKey('weekday-$day')), findsOneWidget);
+    }
   });
 
-  testWidgets('空课日显示历书式空状态', (tester) async {
+  testWidgets('空课周仍显示完整周课表', (tester) async {
     final container = await pumpApp(tester);
     final repository = container.read(schoolRepositoryProvider);
     final school = await repository.createSchool(
@@ -76,7 +83,7 @@ void main() {
       loginUrl: '',
       confirmedHosts: const [],
     );
-    // 开学周一放在很远的未来，今天必然「今日无课」且不在学期内。
+    // 开学周一放在很远的未来；仍应保留可浏览的完整周网格。
     final future = DateTime.now().add(const Duration(days: 90));
     final monday = future.subtract(Duration(days: future.weekday - 1));
     await repository.createSemester(
@@ -87,12 +94,36 @@ void main() {
     await repository.setActiveSchool(school.id);
     await tester.pumpAndSettle();
 
-    expect(find.text('今日无课'), findsOneWidget);
-    // 学期未开始的提示条可见。
-    expect(find.textContaining('学期尚未开始'), findsOneWidget);
+    expect(find.byKey(const ValueKey('weekly-grid')), findsOneWidget);
+    expect(find.text('本周暂无课程'), findsOneWidget);
+    expect(find.byKey(const ValueKey('weekday-7')), findsOneWidget);
   });
 
-  testWidgets('课程详情显示十站节次线路', (tester) async {
+  testWidgets('设置页的玻璃外观选项可以切换并保存', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final schools = SchoolRepository(db);
+    final school = await schools.createSchool(
+      displayName: '外观设置大学',
+      adapterId: '',
+      loginUrl: '',
+      confirmedHosts: const [],
+    );
+    await schools.setActiveSchool(school.id);
+    final container = await pumpApp(tester);
+
+    await tester.tap(find.byTooltip('设置'));
+    await tester.pumpAndSettle();
+    expect(find.text('外观'), findsOneWidget);
+    await tester.tap(find.text('夜间'));
+    await tester.pumpAndSettle();
+
+    expect(container.read(themePreferenceProvider).value, ThemePreference.dark);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('课程详情显示共享节次数线路', (tester) async {
     final schools = SchoolRepository(db);
     final courses = CourseRepository(db);
     final school = await schools.createSchool(
@@ -127,23 +158,15 @@ void main() {
     await schools.setActiveSchool(school.id);
 
     await pumpApp(tester);
-    expect(find.byKey(const ValueKey('today-agenda')), findsOneWidget);
-    expect(find.byKey(const ValueKey('week-agenda')), findsNothing);
+    expect(find.byKey(const ValueKey('weekly-grid')), findsOneWidget);
+    expect(find.byKey(ValueKey('weekday-${now.weekday}')), findsOneWidget);
 
-    await tester.tap(find.text('整周'));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('today-agenda')), findsNothing);
-    expect(find.byKey(const ValueKey('week-agenda')), findsOneWidget);
-    expect(find.byKey(ValueKey('week-day-0-${now.weekday}')), findsOneWidget);
-    expect(find.text('无课'), findsWidgets);
-
-    await tester.tap(find.text('今日'));
-    await tester.pumpAndSettle();
-    final courseCard = find.ancestor(
-      of: find.text('城市设计').first,
-      matching: find.byType(GestureDetector),
+    await tester.tap(
+      find.byKey(const ValueKey('course-block-route-detail-course')),
     );
-    await tester.tap(courseCard);
+    await tester.pumpAndSettle();
+    expect(find.text('完整详情'), findsOneWidget);
+    await tester.tap(find.text('完整详情'));
     await tester.pumpAndSettle();
 
     expect(find.text('城市设计'), findsWidgets);
@@ -152,9 +175,27 @@ void main() {
       find.byWidgetPredicate(
         (widget) =>
             widget is Semantics &&
-            widget.properties.label == '一天十站，课程占用第 3 至第 4 节',
+            widget.properties.label == '一天 10 节，课程占用第 3 至第 4 节',
       ),
       findsOneWidget,
+    );
+
+    await tester.tap(find.byTooltip('删除'));
+    await tester.pumpAndSettle();
+    expect(find.byType(GlassDialog), findsOneWidget);
+    expect(find.textContaining('此操作不可撤销'), findsOneWidget);
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('删除'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('删除'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('删除'));
+    await tester.pumpAndSettle();
+    expect(find.byType(GlassDialog), findsNothing);
+    expect(
+      find.byKey(const ValueKey('course-block-route-detail-course')),
+      findsNothing,
     );
   });
 }

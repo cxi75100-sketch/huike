@@ -1,4 +1,5 @@
 import 'package:drift/native.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:huike_timetable/app.dart';
@@ -9,7 +10,7 @@ import 'package:huike_timetable/features/schools/services/calendar_exception_rep
 import 'package:huike_timetable/features/schools/services/school_repository.dart';
 import 'package:huike_timetable/models/calendar_exception.dart';
 
-/// TASK-004 的界面接线：例外写进去之后，今日页与设置页要如实反映。
+/// TASK-004 的界面接线：例外写进去之后，Weekly Grid 与设置页要如实反映。
 void main() {
   late AppDatabase db;
 
@@ -62,7 +63,7 @@ void main() {
     return (container, school.id, semester.id);
   }
 
-  testWidgets('今天标为停课时首页显示停课空状态', (tester) async {
+  testWidgets('今天标为停课时 Weekly Grid 的当天列明确标记停课', (tester) async {
     final (container, schoolId, semesterId) = await pumpSchool(tester);
 
     await container
@@ -76,11 +77,19 @@ void main() {
         );
     await tester.pumpAndSettle();
 
-    expect(find.text('今天停课'), findsOneWidget);
+    expect(find.text('停课'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics &&
+            (widget.properties.label ?? '').contains('今天，停课'),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('今日无课'), findsNothing);
   });
 
-  testWidgets('今天标为调休时首页显示「按某天的课表上课」提示条', (tester) async {
+  testWidgets('今天标为调休时 Weekly Grid 的当天列说明折算星期', (tester) async {
     final (container, schoolId, semesterId) = await pumpSchool(tester);
 
     await container
@@ -94,9 +103,16 @@ void main() {
         );
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('今天按周五的课表上课'), findsOneWidget);
     expect(find.text('调休'), findsOneWidget);
-    expect(find.text('今天停课'), findsNothing);
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics &&
+            (widget.properties.label ?? '').contains('今天，按周五上课'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('停课'), findsNothing);
   });
 
   testWidgets('设置里能进入「调休 / 停课」页，且列出已保存的例外', (tester) async {

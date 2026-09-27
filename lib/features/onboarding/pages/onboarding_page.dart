@@ -5,6 +5,10 @@ import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/glass/glass_surface.dart';
+import '../../../core/glass/glass_button.dart';
+import '../../../core/glass/glass_form.dart';
+import '../../../core/widgets/ambient_backdrop.dart';
 import '../../schools/services/login_url_policy.dart';
 import '../../schools/services/school_presets.dart';
 import '../../schools/services/school_repository.dart';
@@ -81,174 +85,152 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     final palette = AppTheme.paletteOf(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.isAddingSchool ? '添加学校' : '欢迎使用汇课'),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-        children: [
-          if (!widget.isAddingSchool) ...[
+      appBar: AppBar(title: Text(widget.isAddingSchool ? '添加学校' : '欢迎使用汇课')),
+      body: AmbientBackdrop(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+          children: [
+            if (!widget.isAddingSchool) ...[
+              Text(
+                '一所学校的课表，从建立它的档案开始。',
+                style: TextStyle(
+                  fontSize: 15,
+                  height: 1.6,
+                  color: palette.inkSecondary,
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final preset in [ncpuPreset])
+                  GlassChoiceChip(
+                    label: preset.displayName,
+                    selected: _presetId == preset.id,
+                    onSelected: () => _selectPreset(preset.id),
+                  ),
+                GlassChoiceChip(
+                  label: '其他学校',
+                  selected: _presetId.isEmpty,
+                  onSelected: () => _selectPreset(''),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            GlassTextField(
+              controller: _nameController,
+              decoration: const InputDecoration(
+                labelText: '学校名称（必填）',
+                hintText: '如：某某大学',
+              ),
+            ),
+            const SizedBox(height: 14),
+            GlassTextField(
+              controller: _urlController,
+              keyboardType: TextInputType.url,
+              decoration: const InputDecoration(
+                labelText: '教务网址（选填，http/https）',
+                hintText: 'https://jw.example.edu.cn',
+              ),
+            ),
+            const SizedBox(height: 8),
             Text(
-              '一所学校的课表，从建立它的档案开始。',
+              '教务系统类型不用选：导入时 App 会自动逐个尝试内置适配器。'
+              '不知道网址可以先留空，之后在导入页或学校管理里补。',
               style: TextStyle(
-                fontSize: 15,
+                fontSize: 12.5,
                 height: 1.6,
-                color: palette.inkSecondary,
+                color: palette.inkTertiary,
               ),
             ),
             const SizedBox(height: 20),
+            SectionHeaderLabel('第一学期'),
+            _dateTile(palette),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Text(
+                  '教学周数',
+                  style: TextStyle(fontSize: 14.5, color: palette.ink),
+                ),
+                const Spacer(),
+                GlassButton.icon(
+                  icon: Icons.remove,
+                  tooltip: '减少教学周数',
+                  semanticLabel: '减少教学周数',
+                  onPressed: _totalWeeks > 1
+                      ? () => setState(() => _totalWeeks -= 1)
+                      : null,
+                  size: 36,
+                ),
+                Text(
+                  '$_totalWeeks',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                    color: palette.ink,
+                  ),
+                ),
+                GlassButton.icon(
+                  icon: Icons.add,
+                  tooltip: '增加教学周数',
+                  semanticLabel: '增加教学周数',
+                  onPressed: _totalWeeks < 30
+                      ? () => setState(() => _totalWeeks += 1)
+                      : null,
+                  size: 36,
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '开学周一是一切周次与单双周的锚点，按校历填写；'
+              '填错会让整学期周次偏移，之后也能在设置里修改。',
+              style: TextStyle(
+                fontSize: 12.5,
+                height: 1.6,
+                color: palette.inkTertiary,
+              ),
+            ),
           ],
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final preset in [ncpuPreset])
-                ChoiceChip(
-                  label: Text(preset.displayName),
-                  selected: _presetId == preset.id,
-                  onSelected: (_) => _selectPreset(preset.id),
-                  selectedColor: palette.accentSoft,
-                  labelStyle: TextStyle(
-                    color: _presetId == preset.id
-                        ? palette.accent
-                        : palette.inkSecondary,
-                    fontWeight:
-                        _presetId == preset.id ? FontWeight.w600 : FontWeight.w400,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4),
-                    side: BorderSide(
-                      color: _presetId == preset.id
-                          ? palette.accent
-                          : palette.hairlineStrong,
-                    ),
-                  ),
-                  showCheckmark: false,
-                ),
-              ChoiceChip(
-                label: const Text('其他学校'),
-                selected: _presetId.isEmpty,
-                onSelected: (_) => _selectPreset(''),
-                selectedColor: palette.accentSoft,
-                labelStyle: TextStyle(
-                  color: _presetId.isEmpty ? palette.accent : palette.inkSecondary,
-                  fontWeight:
-                      _presetId.isEmpty ? FontWeight.w600 : FontWeight.w400,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(4),
-                  side: BorderSide(
-                    color: _presetId.isEmpty
-                        ? palette.accent
-                        : palette.hairlineStrong,
-                  ),
-                ),
-                showCheckmark: false,
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          TextField(
-            controller: _nameController,
-            decoration: const InputDecoration(
-              labelText: '学校名称（必填）',
-              hintText: '如：某某大学',
-            ),
-          ),
-          const SizedBox(height: 14),
-          TextField(
-            controller: _urlController,
-            keyboardType: TextInputType.url,
-            decoration: const InputDecoration(
-              labelText: '教务网址（选填，http/https）',
-              hintText: 'https://jw.example.edu.cn',
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '教务系统类型不用选：导入时 App 会自动逐个尝试内置适配器。'
-            '不知道网址可以先留空，之后在导入页或学校管理里补。',
-            style: TextStyle(
-              fontSize: 12.5,
-              height: 1.6,
-              color: palette.inkTertiary,
-            ),
-          ),
-          const SizedBox(height: 20),
-          SectionHeaderLabel('第一学期'),
-          _dateTile(palette),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Text(
-                '教学周数',
-                style: TextStyle(fontSize: 14.5, color: palette.ink),
-              ),
-              const Spacer(),
-              IconButton(
-                onPressed: _totalWeeks > 1
-                    ? () => setState(() => _totalWeeks -= 1)
-                    : null,
-                icon: const Icon(Icons.remove),
-              ),
-              Text(
-                '$_totalWeeks',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w600,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                  color: palette.ink,
-                ),
-              ),
-              IconButton(
-                onPressed: _totalWeeks < 30
-                    ? () => setState(() => _totalWeeks += 1)
-                    : null,
-                icon: const Icon(Icons.add),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '开学周一是一切周次与单双周的锚点，按校历填写；'
-            '填错会让整学期周次偏移，之后也能在设置里修改。',
-            style: TextStyle(
-              fontSize: 12.5,
-              height: 1.6,
-              color: palette.inkTertiary,
-            ),
-          ),
-        ],
+        ),
       ),
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-          child: FilledButton(
+          child: GlassButton(
             onPressed: _creating ? null : _create,
-            child: Text(_creating ? '正在创建' : '创建学校'),
+            label: _creating ? '正在创建' : '创建学校',
+            size: 52,
+            intensity: GlassIntensity.prominent,
+            tint: palette.accent,
           ),
         ),
       ),
     );
   }
 
-  Widget _dateTile(AppPalette palette) => InkWell(
+  Widget _dateTile(AppPalette palette) => GlassSurface(
+    interactive: true,
     onTap: _pickDate,
-    borderRadius: BorderRadius.circular(10),
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      decoration: BoxDecoration(
-        color: palette.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: palette.hairlineStrong),
-      ),
+    radius: 16,
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+    child: SizedBox(
       child: Row(
         children: [
-          Text(
-            '开学第一周周一',
-            style: TextStyle(fontSize: 14.5, color: palette.inkSecondary),
+          // 窄屏 + 大字体时让标签先省略，别把日期挤出去。
+          Expanded(
+            child: Text(
+              '开学第一周周一',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 14.5, color: palette.inkSecondary),
+            ),
           ),
-          const Spacer(),
+          const SizedBox(width: 8),
           Text(
             DateFormat('yyyy-MM-dd').format(_firstWeekMonday),
             style: TextStyle(
@@ -274,7 +256,8 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     );
     if (picked != null) {
       setState(
-        () => _firstWeekMonday = DateTime(picked.year, picked.month, picked.day),
+        () =>
+            _firstWeekMonday = DateTime(picked.year, picked.month, picked.day),
       );
     }
   }

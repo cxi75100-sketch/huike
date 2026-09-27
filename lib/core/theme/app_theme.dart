@@ -3,15 +3,12 @@ import 'package:flutter/services.dart';
 
 import 'app_palette.dart';
 
-/// 「新历书」主题。
-///
-/// 圆角系统（全 App 唯一）：区块/弹层 12、按钮与输入 10、小签 4。
-/// 结构分组优先用发丝线（hairline），卡片只用于真正需要抬升的表面。
+/// Shared platform-consistent glass styling for Flutter controls.
 class AppTheme {
   AppTheme._();
 
-  static const _radiusBlock = 12.0;
-  static const _radiusControl = 10.0;
+  static const _radiusBlock = 22.0;
+  static const _radiusControl = 14.0;
 
   static ThemeData light() => _build(AppPalette.light, Brightness.light);
 
@@ -39,7 +36,7 @@ class AppTheme {
       brightness: brightness,
       colorScheme: scheme,
       scaffoldBackgroundColor: p.background,
-      splashFactory: InkSparkle.splashFactory,
+      splashFactory: NoSplash.splashFactory,
     );
 
     return base.copyWith(
@@ -77,7 +74,7 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: p.surface,
+        fillColor: p.surface.withValues(alpha: 0.7),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 14,
           vertical: 12,
@@ -128,7 +125,7 @@ class AppTheme {
         ),
       ),
       dialogTheme: DialogThemeData(
-        backgroundColor: p.surface,
+        backgroundColor: p.surface.withValues(alpha: 0.88),
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(_radiusBlock),
@@ -141,8 +138,8 @@ class AppTheme {
         contentTextStyle: TextStyle(fontSize: 14.5, color: p.inkSecondary),
       ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: p.ink,
-        contentTextStyle: TextStyle(color: p.background),
+        backgroundColor: p.surface.withValues(alpha: 0.94),
+        contentTextStyle: TextStyle(color: p.ink),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(_radiusControl),

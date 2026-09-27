@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/glass/glass_form.dart';
 
 /// 历书式小节标题：细体、全大写字距不用（中文语境），只用竖线定位。
 class SectionHeaderLabel extends StatelessWidget {
@@ -76,16 +77,10 @@ class RiskConfirmTile extends StatelessWidget {
             style: TextStyle(fontSize: 13, height: 1.6, color: palette.inkSecondary),
           ),
           const SizedBox(height: 4),
-          CheckboxListTile(
+          GlassToggleRow(
+            label: '我确认以上地址是我学校自己的教务系统',
             value: confirmed,
-            onChanged: (value) => onChanged(value ?? false),
-            contentPadding: EdgeInsets.zero,
-            controlAffinity: ListTileControlAffinity.leading,
-            activeColor: palette.accent,
-            title: Text(
-              '我确认以上地址是我学校自己的教务系统',
-              style: TextStyle(fontSize: 13.5, color: palette.ink),
-            ),
+            onChanged: onChanged,
           ),
         ],
       ),

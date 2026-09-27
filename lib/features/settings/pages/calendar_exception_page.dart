@@ -3,6 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/glass/glass_button.dart';
+import '../../../core/glass/glass_dialog.dart';
+import '../../../core/glass/glass_empty_state.dart';
+import '../../../core/glass/glass_form.dart';
+import '../../../core/glass/glass_metrics.dart';
+import '../../../core/glass/glass_surface.dart';
 import '../../../models/calendar_exception.dart';
 import '../../../models/semester.dart';
 import '../../../services/calendar_exception_service.dart';
@@ -10,7 +16,6 @@ import '../../../services/semester_service.dart';
 import '../../schools/providers/calendar_exception_providers.dart';
 import '../../schools/providers/school_providers.dart';
 import '../../schools/services/calendar_exception_repository.dart';
-import '../../timetable/widgets/course_listing_row.dart';
 
 /// 调休 / 停课：按日期维护校历例外。
 ///
@@ -40,17 +45,17 @@ class CalendarExceptionPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('调休 / 停课')),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: GlassButton(
         onPressed: () =>
             _edit(context, ref, schoolId: school.id, semester: semester),
-        backgroundColor: palette.accent,
-        foregroundColor: palette.onAccent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        icon: const Icon(Icons.add),
-        label: const Text('添加'),
+        icon: Icons.add,
+        label: '添加',
+        tooltip: '添加校历例外',
+        iconColor: palette.accent,
+        size: 48,
       ),
       body: exceptions.isEmpty
-          ? const EmptyDayPlate(
+          ? const GlassEmptyState(
               title: '还没有例外',
               subtitle: '放假日标为停课，补课日标为按某天的课表上课',
             )
@@ -68,9 +73,7 @@ class CalendarExceptionPage extends ConsumerWidget {
                       semester: semester,
                       existing: exception,
                     ),
-                    onDelete: () => ref
-                        .read(calendarExceptionRepositoryProvider)
-                        .deleteById(exception.id),
+                    onDelete: () => _confirmDelete(context, ref, exception),
                   ),
                 const SizedBox(height: 16),
                 Text(
@@ -110,53 +113,46 @@ class CalendarExceptionPage extends ConsumerWidget {
         existing?.makeupWeekday ?? const SemesterService().weekdayOf(picked);
     final noteController = TextEditingController(text: existing?.note ?? '');
 
-    final saved = await showDialog<bool>(
+    final saved = await showGlassDialog<bool>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => GlassDialog(
           title: Text(DateFormat('M月d日').format(picked)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              RadioGroup<CalendarExceptionKind>(
-                groupValue: kind,
-                onChanged: (value) {
-                  if (value == null) return;
-                  setDialogState(() => kind = value);
-                },
-                child: Column(
-                  children: [
-                    RadioListTile<CalendarExceptionKind>(
-                      value: CalendarExceptionKind.holiday,
-                      title: const Text('停课'),
-                      dense: true,
-                    ),
-                    RadioListTile<CalendarExceptionKind>(
-                      value: CalendarExceptionKind.makeup,
-                      title: const Text('调休：按某天的课表上课'),
-                      dense: true,
-                    ),
-                  ],
-                ),
+              GlassSelectionRow(
+                label: '停课',
+                selected: kind == CalendarExceptionKind.holiday,
+                onSelected: () =>
+                    setDialogState(() => kind = CalendarExceptionKind.holiday),
+              ),
+              const SizedBox(height: 6),
+              GlassSelectionRow(
+                label: '调休：按某天的课表上课',
+                selected: kind == CalendarExceptionKind.makeup,
+                onSelected: () =>
+                    setDialogState(() => kind = CalendarExceptionKind.makeup),
               ),
               if (kind == CalendarExceptionKind.makeup) ...[
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 6,
+                  runSpacing: 6,
                   children: [
                     for (var day = 1; day <= 7; day++)
-                      ChoiceChip(
-                        label: Text(CalendarExceptionService.weekdayName(day)),
+                      GlassChoiceChip(
+                        label: CalendarExceptionService.weekdayName(day),
                         selected: makeupWeekday == day,
-                        onSelected: (_) =>
+                        onSelected: () =>
                             setDialogState(() => makeupWeekday = day),
                       ),
                   ],
                 ),
               ],
               const SizedBox(height: 12),
-              TextField(
+              GlassTextField(
                 controller: noteController,
                 decoration: const InputDecoration(
                   labelText: '备注（可选）',
@@ -166,18 +162,21 @@ class CalendarExceptionPage extends ConsumerWidget {
             ],
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('取消'),
+            GlassDialogAction(
+              label: '取消',
+              onPressed: () => Navigator.pop(dialogContext, false),
             ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('保存'),
+            GlassDialogAction(
+              label: '保存',
+              primary: true,
+              onPressed: () => Navigator.pop(dialogContext, true),
             ),
           ],
         ),
       ),
     );
+    final note = noteController.text.trim();
+    noteController.dispose();
     if (saved != true) return;
 
     await ref
@@ -189,8 +188,40 @@ class CalendarExceptionPage extends ConsumerWidget {
           date: picked,
           kind: kind,
           makeupWeekday: makeupWeekday,
-          note: noteController.text.trim(),
+          note: note,
         );
+  }
+
+  Future<void> _confirmDelete(
+    BuildContext context,
+    WidgetRef ref,
+    CalendarException exception,
+  ) async {
+    final ok = await showGlassDialog<bool>(
+      context: context,
+      builder: (dialogContext) => GlassDialog(
+        title: const Text('删除校历例外'),
+        content: Text(
+          '${DateFormat('M月d日').format(exception.date)} 的停课或调休设置将被删除。',
+        ),
+        actions: [
+          GlassDialogAction(
+            label: '取消',
+            onPressed: () => Navigator.pop(dialogContext, false),
+          ),
+          GlassDialogAction(
+            label: '删除',
+            destructive: true,
+            onPressed: () => Navigator.pop(dialogContext, true),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) {
+      await ref
+          .read(calendarExceptionRepositoryProvider)
+          .deleteById(exception.id);
+    }
   }
 }
 
@@ -217,13 +248,10 @@ class _ExceptionTile extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Container(
+      child: GlassSurface(
+        radius: GlassMetrics.controlRadius,
+        blurSigma: 0,
         padding: const EdgeInsets.fromLTRB(14, 12, 6, 12),
-        decoration: BoxDecoration(
-          color: palette.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: palette.hairline),
-        ),
         child: Row(
           children: [
             Container(

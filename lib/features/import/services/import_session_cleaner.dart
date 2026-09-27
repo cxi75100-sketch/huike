@@ -15,7 +15,11 @@ class ImportSessionCleaner {
   Future<void> dispose() async {
     if (_disposed) return;
     _disposed = true;
-    _resetSession();
+    // 清会话必须推迟一拍：dispose 发生在 widget 树 finalize 阶段，
+    // 同步改 provider 会被 Riverpod 判为
+    // 「Tried to modify a provider while the widget tree was building」，
+    // 结果是内存里的原始响应与解析结果没被丢掉（TASK-018A 真机复现）。
+    await Future<void>.microtask(_resetSession);
     try {
       // 静态方法：作用于全局 WebView 配置，不需要页面控制器实例。
       await InAppWebViewController.clearAllCache();

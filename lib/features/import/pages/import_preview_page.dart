@@ -7,6 +7,8 @@ import '../../../core/database/app_database.dart';
 import '../../../core/database/database_provider.dart';
 import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/glass/glass_button.dart';
+import '../../../core/glass/glass_form.dart';
 import '../../../core/theme/course_colors.dart';
 import '../../../models/bell_schedule.dart';
 import '../../../models/course.dart';
@@ -51,9 +53,9 @@ class _ImportPreviewPageState extends ConsumerState<ImportPreviewPage> {
     }
 
     final batch = session.normalized!;
-    final existing = ref.watch(
-      importedCoursesProvider((school.id, semester.id)),
-    ).value;
+    final existing = ref
+        .watch(importedCoursesProvider((school.id, semester.id)))
+        .value;
     if (existing == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('导入预览')),
@@ -70,12 +72,17 @@ class _ImportPreviewPageState extends ConsumerState<ImportPreviewPage> {
       _replaceSchedule = (bell ?? schedule).equalsFallback();
     }
 
-    final nextCourses = _draftsToCourses(batch.courses, school.id, semester.id, schedule);
+    final nextCourses = _draftsToCourses(
+      batch.courses,
+      school.id,
+      semester.id,
+      schedule,
+    );
     final diff = diffImportedCourses(existing, nextCourses);
 
     final config = batch.courseConfig;
-    final showConfigOption = config.semesterStartDate != null ||
-        config.totalWeeks != null;
+    final showConfigOption =
+        config.semesterStartDate != null || config.totalWeeks != null;
 
     return Scaffold(
       appBar: AppBar(title: const Text('导入预览')),
@@ -112,16 +119,25 @@ class _ImportPreviewPageState extends ConsumerState<ImportPreviewPage> {
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-          child: FilledButton(
-            onPressed: _applying ? null : () => _apply(school.id, semester.id, batch),
-            child: Text(_applying ? '正在写入' : '确认写入 ${batch.courses.length} 门课程'),
+          child: GlassButton(
+            onPressed: _applying
+                ? null
+                : () => _apply(school.id, semester.id, batch),
+            label: _applying ? '正在写入' : '确认写入 ${batch.courses.length} 门课程',
+            icon: _applying ? Icons.hourglass_top : Icons.check_rounded,
+            size: 48,
+            iconColor: palette.accent,
           ),
         ),
       ),
     );
   }
 
-  Widget _summary(BuildContext context, ImportDiff diff, AdapterImportBatch batch) {
+  Widget _summary(
+    BuildContext context,
+    ImportDiff diff,
+    AdapterImportBatch batch,
+  ) {
     final palette = AppTheme.paletteOf(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -146,7 +162,12 @@ class _ImportPreviewPageState extends ConsumerState<ImportPreviewPage> {
     );
   }
 
-  Widget _count(BuildContext context, String label, int count, {bool warn = false}) {
+  Widget _count(
+    BuildContext context,
+    String label,
+    int count, {
+    bool warn = false,
+  }) {
     final palette = AppTheme.paletteOf(context);
     return Expanded(
       child: Column(
@@ -169,11 +190,8 @@ class _ImportPreviewPageState extends ConsumerState<ImportPreviewPage> {
     );
   }
 
-  Widget _divider(AppPalette palette) => Container(
-    width: 1,
-    height: 28,
-    color: palette.hairline,
-  );
+  Widget _divider(AppPalette palette) =>
+      Container(width: 1, height: 28, color: palette.hairline);
 
   Widget _invalidBlock(BuildContext context, AdapterImportBatch batch) {
     final palette = AppTheme.paletteOf(context);
@@ -208,29 +226,11 @@ class _ImportPreviewPageState extends ConsumerState<ImportPreviewPage> {
   }
 
   Widget _scheduleOption(BuildContext context, AdapterImportBatch batch) {
-    final palette = AppTheme.paletteOf(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: palette.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: palette.hairline),
-      ),
-      child: CheckboxListTile(
-        value: _replaceSchedule,
-        onChanged: (value) => setState(() => _replaceSchedule = value ?? false),
-        controlAffinity: ListTileControlAffinity.leading,
-        activeColor: palette.accent,
-        contentPadding: EdgeInsets.zero,
-        title: Text(
-          '同时更新默认作息时间',
-          style: TextStyle(fontSize: 14, color: palette.ink),
-        ),
-        subtitle: Text(
-          '读到 ${batch.timeSlots.length} 节的起止时间，会整体替换当前作息表',
-          style: TextStyle(fontSize: 12.5, color: palette.inkSecondary),
-        ),
-      ),
+    return GlassToggleRow(
+      label: '同时更新默认作息时间',
+      value: _replaceSchedule,
+      onChanged: (value) => setState(() => _replaceSchedule = value),
+      subtitle: '读到 ${batch.timeSlots.length} 节的起止时间，会整体替换当前作息表',
     );
   }
 
@@ -239,34 +239,17 @@ class _ImportPreviewPageState extends ConsumerState<ImportPreviewPage> {
     AdapterCourseConfig config,
     Semester semester,
   ) {
-    final palette = AppTheme.paletteOf(context);
     final parts = <String>[
       if (config.semesterStartDate != null)
         '开学周一 ${_iso(config.semesterStartDate!)}',
       if (config.totalWeeks != null) '共 ${config.totalWeeks} 周',
     ];
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: palette.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: palette.hairline),
-      ),
-      child: CheckboxListTile(
-        value: _applyConfig,
-        onChanged: (value) => setState(() => _applyConfig = value ?? false),
-        controlAffinity: ListTileControlAffinity.leading,
-        activeColor: palette.accent,
-        contentPadding: EdgeInsets.zero,
-        title: Text(
-          '更新学期设置（脚本提供：${parts.join('，')}）',
-          style: TextStyle(fontSize: 14, color: palette.ink),
-        ),
-        subtitle: Text(
+    return GlassToggleRow(
+      label: '更新学期设置（脚本提供：${parts.join('，')}）',
+      value: _applyConfig,
+      onChanged: (value) => setState(() => _applyConfig = value),
+      subtitle:
           '当前：开学周一 ${_iso(semester.firstWeekMonday)}，共 ${semester.totalWeeks} 周',
-          style: TextStyle(fontSize: 12.5, color: palette.inkSecondary),
-        ),
-      ),
     );
   }
 
@@ -307,7 +290,10 @@ class _ImportPreviewPageState extends ConsumerState<ImportPreviewPage> {
                   padding: const EdgeInsets.only(left: 34),
                   child: Text(
                     change.fields.join('、'),
-                    style: TextStyle(fontSize: 12.5, color: palette.inkSecondary),
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: palette.inkSecondary,
+                    ),
                   ),
                 ),
               ],
@@ -317,7 +303,12 @@ class _ImportPreviewPageState extends ConsumerState<ImportPreviewPage> {
     );
   }
 
-  Widget _courseLine(BuildContext context, Course course, Color tagColor, String tag) {
+  Widget _courseLine(
+    BuildContext context,
+    Course course,
+    Color tagColor,
+    String tag,
+  ) {
     final palette = AppTheme.paletteOf(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -353,7 +344,11 @@ class _ImportPreviewPageState extends ConsumerState<ImportPreviewPage> {
       ),
       child: Text(
         text,
-        style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: color),
+        style: TextStyle(
+          fontSize: 11.5,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
       ),
     );
   }
@@ -421,8 +416,7 @@ class _ImportPreviewPageState extends ConsumerState<ImportPreviewPage> {
       if (_replaceSchedule && batch.timeSlots.isNotEmpty) {
         await courseRepo.replaceSectionTimes(schoolId, batch.timeSlots);
       }
-      final effectiveBell =
-          (_replaceSchedule && batch.timeSlots.isNotEmpty)
+      final effectiveBell = (_replaceSchedule && batch.timeSlots.isNotEmpty)
           ? _scheduleFromSlots(batch.timeSlots)
           : schedule;
       await courseRepo.replaceImportedCourses(
@@ -486,7 +480,7 @@ final importedCoursesProvider = StreamProvider.family
               t.semesterId.equals(semesterId) &
               t.source.equals('imported'),
         );
-      return query
-          .watch()
-          .map((rows) => rows.map((row) => row.toModel()).toList());
+      return query.watch().map(
+        (rows) => rows.map((row) => row.toModel()).toList(),
+      );
     });

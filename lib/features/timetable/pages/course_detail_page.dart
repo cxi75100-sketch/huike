@@ -4,24 +4,46 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/theme/course_colors.dart';
-import '../../../core/widgets/route_background.dart';
+import '../../../core/glass/glass_button.dart';
+import '../../../core/glass/glass_dialog.dart';
+import '../../../core/glass/glass_surface.dart';
+import '../../../core/widgets/ambient_backdrop.dart';
 import '../../../models/bell_schedule.dart';
 import '../../../models/course.dart';
 import '../../../services/course_time_service.dart';
+import '../../../services/section_count_resolver.dart';
 import '../../import/services/course_repository.dart';
 import '../providers/timetable_providers.dart';
+import '../widgets/course_hero.dart';
 
 class CourseDetailPage extends ConsumerWidget {
-  const CourseDetailPage({super.key, required this.courseId});
+  const CourseDetailPage({
+    super.key,
+    required this.courseId,
+    this.heroSource = CourseHeroSourceContext.weeklyTimetable,
+    this.revealMetadata = true,
+  });
 
   final String courseId;
+  final CourseHeroSourceContext heroSource;
+  final bool revealMetadata;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = AppTheme.paletteOf(context);
-    final course = ref.watch(courseByIdProvider(courseId)).value;
+    final courseAsync = ref.watch(courseByIdProvider(courseId));
+    final course = courseAsync.value;
     final bell = ref.watch(bellForActiveSchoolProvider);
+
+    if (courseAsync.isLoading && !courseAsync.hasValue) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (courseAsync.hasError) {
+      return Scaffold(
+        appBar: AppBar(),
+        body: const Center(child: Text('课程加载失败，请稍后重试')),
+      );
+    }
 
     if (course == null) {
       return Scaffold(
@@ -35,60 +57,115 @@ class CourseDetailPage extends ConsumerWidget {
       bell ?? BellSchedule.fallback(),
     );
 
-    return RouteBackground(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          actions: [
-            IconButton(
-              tooltip: '编辑',
-              icon: const Icon(Icons.edit_outlined),
-              onPressed: () => context.push('/course/${course.id}/edit'),
-            ),
-            IconButton(
-              tooltip: '删除',
-              icon: const Icon(Icons.delete_outline),
-              onPressed: () => _confirmDelete(context, ref, course),
-            ),
-          ],
-        ),
-        body: ListView(
+    return Scaffold(
+      backgroundColor: palette.background,
+      appBar: AppBar(
+        actions: [
+          GlassButton.icon(
+            icon: Icons.edit_outlined,
+            tooltip: '编辑',
+            semanticLabel: '编辑课程',
+            iconColor: palette.accent,
+            onPressed: () => context.push('/course/${course.id}/edit'),
+            size: 36,
+          ),
+          GlassButton.icon(
+            icon: Icons.delete_outline,
+            tooltip: '删除',
+            semanticLabel: '删除课程',
+            iconColor: palette.danger,
+            tint: palette.danger.withValues(alpha: 0.1),
+            onPressed: () => _confirmDelete(context, ref, course),
+            size: 36,
+          ),
+        ],
+      ),
+      body: AmbientBackdrop(
+        child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
           children: [
-            _CourseHero(course: course, range: range),
-            const SizedBox(height: 18),
-            _metaRow(context, '星期', '周${'一二三四五六日'[course.weekday - 1]}'),
-            _hairline(palette),
-            _metaRow(context, '周次', _weeksText(course.weeks)),
-            _hairline(palette),
-            _metaRow(
-              context,
-              '教师',
-              course.teacher.isEmpty ? '未填' : course.teacher,
+            CourseHero(
+              tag: CourseHeroTag.forDetails(course, heroSource),
+              child: CourseHeroSurface(course: course, range: range),
             ),
-            _hairline(palette),
-            _metaRow(
+            const SizedBox(height: 12),
+            _revealBody(
               context,
-              '教室',
-              course.classroom.isEmpty ? '未填' : course.classroom,
+              GlassSurface(
+                padding: const EdgeInsets.all(16),
+                child: _SectionRoute(
+                  startSection: course.startSection,
+                  endSection: course.endSection,
+                  sectionCount: SectionCountResolver.resolve(
+                    bell,
+                    courses: [course],
+                  ),
+                  activeColor: palette.accent,
+                ),
+              ),
             ),
-            _hairline(palette),
-            _metaRow(
+            const SizedBox(height: 12),
+            _revealBody(
               context,
-              '来源',
-              course.source == CourseSource.imported ? '教务导入' : '手动录入',
+              GlassSurface(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    _metaRow(
+                      context,
+                      '星期',
+                      '周${'一二三四五六日'[course.weekday - 1]}',
+                    ),
+                    _hairline(palette),
+                    _metaRow(context, '周次', _weeksText(course.weeks)),
+                    _hairline(palette),
+                    _metaRow(
+                      context,
+                      '教师',
+                      course.teacher.isEmpty ? '未填' : course.teacher,
+                    ),
+                    _hairline(palette),
+                    _metaRow(
+                      context,
+                      '教室',
+                      course.classroom.isEmpty ? '未填' : course.classroom,
+                    ),
+                    _hairline(palette),
+                    _metaRow(
+                      context,
+                      '来源',
+                      course.source == CourseSource.imported ? '教务导入' : '手动录入',
+                    ),
+                    if (course.note.isNotEmpty) ...[
+                      _hairline(palette),
+                      _metaRow(context, '备注', course.note),
+                    ],
+                  ],
+                ),
+              ),
             ),
-            if (course.note.isNotEmpty) ...[
-              _hairline(palette),
-              _metaRow(context, '备注', course.note),
-            ],
           ],
         ),
       ),
     );
   }
 
+  Widget _revealBody(BuildContext context, Widget child) {
+    if (!revealMetadata) return child;
+    if (MediaQuery.disableAnimationsOf(context)) return child;
+    final routeAnimation = ModalRoute.of(context)?.animation;
+    if (routeAnimation == null) return child;
+    return FadeTransition(
+      opacity: CurvedAnimation(
+        parent: routeAnimation,
+        curve: const Interval(0.25, 1, curve: Curves.easeOut),
+      ),
+      child: child,
+    );
+  }
+
   String _weeksText(List<int> weeks) {
+    if (weeks.isEmpty) return '未设置周次';
     final sorted = [...weeks]..sort();
     final parts = <String>[];
     var start = sorted.first;
@@ -145,19 +222,20 @@ class CourseDetailPage extends ConsumerWidget {
     WidgetRef ref,
     Course course,
   ) async {
-    final ok = await showDialog<bool>(
+    final ok = await showGlassDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => GlassDialog(
         title: const Text('删除课程'),
         content: Text('「${course.name}」将被删除，此操作不可撤销。'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+          GlassDialogAction(
+            label: '取消',
+            onPressed: () => Navigator.pop(dialogContext, false),
           ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('删除'),
+          GlassDialogAction(
+            label: '删除',
+            destructive: true,
+            onPressed: () => Navigator.pop(dialogContext, true),
           ),
         ],
       ),
@@ -168,100 +246,24 @@ class CourseDetailPage extends ConsumerWidget {
   }
 }
 
-class _CourseHero extends StatelessWidget {
-  const _CourseHero({required this.course, required this.range});
-
-  final Course course;
-  final (String, String)? range;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = AppTheme.paletteOf(context);
-    final tint = courseTint(course.colorKey, Theme.of(context).brightness);
-    final sectionText = course.startSection == course.endSection
-        ? '第 ${course.startSection} 节'
-        : '第 ${course.startSection}-${course.endSection} 节';
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
-      decoration: BoxDecoration(
-        color: tint.chip,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: tint.onChip.withValues(alpha: 0.28)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Text(
-                  course.name,
-                  style: TextStyle(
-                    fontSize: 25,
-                    height: 1.22,
-                    fontWeight: FontWeight.w700,
-                    color: palette.ink,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-                decoration: BoxDecoration(
-                  color: palette.surface.withValues(alpha: 0.78),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  sectionText,
-                  style: TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w700,
-                    color: tint.onChip,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            range == null ? '时间未定' : '${range!.$1} - ${range!.$2}',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              fontFeatures: const [FontFeature.tabularFigures()],
-              color: palette.inkSecondary,
-            ),
-          ),
-          const SizedBox(height: 16),
-          _SectionRoute(
-            startSection: course.startSection,
-            endSection: course.endSection,
-            activeColor: tint.onChip,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _SectionRoute extends StatelessWidget {
   const _SectionRoute({
     required this.startSection,
     required this.endSection,
+    required this.sectionCount,
     required this.activeColor,
   });
 
   final int startSection;
   final int endSection;
+  final int sectionCount;
   final Color activeColor;
 
   @override
   Widget build(BuildContext context) {
     final palette = AppTheme.paletteOf(context);
     return Semantics(
-      label: '一天十站，课程占用第 $startSection 至第 $endSection 节',
+      label: '一天 $sectionCount 节，课程占用第 $startSection 至第 $endSection 节',
       child: SizedBox(
         height: 34,
         child: Stack(
@@ -274,7 +276,7 @@ class _SectionRoute extends StatelessWidget {
             ),
             Row(
               children: [
-                for (var section = 1; section <= 10; section++)
+                for (var section = 1; section <= sectionCount; section++)
                   Expanded(
                     child: ExcludeSemantics(
                       child: Column(

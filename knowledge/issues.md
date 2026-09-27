@@ -96,6 +96,10 @@ Impact: 可能出现「弹窗时机不对」「同一域名反复询问」「小
 Next Action: 与 ISSUE-004 一并验收；先把 release 包重装到设备再走导入，
 顺路进「设置 → 调休 / 停课」加一条停课与一条调休，回今日与整周核对显示。
 
+Update（2026-09-23，TASK-017）：调休编辑器的单选、星期选项和备注输入改用共享玻璃控件；
+危险确认框也改为共享玻璃对话框。表单/对话框由 widget test 覆盖，但本轮没有连接设备，
+日期选择、页面布局和真实 WebView 弹窗交互仍为 `UNVERIFIED`，本 issue 保持 Open。
+
 ## ISSUE-006 签名仍为 Flutter 默认 debug 证书
 
 Status: Open
@@ -278,3 +282,143 @@ Evidence: `flutter analyze` 无问题、`flutter test` **119/119**；新增
 
 Prevention: 新增「只在创建时播种」的数据时，要一并回答「老数据怎么办」；
 纯空值补写是安全的修复方式，覆盖式写入不是。
+
+## ISSUE-015 「开学第一周周一」一行在窄屏 + 大字体下挤爆（引导页 / 学期设置）
+
+Status: Resolved（2026-09-15，TASK-013 的新测试查出并顺手修掉）
+
+Observed: 新增「360dp + 1.3 倍字体不溢出」用例后，首次运行即在
+「A RenderFlex overflowed by 67 pixels on the right」上失败，约束宽 290dp、
+父节点内边距 15dp（14dp 容器内边距 + 1dp 描边）。
+
+Root Cause: 引导页 `_dateTile` 与学期设置页的同名行都是
+`Text('开学第一周周一') + Spacer + Text('yyyy-MM-dd') + 图标`，两个 Text 都是**非弹性**子节点。
+窄屏放大字体后「标签 + 日期」的自然宽度超过容器宽度，Row 无处收缩只能溢出；
+`Spacer` 在只剩 0 空间时不解决问题。测试字体每位等宽，症状比真机更早暴露。
+
+Impact: 360dp 上下 + 系统大字体（无障碍设置里很常见）时，引导页与学期设置页的
+开学周一行会被右侧裁掉或压出黄黑条纹；引导页是必经之路，用户第一屏就可能看到。
+
+Resolution: 两处都把标签包进 `Expanded` + `maxLines: 1` + `ellipsis`，日期保持自然宽度。
+信息优先级不变（日期是这项设置的值，标签可以省），布局不再依赖 `Spacer` 硬撑。
+
+Evidence: 当时在 360dp / 1.3 倍字体下复现并修复；历史套件运行记录为
+`flutter analyze` 无问题、`flutter test` 149/149。原测试名称已在后续 UI 重构中移除，
+当前窄屏覆盖见 `course_block_content_test.dart`，不可用旧测试名作为现时证据。
+
+Prevention: 同行放「中文标签 + 值」时，至少让一个子节点可弹性收缩并允许省略；
+只用 `Spacer` 撑开在两个文本都不可压缩时会溢出。新增窄屏 / 大字体用例后应尽快跑。
+
+## ISSUE-016 七列手机上并排冲突课程会把行高推到不可用（TASK-015 实画查出）
+
+Status: Resolved（2026-09-23，TASK-015）
+
+Observed: TASK-015 把行高改成「由内容测量决定」后，装机实画立刻暴露：
+周五第 1-2 节有两门课时，`course_collision_layout` 把这一列劈成两条 24dp 的 lane，
+文字列只剩约 5dp 宽——`线性代数与解析几何` 竖排成 9 行、时间 `15:55/17:25` 被折成
+10 行，单块需求高度约 320dp，被 `max(sectionHeight)` 放大成**每节 160dp**，
+整周网格变成 1600dp 高，一屏只剩一行半。
+
+Root Cause: 行高取自「本周所有课程需求的最大值」，而并排 lane 会让需求高度无界增长；
+51dp 的日列宽本身就排不下两个中文窄条，再叠加冲突徽标的宽度让出后更极端。
+这是模型问题，不是排版参数问题。
+
+Impact: 只要一周里出现过一次两门课同时段，整周课表都会变得极高、极难用；
+而且被劈开的块必然出现「一行一个字」的不可读排印。
+
+Resolution: UI 层不再并排——同一时段多门课时显示**一门课的完整全宽信息**，
+顶部一条 `+N` 小签（`TimetableConflictIndicator`）进入全部课程列表；
+`course_collision_layout.dart` 仍照旧计算分簇与 lane（纯函数、有单测），只是不再
+用来分列宽。徽标改为占顶部一条 15dp 而不是右上角一块，避免再一次挤压文字宽度；
+带冲突的块在测量与绘制时都用 `withConflictBadge()` 同一份排印，两者不会脱节。
+
+TASK-016 更新：周块现为视口几何驱动的自适应概览；`+N` 只统计与可见课程直接重叠的 peers，
+不再使用整簇成员数。上段是 TASK-015 当时的实现记录。
+
+Evidence: `flutter test` 177/177（`week_agenda_ui_test` 的
+「两门冲突课程折叠为一门完整课 + 可访问的 +1 入口」锁定新行为）；
+`ncpu_api36` 实画：周五 1-2 冲突显示为一门完整课 + `+1`，行高回到 250dp / 两节，
+文字无竖排、无省略。
+
+Prevention: 任何「把可用宽度再切一刀」的布局都要先问它在最窄列（51dp）下还剩多少
+文字宽度；行高由内容测量驱动时，必须先检查测量宽度是否可能退化成不可读值。
+
+## ISSUE-017 Liquid Glass 的 GlassButton 在松约束下纵向撑满整屏，页面正文整块消失
+
+Status: Resolved（2026-09-24，TASK-018A）
+
+Observed: 实机打开「导入教务课表」只剩顶部标题与底部一颗 disable 的
+「确认并进入教务登录」；中间没有任何可操作控件，风险确认项不在页面上，
+用户永远无法把 CTA 变成可用，教务导入整条链路走不下去。
+`find.text('学校')` / `导入步骤` / `登录安全提示` 在 widget test 里都找不到，
+但 `tester.takeException()` 为 null（不是崩溃，是布局被挤没了）。
+
+Root Cause: `GlassButton` 用
+`ConstrainedBox(minWidth/minHeight: tapTarget) → Center → GlassSurface` 包视觉。
+`Center`（`RenderPositionedBox` 无 width/heightFactor）在**有界松约束**下会
+把自身撑到 `maxHeight`。`Scaffold.bottomNavigationBar` 正是用
+`fullWidthConstraints`（宽紧、高松，上限=整屏）布局的，于是底部栏变成
+整屏高（390×844 屏上量到 350×820），`contentBottom` 被顶到顶部，
+body 高度被挤成 **0**：`ListView` 视口 0 高 → 一个子项都不构建 →
+学校卡、步骤、网址输入、`RiskConfirmTile` 全部不在树里 → `_confirmed` 永远为 false。
+TASK-016 之前这些页面用的是 `FilledButton`（按内容定高），所以是 Liquid Glass
+重构引入的回归。同一 bug 还命中引导页（`创建学校` 页正文同样 0 高）与导入预览页
+——三个用 `bottomNavigationBar` 放 CTA 的页面同时失效。
+
+Impact: 全新安装的建校页、导入入口、导入预览三页正文全部不可用，等于
+「建校 + 导入」主链路断掉；而 app_shell 测试当时通过，是因为它用
+`widget<TextField>(...).controller!.text = ...` 与
+`widget<GlassButton>(...).onPressed!()` 绕过真实点击——被压到 0 高的控件
+既拿不到 tap 也不会被正常 layout，测试于是被改成直调回调，掩盖了回归。
+
+Resolution: `GlassButton` 的 `Center` 固定 `heightFactor: 1`，只收缩纵向、
+保留原有的横向占满行为；`tapTarget` 最小尺寸约束不变。修三个页面而不是三处
+重复打补丁（一处策略一处定义）。同时给导入入口的底部 CTA 补上键盘高度
+（`MediaQuery.viewInsetsOf(context).bottom`），因为 `Scaffold` 只让 body 避开键盘、
+底部栏本身不移动。
+
+Evidence: `test/import_flow_regression_test.dart`（13 例）锁定正文可见、
+CTA disabled→enabled→进入 `/import/web`、加载/错误/空态、390dp、1.3 倍字号、
+键盘与返回；`app_shell_test` 的建校用例改回真实 `enterText` + `tap`。
+API 36 `ncpu_api36` 实机：导入页正文完整、勾选后 CTA 变可用、可进入 WebView。
+
+Prevention: 共享封装里用 `Center`/`Align` 包内容时，必须写清两个轴的
+`widthFactor`/`heightFactor`；放进 `bottomNavigationBar`、`floatingActionButton`
+这类松约束槽位的控件要有「内容定高」的测试断言（不是只断言 widget 存在）。
+测试里禁止用 `find.byType(X, skipOffstage: false).first` + 直调 `onPressed`
+来绕过真实交互；出现这种写法说明控件当时多半点不到，应当先查布局。
+
+## ISSUE-018 离开导入 WebView 的两条 dispose 期异常让内存导入会话没被清掉
+
+Status: Resolved（2026-09-24，TASK-018A）
+
+Observed: 真机 logcat 在退出导入 WebView 时抛
+`Bad state: Using "ref" when a widget is about to or has been unmounted is unsafe`；
+把这条 catch 掉之后紧接着又是
+`Tried to modify a provider while the widget tree was building`。
+
+Root Cause: `_ImportWebPageState.dispose` → `ImportSessionCleaner.dispose` →
+`ref.read(importSessionProvider.notifier).reset()`。两层原因叠加：
+① `ref` 在已卸载的 widget 上不可用；
+② `dispose` 发生在 widget 树 finalize 阶段，即使手里有 Notifier，
+在这一帧同步改 provider 也会被 Riverpod 拒绝。
+结论是这两条异常都发生在 `reset()` 真正执行之前/之时，内存里的原始响应与
+解析结果从未被丢弃——与 `import_session.dart` 注释宣称的「离开导入页时 reset」
+不一致（属 `AGENTS.md` 的「宣称的能力必须在代码里有接线」类问题）。
+
+Impact: 安全相关的清理没生效：离开导入页后，脚本写入的原始课表 JSON 仍留在
+内存会话里，直到下一次进入导入页才被覆盖。
+
+Resolution: `initState` 里取一次 `ImportSessionNotifier` 实例交给 cleaner
+（避免用 `ref`），并把清会话推迟到 `Future.microtask`（避开 finalize 阶段）。
+
+Evidence: `test/import_flow_regression_test.dart` 的
+「离开导入 WebView 会清空内存导入会话」——把两处修复分别回退都会让该用例失败
+（回退 `ref` 修复：`Bad state` + `rawCourses` 仍非空；回退 microtask：
+`Tried to modify a provider…`）。API 36 实机往返进出导入页后 logcat 无 Flutter 异常。
+
+Prevention: 离开页面要清理的全局/内存状态，一律不在 `dispose` 里同步改 provider；
+先把依赖实例抓在 `initState`，并把改动推到帧之后再执行。
+# TASK-019 只记录的范围外问题（2026-09-26）
+
+- `CONFIRMED`：原有右下角加号浮层遮挡周日11–12节的部分课程文字，API 36 约390dp 的匿名 QA 课程已复现。属于操作浮层/首页遮挡策略，本轮遵循范围约束未修改；不将该位置宣称为无遮挡验收。

@@ -18,13 +18,12 @@ final coursesForProvider = StreamProvider.family
       final db = ref.watch(databaseProvider);
       final query = db.select(db.courseEntries)
         ..where(
-          (t) =>
-              t.schoolId.equals(schoolId) & t.semesterId.equals(semesterId),
+          (t) => t.schoolId.equals(schoolId) & t.semesterId.equals(semesterId),
         )
         ..orderBy([(t) => OrderingTerm.asc(t.startSection)]);
-      return query
-          .watch()
-          .map((rows) => rows.map((row) => row.toModel()).toList());
+      return query.watch().map(
+        (rows) => rows.map((row) => row.toModel()).toList(),
+      );
     });
 
 /// 今天（按设备日期）经过校历例外解析后的实际上课安排。
@@ -52,25 +51,28 @@ final todayCoursesProvider = Provider.autoDispose<List<Course>>((ref) {
   if (semester == null) return const [];
   final schedule = ref.watch(todayDayScheduleProvider);
   if (schedule == null || schedule.suspended) return const [];
-  final courses =
-      ref.watch(coursesForProvider((school.id, semester.id))).value;
+  final courses = ref.watch(coursesForProvider((school.id, semester.id))).value;
   if (courses == null) return const [];
   final now = DateTime.now();
   final week = const SemesterService().currentWeek(semester, now);
   final weekday = schedule.weekday;
   return courses
-      .where((course) => course.weekday == weekday && course.weeks.contains(week))
+      .where(
+        (course) => course.weekday == weekday && course.weeks.contains(week),
+      )
       .toList()
     ..sort((a, b) => a.startSection.compareTo(b.startSection));
 });
 
 /// 按 id 查课程（详情/编辑页使用）。
-final courseByIdProvider = StreamProvider.autoDispose
-    .family<Course?, String>((ref, id) {
-      final db = ref.watch(databaseProvider);
-      final query = db.select(db.courseEntries)..where((t) => t.id.equals(id));
-      return query.watchSingleOrNull().map((row) => row?.toModel());
-    });
+final courseByIdProvider = StreamProvider.autoDispose.family<Course?, String>((
+  ref,
+  id,
+) {
+  final db = ref.watch(databaseProvider);
+  final query = db.select(db.courseEntries)..where((t) => t.id.equals(id));
+  return query.watchSingleOrNull().map((row) => row?.toModel());
+});
 
 final bellForActiveSchoolProvider = Provider.autoDispose<BellSchedule?>((ref) {
   final school = ref.watch(activeSchoolProvider);
