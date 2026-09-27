@@ -46,6 +46,11 @@
 
 ## Done
 
+- [x] 归档提交（2026-09-27）：自 2026-09-15 起的未提交工作区（TASK-013～TASK-026）整体归档为
+      `e804223`（图标与启动底色）与 `f9eccc9`（Weekly/Today、Liquid Glass、动效、测试与知识库），
+      工作区干净；归档前 analyze 无问题、283/283 通过。**推送未完成**：本机无可用 Gitee 凭据，
+      `git push origin master` 返回 `Unauthorized`，本地领先 origin/master 7 个提交。
+
 - [x] TASK-020B Floating Liquid Glass Switcher（2026-09-27，本次新增范围）：Today/Weekly保留分支、共享280ms capsule/12dp fade、root-only与FAB避让完成；268→283测试、analyze/build/diff通过；API36约390dp Light/Dark双向录屏已查。真机/iOS未验；保护69文件不变，无commit/push。见report_2026-09-27_root_switcher.md。
 
 - [x] TASK-026 App Icon Redesign（2026-09-27）：落实三白块汇聚/纯冷蓝单方案；Android adaptive/monochrome/legacy与iOS21PNG/25slot全部更新，三mask×48/64px及安全圆通过。API36 Launcher/Recent Apps/Settings列表已查；268/268、analyze/build/diff check通过，iOS设备/真机未验。Flutter源码不变，无commit/push，详见app_icon报告；完成后停止。

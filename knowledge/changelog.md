@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-09-27 — 累积工作区归档（本地提交，推送待令牌）
+
+TASK-013～TASK-026 的未提交工作区整体归档为 `e804223`（图标与启动底色）与 `f9eccc9`
+（Weekly/Today、Liquid Glass、动效、测试与知识库），工作区随之干净；归档前 `S:\` 下
+analyze 无问题、`flutter test` 283/283，敏感扫描与构建产物检查通过。
+推送仍未完成：本机无可用 Gitee 凭据，`git push origin master` 返回 `Unauthorized`，
+本地 master 领先 origin/master 7 个提交。
+
 ## 2026-09-27 — TASK-020B Floating Liquid Glass Switcher
 
 Today/Weekly平级保留状态，两原root路径接入最小StatefulShellRoute；共享中性capsule与12dp fade，280ms现有token，Reduced直接。
