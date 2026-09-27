@@ -7,7 +7,17 @@ TASK-013～TASK-026 的未提交工作区整体归档为 `e804223`（图标与�
 analyze 无问题、`flutter test` 283/283，敏感扫描与构建产物检查通过。
 用户提供令牌后推送成功：远端 master 由 `79c9267` 前进到 `5e5972a`（显式 Basic 头，
 未用 URL 内嵌令牌），无令牌 `git ls-remote` 读回同一提交、本地与 origin/master 一致。
-未打 tag、未建 release——Gitee 上最新 release 仍是 `v0.1.1`。
+
+## 2026-09-27 — 发布 v0.1.4（Gitee release 挂 APK）
+
+- `flutter build apk --release --no-pub` 产出通用包（arm64-v8a / armeabi-v7a / x86_64）
+  `build/huike-0.1.4-release.apk`：63,982,250 字节，SHA-256 `720f0eb1…cb545`；
+  `aapt2` 读回 versionCode 5 / versionName 0.1.4 / minSdk 24 / targetSdk 36 / label「汇课」。
+- annotated tag `v0.1.4` → `14c1b52`；Gitee release id `1170081` 挂该 APK，
+  无令牌下载读回 `200` 且 `Content-Length` 一致，中文名与正文无乱码。
+- 核对 API 补记：`v0.1.2`(1143378)、`v0.1.3`(1143514) 也早已有 release 与 APK 附件
+  （均创建于 2026-09-14），知识库此前只记到 `v0.1.1`。
+- 签名仍是 debug 证书（ISSUE-006 未决），release 正文标注「仅内测分发」。
 
 ## 2026-09-27 — TASK-020B Floating Liquid Glass Switcher
 

@@ -2,7 +2,7 @@
 
 ## Last Updated
 
-2026-09-27 +08:00（累积工作区已归档并推送 Gitee，远端 master `5e5972a`）
+2026-09-27 +08:00（累积工作区已推送 Gitee；v0.1.4 已发 release 挂 APK）
 
 ## 归档与推送（2026-09-27）
 
@@ -18,9 +18,25 @@
   提交 `5e5972a83b5dea234adb0cca3de6a1aa3770bba6`，本地与 origin/master 已一致（0/0）。
   推送前本地 `origin/master` 引用是陈旧的（停在 `5a6bbf0`），实际远端早已含 0.1.1～0.1.3 的
   5 笔提交（`bd0ecc8`…`79c9267`），即本轮真正新传的是 3 笔归档提交。
-- 未打 tag、未建 release：Gitee 上最新 release 仍是 `v0.1.1`，当前版本 `0.1.4+5` 还没有
-  tag 与 APK 附件（是否发布待用户决定）。
+- 发布：见下方「发布 v0.1.4（2026-09-27）」一节。核对 Gitee API 时发现 `v0.1.2`(1143378) 与
+  `v0.1.3`(1143514) 也早有 release 与 APK 附件（都创建于 2026-09-14），知识库此前只记到
+  `v0.1.1`，本次一并补记。
 - 下方各任务段落结尾的「未commit/push」是当时轮次的状态记录；归档与推送结果以本节为准。
+
+## 发布 v0.1.4（2026-09-27）
+
+- `CONFIRMED`：release APK 由 `S:\` 下 `flutter build apk --release --no-pub` 产出，通用包
+  arm64-v8a / armeabi-v7a / x86_64，落盘为 `build/huike-0.1.4-release.apk`，**63,982,250 字节**，
+  SHA-256 `720f0eb1d342b1c6936e5b13ec7dd4c99f1029f408a9df8ac60fb2f4bc5cb545`。
+  `aapt2 dump badging` 读回 versionCode 5 / versionName 0.1.4 / minSdk 24 / targetSdk 36 /
+  label「汇课」，manifest 含 `networkSecurityConfig`（明文 HTTP 策略沿用 2026-09-13 的口径）。
+- `CONFIRMED`：annotated tag `v0.1.4` → `14c1b52`（发布时的 master HEAD，含本日三笔归档提交）；
+  Gitee release id `1170081`（创建于 2026-09-27 17:21 +08:00），附件
+  <https://gitee.com/chenxihh/huike/releases/download/v0.1.4/huike-0.1.4-release.apk>。
+  中文名与正文经 UTF-8 文件传参写入，读回无替换字符；**无令牌** HEAD 该附件返回 `200`、
+  `Content-Length` 与本地一致。
+- 历史上已有的 release：`v0.1.1`(1143273)、`v0.1.2`(1143378)、`v0.1.3`(1143514)，均挂 APK。
+- 签名仍是 Flutter 默认 debug 证书（ISSUE-006 未决），release 正文已标注「仅内测分发」。
 
 ## TASK-020B Floating Liquid Glass Switcher
 
@@ -431,17 +447,25 @@ UI 融合，以及首页信息架构重做（今日改为当日议程、整周�
   标签「汇课」）。`aapt2 dump` 核验元数据；在 `ncpu_api36` 上装机冒烟（引导页 →
   NCPU 预设建校 → 新首页渲染正常），logcat 0 命中致命；核验后 `pm clear` 并复原环境。
   **未推送 Gitee、未打 tag**（等用户确认）。
+  **注意**：这条是 2026-09-23 当轮的产物快照；同一路径 `build/huike-0.1.4-release.apk` 已于
+  2026-09-27 被重新构建的发布包覆盖，当前文件的大小与哈希以「发布 v0.1.4（2026-09-27）」为准。
 
 - `CONFIRMED`（2026-09-23，TASK-017）：`flutter analyze --no-pub` 无问题；
   `flutter test --no-pub` **194/194**；`flutter build apk --debug --no-pub` 成功。
   本轮 `adb devices -l` 返回无连接设备，没有执行模拟器或真机实画，也没有安装 APK。
   Debug APK 路径/哈希见 Working Features。iOS、真机 GPU 与 TalkBack/VoiceOver 为
   `UNVERIFIED`。未创建 commit。
+- `CONFIRMED`（2026-09-27）：本轮归档并发布的最终验证——`S:\` 下 `flutter analyze --no-pub`
+  无问题、`flutter test --no-pub` **283/283**；`flutter build apk --release --no-pub` 成功，
+  产物元数据以 `aapt2` 读回（versionCode 5 / 0.1.4 / minSdk 24 / targetSdk 36 / 三 ABI /
+  `networkSecurityConfig` 在包内），APK 大小与 SHA-256 见「发布 v0.1.4（2026-09-27）」。
+  发布后以**无令牌**请求读回 release 与附件（`200`、长度一致、无乱码）。本轮 `adb devices -l`
+  无连接设备，未装机实画；真机 GPU、iOS 与 TalkBack/VoiceOver 仍为 `UNVERIFIED`。
 
 ## Recommended Next Action
 
-推送已完成（见「归档与推送」一节）。若要把 `0.1.4+5` 对外发布，还需用户决定是否打 annotated
-tag `v0.1.4` 并建 release 挂 APK 附件——本轮只推了 master，未打 tag。
+归档、推送与发布都已完成（见「归档与推送」「发布 v0.1.4（2026-09-27）」两节），
+下一步回到工程任务。用户侧仍挂着 TASK-006 真实教务导入验收与 TASK-012 的教学楼作息规则。
 
 TASK-002 Android 桌面小组件（载荷 schema v2：由 Dart 预计算整学期每日课程，
 原生只按日期查表）。预计算必须经 `CalendarExceptionService` 折算「某天按哪天的课表」，
