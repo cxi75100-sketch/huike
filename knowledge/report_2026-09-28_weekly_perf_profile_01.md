@@ -45,44 +45,44 @@ Idle 清空图表后静置约 15 秒，没有新帧，因此没有可报告的 U
 
 ### Weekly swipe
 
-**Finding:** 切周期间观察到超过 16.7 ms 的 UI/Raster 帧。  
-**Status:** `CONFIRMED`（存在超预算帧）；持续掉帧频率 `UNVERIFIED`。  
-**Evidence:** cold、warm return、warm revisit 选中帧的 Raster 分别为 22.9、17.1、25.6 ms；warm revisit 的 UI 为 40.8 ms。快速交替手势另选中一个 27.4 ms Raster 帧。  
+**Finding:** 切周期间观察到超过 16.7 ms 的 UI/Raster 帧。
+**Status:** `CONFIRMED`（存在超预算帧）；持续掉帧频率 `UNVERIFIED`。
+**Evidence:** cold、warm return、warm revisit 选中帧的 Raster 分别为 22.9、17.1、25.6 ms；warm revisit 的 UI 为 40.8 ms。快速交替手势另选中一个 27.4 ms Raster 帧。
 **Interpretation:** 慢帧不只出现在 cold 样本；单次 40.8 ms UI 帧是孤立观察，不能归因为邻周首次挂载。短窗口平均约 54–56 FPS 不能替代慢帧频率或整段帧时间分布。
 
 ### Preview open / close
 
-**Finding:** blur enabled 时 Preview open 的选中帧重复表现为 Raster-heavy；若干关闭/拖动样本也有 Raster 超预算帧。  
-**Status:** open `CONFIRMED`；具体 close 路径的慢帧表现 `SUSPECTED`。  
-**Evidence:** 三次 open 为 UI 1.5–2.3 ms、Raster 34.9–37.2 ms；Back/backdrop/drag 代表帧 Raster 为 20.7–29.8 ms。  
+**Finding:** blur enabled 时 Preview open 的选中帧重复表现为 Raster-heavy；若干关闭/拖动样本也有 Raster 超预算帧。
+**Status:** open `CONFIRMED`；具体 close 路径的慢帧表现 `SUSPECTED`。
+**Evidence:** 三次 open 为 UI 1.5–2.3 ms、Raster 34.9–37.2 ms；Back/backdrop/drag 代表帧 Raster 为 20.7–29.8 ms。
 **Interpretation:** Preview open 的滤镜 A/B 见下节。关闭路径没有足够同路径重复，X 命中目标也未确认；不能据这些样本认定所有关闭入口稳定超预算或彼此相同。
 
 ### Blur / BackdropFilter
 
-**Finding:** 当前模拟器 profile 下，Preview open 的 Raster 峰值与 blur 开关有强关联。  
-**Status:** `CONFIRMED`（仅限本次 AVD、profile、Preview-open 条件）。  
-**Evidence:** 原始路径三次 Raster 为 35.3、34.9、37.2 ms。临时 profile-only A/B 绕过 `GlassSurface` 与 `GlassSheet` 的 blur、保留其余几何与动画，再测三次为 5.9、7.2、6.1 ms；三帧均无 jank 标记，UI 仍在 0.9–1.2 ms。实验开关已经移除。  
+**Finding:** 当前模拟器 profile 下，Preview open 的 Raster 峰值与 blur 开关有强关联。
+**Status:** `CONFIRMED`（仅限本次 AVD、profile、Preview-open 条件）。
+**Evidence:** 原始路径三次 Raster 为 35.3、34.9、37.2 ms。临时 profile-only A/B 绕过 `GlassSurface` 与 `GlassSheet` 的 blur、保留其余几何与动画，再测三次为 5.9、7.2、6.1 ms；三帧均无 jank 标记，UI 仍在 0.9–1.2 ms。实验开关已经移除。
 **Interpretation:** 结果支持 blur/filter 工作是这个模拟器 Preview-open Raster 峰值的主要相关成本。A/B 一次同时绕过多个玻璃表面和 Sheet 遮罩，尚未区分究竟是哪一层或哪一种重叠贡献最大；不外推到真机或所有页面。静止页面没有观察到持续帧产生。
 
 ### Neighbor-week cold mount
 
-**Finding:** 没有可重复的 cold 比 warm 更慢证据。  
-**Status:** `NOT OBSERVED`。  
-**Evidence:** 仅一次 cold 转换 UI 12.8/Raster 22.9 ms；warm return UI 4.4/Raster 17.1 ms；之后一次 warm revisit 出现 UI 40.8/Raster 25.6 ms。  
+**Finding:** 没有可重复的 cold 比 warm 更慢证据。
+**Status:** `NOT OBSERVED`。
+**Evidence:** 仅一次 cold 转换 UI 12.8/Raster 22.9 ms；warm return UI 4.4/Raster 17.1 ms；之后一次 warm revisit 出现 UI 40.8/Raster 25.6 ms。
 **Interpretation:** 数据不足以建立稳定冷/热差异，也不支持预挂载结论。
 
 ### 14+ section scroll
 
-**Finding:** 本轮无法评价 14+ 节滚动及滚动状态下的 Preview source geometry。  
-**Status:** `UNVERIFIED`。  
-**Evidence:** 可用 AVD 数据只有 10 条节次时间配置，没有安全样本可用于更高节数布局。  
+**Finding:** 本轮无法评价 14+ 节滚动及滚动状态下的 Preview source geometry。
+**Status:** `UNVERIFIED`。
+**Evidence:** 可用 AVD 数据只有 10 条节次时间配置，没有安全样本可用于更高节数布局。
 **Interpretation:** 不根据静态实现推断 14+ 节滚动性能。
 
 ### Repaint behavior
 
-**Finding:** 未收集 repaint/highlight 区域、重复绘制范围或 widget rebuild 计数证据。  
-**Status:** `UNVERIFIED`。  
-**Evidence:** 没有启用额外 rebuild 追踪；本轮仅读取 frame chart 与 UI/Raster timing。  
+**Finding:** 未收集 repaint/highlight 区域、重复绘制范围或 widget rebuild 计数证据。
+**Status:** `UNVERIFIED`。
+**Evidence:** 没有启用额外 rebuild 追踪；本轮仅读取 frame chart 与 UI/Raster timing。
 **Interpretation:** 不建议按 `RepaintBoundary` 数量或缺失位置做改动。
 
 ## 5. PERF-HYPOTHESIS 判定

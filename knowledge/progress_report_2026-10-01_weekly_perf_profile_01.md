@@ -1,7 +1,7 @@
 # 2026-10-01 Weekly / Preview 性能取证进度报告（TASK-WEEKLY-PERF-PROFILE-01）
 
-**报告日期：** 2026-10-01  
-**任务：** TASK-WEEKLY-PERF-PROFILE-01  
+**报告日期：** 2026-10-01
+**任务：** TASK-WEEKLY-PERF-PROFILE-01
 **状态：** 取证与交付已完成；没有实施性能优化。
 
 ## 工作范围

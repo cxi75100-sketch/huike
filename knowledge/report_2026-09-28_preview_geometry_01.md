@@ -1,6 +1,6 @@
 # 2026-09-28 Weekly Preview 几何修正实施报告（TASK-PREVIEW-GEOMETRY-01）
 
-日期：2026-09-28  
+日期：2026-09-28
 项目：汇课（huike_timetable）
 
 ## 1. 根因
