@@ -12,21 +12,19 @@ App 自动识别并尝试内置教务适配器，导入结果先预览、确认�
 - 今日课程 + 整周课表、课程详情、主题与玻璃外观设置
 - 同源 iframe / 动态页面识别、导入尝试清理、可信登录失效自动恢复一次
 - 手动课程 CRUD、学期与作息设置、日/夜间主题
-- Android 桌面小组件与上课提醒尚未迁移（见 knowledge/tasks.md）
+- Android 桌面小组件与上课提醒尚未实现
 
 ## 开发
 
 ```bash
-subst S: "D:\桌面\汇课"   # 中文路径会破坏 Flutter 工具链
-cd /s
 flutter pub get
 dart run build_runner build --delete-conflicting-outputs
 flutter analyze && flutter test
 flutter build apk --flavor huike --release --target lib/main.dart
 ```
 
-sqlite3 原生库的 hook 需要访问 GitHub 下载（带 sha256 校验），离线办法见
-knowledge/testing.md。
+需要 Flutter SDK 和 Android SDK；请在项目根目录执行上述命令。
+sqlite3 原生库的 hook 需要联网下载，并校验 SHA256。
 
 ## 安全与隐私
 
@@ -42,6 +40,8 @@ knowledge/testing.md。
 
 ## 版本验证范围
 
-工程验证与发布记录见 [knowledge/release_1.0.0.md](knowledge/release_1.0.0.md)。
+1.00 发布前通过 395 项自动化测试和静态分析，Release 包在 Android API 36 模拟器上完成安装与启动验证。
+正式安装包与校验文件见 [GitHub Releases](https://github.com/cxi75100-sketch/huike/releases/tag/v1.0.0)
+或 [Gitee 发行版](https://gitee.com/chenxihh/huike/releases/tag/v1.0.0)。
 真实学校、真机、iOS 尚未完成本轮验收；不承诺所有教务站点均可连接或解析。
 当前 Android 构建沿用已有调试签名以兼容既有安装；Release 模式不等于生产签名已配置。

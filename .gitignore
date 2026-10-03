@@ -54,3 +54,7 @@ app.*.map.json
 *.keystore
 *.jks
 *signing*.properties
+
+# Local development instructions and work records
+/AGENTS.md
+/knowledge/
