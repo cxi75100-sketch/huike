@@ -4,6 +4,7 @@
 
 - `flutter test --no-pub`全量395/395；学校切换/新增后返回导入与旧URL保留专项7/7；新增route-current隔离修复后专项重跑7/7、analyze无问题、复审APPROVE。
 - Release首次构建发现生成registrant引用dev插件integration_test，编译范围不含该插件。修复与最终构建证据见release_1.0.0.md。
+- 发布核验：两远端v1.0.0解引用均为57a59ea；Gitee发行页重新打开后显示最新版、正确源码提交与Release/校验下载链接。未因文档收口重新构建APK，下载核验见release_1.0.0.md。
 
 ## TASK-LOGIN-RESET-01（2026-10-03）
 

@@ -33,6 +33,8 @@ Release最初`--no-pub`失败：上次调试工具生成的registrant包含integ
 
 - `CONFIRMED` GitHub：`https://github.com/cxi75100-sketch/huike`，本轮新建；完整Git历史与v0.1.0至v0.1.4、v1.0.0已推送。源码发布提交`57a59ea49192d630fa5c144682b14408a6dec340`。ls-remote读回master与v1.0.0^{}均为该提交，annotated tag对象`e8b29cb8364a91294150b2a0836849187f54ee84`。
 - `CONFIRMED` GitHub发行版：`https://github.com/cxi75100-sketch/huike/releases/tag/v1.0.0`，已公开发布、非draft/非prerelease；Release、Debug、SHA256SUMS三个附件成功，网页服务端APK SHA256与本地一致。
-- `BLOCKED` Gitee：`https://gitee.com/chenxihh/huike`，已有公开仓库，原master为`7bc4f10cef9a60ea0dec320c75778d1da76dad6f`。网页登录已确认，但Git客户端需用户在Windows安全中心完成认证；推送正等待。发行说明、Release与校验附件已准备，未创建指向旧代码的v1.0.0发行版。Gitee单附件100MB，Debug超过限额，提供GitHub同版链接。
+- `CONFIRMED` Gitee：`https://gitee.com/chenxihh/huike`，保留原历史，无force/删除refs；用户提供认证后成功推送master至881c856及v1.0.0。ls-remote读回标签对象e8b29cb、解引用57a59ea，与GitHub一致。凭据只在临时进程环境使用，不落盘、不写远端URL或产物。
+- `CONFIRMED` Gitee发行版：`https://gitee.com/chenxihh/huike/releases/tag/v1.0.0`，创建时预览版本未勾选；重新打开显示最新版、代码57a59ea、Release APK与SHA256SUMS下载入口。单附件100MB，Debug超过限额，通过GitHub同版链接提供。
+- `CONFIRMED` Gitee公开下载：未携带认证凭据重新下载Release APK，64661937字节，SHA256与上表本地正式包完全一致；校验附件SHA256为4F8773129CD1246BEFFFB68DD1EDA06C7BA34D534EBD3ED42F9CEFCFD18AE331，与本地一致。本机下载链路通过代理。核验副本与页面截图只留在忽略的build目录，不入库。
 - 只发布源码、脱敏知识库、合成测试和正式产物；本地附件、页面截图、生成报告、构建缓存和秘钥排除。
-- Gitee认证完成后继续推送master/v1.0.0、读回并发布发行版；不force、不删除目标独有refs。GitHub后续文档收口提交允许领先代码标签，APK对应标签代码不变。
+- 双远端后续文档收口提交允许领先代码标签，APK对应标签代码不变；发布并不改变真实学校、真机、iOS和生产签名的未验边界。

@@ -2,13 +2,13 @@
 
 ## Last Updated
 
-2026-10-03 +08:00（TASK-RELEASE-100；正式版1.00收口）
+2026-10-03 +08:00（TASK-RELEASE-100；正式版1.00双远端发布）
 
 ## 正式版1.00收口（2026-10-03）
 
 - 版本`1.0.0+9`，用户名称1.00。导入页可更换学校、管理页可新增；新增后返回导入确认，ID变化同步网址并重置同意，原档案/课表保留；异步导航校验当前route避免连续点击误退。专项7/7、全量395/395、analyze无问题、复审APPROVE。
 - 发布/构建/签名/远端结果以`release_1.0.0.md`为准；旧章节中的“未提交/推送”是当时快照。
-- `CONFIRMED`：Release/Debug均成功，元数据/签名/catalog/散列已核验；Release在API36模拟器安装/启动成功。GitHub源码历史/标签/发行版/三个附件已上传并读回，标签代码提交57a59ea；Gitee网页已登录，源码推送等待桌面Git认证，发行页已准备但未发布，不能宣称双远端完成。
+- `CONFIRMED`：Release/Debug均成功，元数据/签名/catalog/散列已核验；Release在API36模拟器安装/启动成功。GitHub与Gitee源码、v1.0.0标签和正式发行版均已发布并读回，标签代码提交同为57a59ea；GitHub提供Release/Debug/校验文件，Gitee提供61.7MB Release与校验文件，Debug通过同版GitHub链接提供。远端下载核验见release_1.0.0.md。
 - 真实学校/真机/iOS仍`UNVERIFIED`；当前huike构建沿用既有debug签名以兼容安装，生产签名未配置。
 
 ## 登录状态恢复（2026-10-03）

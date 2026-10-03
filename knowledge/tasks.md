@@ -2,7 +2,6 @@
 
 ## Now
 
-- [ ] TASK-RELEASE-100（2026-10-03）：学校切换/添加、395/395/analyze/复审、Release/Debug/APK核验与模拟器Release安装启动已完成；GitHub历史、标签v1.0.0、发行版与三个附件已上传/读回。Gitee网页已登录，Git推送等待用户完成Windows安全中心客户端认证；Release附件与发行说明已准备，认证后继续推送/发布/核验。详见release_1.0.0.md；生产签名与真实学校/真机/iOS仍未验。
 
 
 
@@ -36,6 +35,8 @@
 - 无工程阻塞。TASK-006 已转入 Now，等用户本人在设备上完成需本人凭据的验收步骤。
 
 ## Done
+
+- [x] TASK-RELEASE-100（2026-10-03）：学校切换/添加、395/395/analyze/复审、Release/Debug/APK核验与模拟器Release安装启动完成；GitHub与Gitee源码、v1.0.0标签和正式发行版均发布并读回，代码标签同为57a59ea。GitHub三个附件；Gitee提供61.7MB Release与校验文件，Debug因100MB限制使用GitHub同版入口。凭据只在临时进程环境中使用，不写仓库或产物。详见release_1.0.0.md；生产签名与真实学校/真机/iOS仍未验。
 
 - [x] TASK-LOGIN-RESET-01（2026-10-03，工程交付）：可信主frame401/重定向循环自动恢复一次，正常网络/403不清；主动重登作补充，Cookie实际属性/已访问origin精确清理、旧view/旧确认隔离、部分失败固定提示。394/394、专项10/10、analyze/diff-check通过，代码/安全复审APPROVE；API36服务真实synthetic1/1及实际导入页401自动清理/重建/200就绪1/1通过。Debug0.1.7+8签名/元数据/catalog核验，报告report_2026-10-03_login_recovery.md。真实学校/真机/iOS/截图网络根因仍未验，未知path/共享父域不假称全清；无提交/推送。
 
