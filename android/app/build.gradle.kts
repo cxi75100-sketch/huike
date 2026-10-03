@@ -1,7 +1,17 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+// Optional local signing config used only by the compatibility build.
+// Credentials stay in the supplied properties file, never in the repository.
+val upgradeSigning = Properties()
+val upgradeSigningPath = System.getenv("HUIKE_UPGRADE_SIGNING_PROPERTIES")
+if (upgradeSigningPath != null) {
+    file(upgradeSigningPath).inputStream().use { upgradeSigning.load(it) }
 }
 
 android {
@@ -29,11 +39,44 @@ android {
         versionName = flutter.versionName
     }
 
-    buildTypes {
-        release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
+    signingConfigs {
+        if (upgradeSigningPath != null) {
+            create("legacyUpgrade") {
+                keyAlias = upgradeSigning.getProperty("keyAlias")
+                keyPassword = upgradeSigning.getProperty("keyPassword")
+                storeFile = file(upgradeSigning.getProperty("storeFile"))
+                storePassword = upgradeSigning.getProperty("storePassword")
+            }
+        }
+    }
+
+    flavorDimensions += "distribution"
+    productFlavors {
+        create("huike") {
+            dimension = "distribution"
             signingConfig = signingConfigs.getByName("debug")
+        }
+        create("legacyUpgrade") {
+            dimension = "distribution"
+            applicationId = "cn.edu.ncpu.timetable.ncpu_timetable"
+            // Greater than legacy universal and ABI-split version codes.
+            versionCode = 10006
+            versionName = "1.1.0"
+            signingConfig = if (upgradeSigningPath != null) {
+                signingConfigs.getByName("legacyUpgrade")
+            } else {
+                signingConfigs.getByName("debug")
+            }
+        }
+    }
+
+    buildTypes {
+        getByName("debug") {
+            // Signing belongs to the flavor, including debug-mode upgrades.
+            signingConfig = null
+        }
+        release {
+            signingConfig = null
         }
     }
 }

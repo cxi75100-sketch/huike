@@ -13,8 +13,7 @@ import '../services/weekly_location_formatter.dart';
 
 /// 网格里的课程块。
 ///
-/// 一体化轻量玻璃轮廓；课程颜色融入整面 tint、环境高光与细边缘，
-/// 不划分独立装饰区域，不逐卡模糊。
+/// 单色课程面；保留圆角、细边缘与按压，不逐卡模糊。
 ///
 /// 高度由固定网格决定。内部按名称、紧凑地点、教师分配文字空间，
 /// 不显示时间，也不让内容反向扩大网格行高。
@@ -43,7 +42,7 @@ class TimetableCourseBlock extends StatefulWidget {
   final VoidCallback? onConflictTap;
 
   final VoidCallback onTap;
-  final ValueChanged<Rect>? onSourceTap;
+  final void Function(Rect, GlobalKey)? onSourceTap;
 
   bool get _conflicted => conflictCount > 0;
 
@@ -52,25 +51,22 @@ class TimetableCourseBlock extends StatefulWidget {
 }
 
 class _TimetableCourseBlockState extends State<TimetableCourseBlock> {
+  final _sourceGeometryKey = GlobalKey();
+
   @override
   Widget build(BuildContext context) {
-    final palette = AppTheme.paletteOf(context);
     final brightness = Theme.of(context).brightness;
     final dark = brightness == Brightness.dark;
     final tint = courseTint(widget.course.colorKey, brightness);
-    final glassTint = HSLColor.fromColor(tint.onChip)
-        .withSaturation(0.70)
-        .withLightness(dark ? 0.58 : 0.46)
-        .toColor();
     final compact = widget.density == TimetableDensity.compact;
     final baseTypography = widget._conflicted
         ? widget.typography.withConflictBadge()
         : widget.typography;
     // Stronger course hues need stronger small text, without changing size.
     final typography = baseTypography.colored(
-      ink: baseTypography.nameStyle.color ?? palette.ink,
-      secondary: Color.lerp(palette.inkSecondary, palette.ink, 0.5)!,
-      tertiary: baseTypography.timeStyle.color ?? palette.inkTertiary,
+      ink: tint.onCard,
+      secondary: tint.onCard,
+      tertiary: tint.onCard,
     );
     final range = const CourseTimeService().resolve(
       widget.course,
@@ -86,6 +82,7 @@ class _TimetableCourseBlockState extends State<TimetableCourseBlock> {
     final radius = compact ? 8.0 : 11.0;
 
     return Semantics(
+      key: _sourceGeometryKey,
       button: true,
       label: _semanticsLabel(range),
       onTap: () => _handleTap(context),
@@ -103,54 +100,16 @@ class _TimetableCourseBlockState extends State<TimetableCourseBlock> {
               child: DecoratedBox(
                 key: ValueKey('course-block-${widget.course.id}'),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Color.alphaBlend(
-                        glassTint.withValues(
-                          alpha: (dark ? 0.16 : 0.10) + 0.015 * press,
-                        ),
-                        Color.lerp(
-                          palette.surface,
-                          Colors.white,
-                          0.08,
-                        )!.withValues(alpha: 0.76),
-                      ),
-                      Color.alphaBlend(
-                        glassTint.withValues(
-                          alpha: (dark ? 0.12 : 0.08) + 0.010 * press,
-                        ),
-                        palette.surface.withValues(alpha: 0.64),
-                      ),
-                      Color.alphaBlend(
-                        glassTint.withValues(
-                          alpha: (dark ? 0.14 : 0.09) + 0.010 * press,
-                        ),
-                        palette.surface.withValues(alpha: 0.70),
-                      ),
-                    ],
-                    stops: const [0, 0.6, 1],
-                  ),
+                  color: tint.card,
                   borderRadius: BorderRadius.circular(radius),
                   border: Border.all(
-                    color: Color.alphaBlend(
-                      glassTint.withValues(alpha: 0.06),
-                      Color.lerp(palette.hairlineStrong, Colors.white, 0.45)!,
-                    ).withValues(alpha: (dark ? 0.38 : 0.72) + 0.04 * press),
+                    color: tint.onCard.withValues(alpha: 0.14 + 0.04 * press),
                     width: 0.9,
                   ),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: dark ? 0.20 : 0.06),
                       blurRadius: 3,
-                      offset: const Offset(0, 1),
-                    ),
-                    BoxShadow(
-                      color: tint.onChip.withValues(
-                        alpha: (dark ? 0.015 : 0.008) + 0.005 * press,
-                      ),
-                      blurRadius: 5,
                       offset: const Offset(0, 1),
                     ),
                   ],
@@ -167,7 +126,10 @@ class _TimetableCourseBlockState extends State<TimetableCourseBlock> {
   void _handleTap(BuildContext context) {
     final render = context.findRenderObject();
     if (render is RenderBox && render.hasSize) {
-      widget.onSourceTap?.call(render.localToGlobal(Offset.zero) & render.size);
+      widget.onSourceTap?.call(
+        render.localToGlobal(Offset.zero) & render.size,
+        _sourceGeometryKey,
+      );
     }
     widget.onTap();
   }

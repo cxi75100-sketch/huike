@@ -1,45 +1,54 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "adapters": [
     {
       "id": "zhengfang_html_generic",
+      "family": "zhengfang",
       "name": "正方教务（通用）",
       "kind": "jsScript",
       "asset": "zhengfang_01.js",
       "category": "bachelor",
       "description": "输入学校教务网址并登录，切到个人课表页面后执行导入。依赖页面自带 jQuery。",
       "maintainer": "社区脚本",
+      "supportsAttemptToken": true,
       "hints": "登录后进入「学生个人课表」并完成一次课表查询，再点导入。"
     },
     {
       "id": "qingguo_html_generic",
+      "family": "qingguo",
       "name": "青果教务（通用）",
       "kind": "jsScript",
       "asset": "qingguo_01.js",
       "category": "bachelor",
       "description": "输入学校教务网址并登录，切到个人课表页面后执行导入。",
       "maintainer": "社区脚本",
+      "supportsAttemptToken": true,
       "hints": "登录后进入「学生个人课表」并完成一次课表查询，再点导入。"
     },
     {
       "id": "urp_generic",
+      "family": "urp",
       "name": "URP 教务（通用）",
       "kind": "jsScript",
       "asset": "urp_01.js",
       "category": "bachelor",
       "description": "输入学校教务网址并登录，切到课表页面后执行导入。",
       "maintainer": "社区脚本",
+      "supportsAttemptToken": true,
       "hints": "登录后进入课表查询页面，再点导入。"
     },
     {
       "id": "chaoxing_generic",
+      "family": "chaoxing",
       "name": "超星教务（通用）",
       "kind": "jsScript",
       "asset": "chaoxing.js",
       "category": "bachelor",
       "description": "输入学校教务网址并登录后执行导入。支持导入开学日期与节次时间。",
       "maintainer": "社区脚本",
+      "supportsAttemptToken": true,
       "hints": "登录后停留在教务首页即可点导入，脚本会自动跳转。"
     }
-  ]
+  ],
+  "schoolProfiles": []
 }

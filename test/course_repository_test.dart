@@ -129,18 +129,28 @@ void main() {
     });
 
     test('课程 id 由内容指纹决定，同内容同 id', () {
-      final a = CourseRepository.importedCourseId(schoolId, draft('数学'));
-      final b = CourseRepository.importedCourseId(schoolId, draft('数学'));
+      final a = CourseRepository.importedCourseId(
+        schoolId,
+        semesterId,
+        draft('数学'),
+      );
+      final b = CourseRepository.importedCourseId(
+        schoolId,
+        semesterId,
+        draft('数学'),
+      );
       expect(a, b);
     });
 
     test('周次段不同则 id 不同（同教学班多段）', () {
       final a = CourseRepository.importedCourseId(
         schoolId,
+        semesterId,
         draft('数学', weeks: [1, 2, 3]),
       );
       final b = CourseRepository.importedCourseId(
         schoolId,
+        semesterId,
         draft('数学', weeks: [4, 5]),
       );
       expect(a, isNot(b));
@@ -149,9 +159,9 @@ void main() {
 
   group('作息播种', () {
     test('创建学校播种一次通用作息（10 节）', () async {
-      final rows = await (db.select(db.sectionTimeEntries)
-            ..where((t) => t.schoolId.equals(schoolId)))
-          .get();
+      final rows = await (db.select(
+        db.sectionTimeEntries,
+      )..where((t) => t.schoolId.equals(schoolId))).get();
       expect(rows, hasLength(10));
       expect(rows.first.start, '08:00');
     });
@@ -164,16 +174,16 @@ void main() {
         confirmedHosts: const [],
         presetId: 'ncpu',
       );
-      final rows = await (db.select(db.sectionTimeEntries)
-            ..where((t) => t.schoolId.equals(ncpu.id)))
-          .get();
+      final rows = await (db.select(
+        db.sectionTimeEntries,
+      )..where((t) => t.schoolId.equals(ncpu.id))).get();
       expect(rows, hasLength(10));
       expect(rows.singleWhere((r) => r.sectionIndex == 1).start, '08:20');
       expect(rows.singleWhere((r) => r.sectionIndex == 3).start, '10:25');
       expect(rows.singleWhere((r) => r.sectionIndex == 10).end, '20:30');
-      final schoolRow = await (db.select(db.schools)
-            ..where((t) => t.id.equals(ncpu.id)))
-          .getSingle();
+      final schoolRow = await (db.select(
+        db.schools,
+      )..where((t) => t.id.equals(ncpu.id))).getSingle();
       expect(schoolRow.presetId, 'ncpu');
       final variants = schoolVariantsFromRow(schoolRow);
       expect(variants, hasLength(1));
@@ -188,9 +198,9 @@ void main() {
         end: '09:45',
       );
       await schools.resetSectionTimes(schoolId);
-      final rows = await (db.select(db.sectionTimeEntries)
-            ..where((t) => t.schoolId.equals(schoolId)))
-          .get();
+      final rows = await (db.select(
+        db.sectionTimeEntries,
+      )..where((t) => t.schoolId.equals(schoolId))).get();
       expect(rows.singleWhere((r) => r.sectionIndex == 1).start, '08:00');
     });
 

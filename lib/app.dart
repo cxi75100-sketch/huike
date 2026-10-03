@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 
 import 'core/router/app_router.dart';
+import 'core/database/database_provider.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_preference.dart';
 import 'core/theme/theme_preference_provider.dart';
@@ -25,6 +26,43 @@ class _HuikeAppState extends ConsumerState<HuikeApp> {
 
   @override
   Widget build(BuildContext context) {
+    // Theme's existing startup read awaits the same beforeOpen migration.
+    // Keep the app-level subscription narrow so school edits do not rebuild
+    // unrelated routes such as the platform WebView.
+    final databaseFailed = ref.watch(themePreferenceProvider).hasError;
+    if (databaseFailed) {
+      return MaterialApp(
+        title: '汇课',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light(),
+        darkTheme: AppTheme.dark(),
+        home: Scaffold(
+          body: SafeArea(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('读取原课表失败', style: TextStyle(fontSize: 20)),
+                    const SizedBox(height: 12),
+                    const Text('原有数据未删除。请重试；若仍无法打开，请保留应用并反馈此问题。'),
+                    const SizedBox(height: 16),
+                    TextButton(
+                      onPressed: () {
+                        setState(() => _launched = false);
+                        ref.invalidate(databaseProvider);
+                      },
+                      child: const Text('重试'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     final ready = ref.watch(launchReadinessProvider);
     _launched = _launched || ready;
     final router = ref.watch(appRouterProvider);

@@ -1,0 +1,11 @@
+{
+  "family": "chaoxing",
+  "features": {
+    "matches": {"chaoxing": true},
+    "loginFormPresent": false,
+    "timetableMarkerPresent": true
+  },
+  "courses": [
+    {"name": "Fixture CX Course", "day": 4, "startSection": 7, "weeks": [1, 3, 5]}
+  ]
+}

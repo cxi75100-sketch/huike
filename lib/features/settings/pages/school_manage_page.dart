@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/glass/glass_transition.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
-import '../../../core/glass/glass_button.dart';
 import '../../../core/glass/glass_dialog.dart';
 import '../../../core/glass/glass_form.dart';
 import '../../../core/glass/glass_surface.dart';
@@ -17,7 +16,9 @@ import '../../schools/services/login_url_policy.dart';
 import '../../schools/services/school_repository.dart';
 
 class SchoolManagePage extends ConsumerWidget {
-  const SchoolManagePage({super.key});
+  const SchoolManagePage({super.key, this.forImport = false});
+
+  final bool forImport;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -27,7 +28,24 @@ class SchoolManagePage extends ConsumerWidget {
     final catalog = ref.watch(adapterCatalogProvider).value;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('学校管理')),
+      appBar: AppBar(
+        title: const Text('学校管理'),
+        actions: [
+          TextButton.icon(
+            icon: const Icon(Icons.add_rounded),
+            label: const Text('添加学校'),
+            onPressed: () async {
+              final added = await context.push<bool>('/onboarding?add=1');
+              if (added == true &&
+                  forImport &&
+                  context.mounted &&
+                  ModalRoute.of(context)?.isCurrent == true) {
+                context.pop();
+              }
+            },
+          ),
+        ],
+      ),
       body: AmbientBackdrop(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
@@ -50,6 +68,11 @@ class SchoolManagePage extends ConsumerWidget {
                       await ref
                           .read(schoolRepositoryProvider)
                           .setActiveSchool(school.id);
+                      if (forImport &&
+                          context.mounted &&
+                          ModalRoute.of(context)?.isCurrent == true) {
+                        context.pop();
+                      }
                     },
                     title: Text(
                       school.displayName,
@@ -117,14 +140,6 @@ class SchoolManagePage extends ConsumerWidget {
                 ),
               ),
             const SizedBox(height: 8),
-            GlassButton(
-              onPressed: () => context.push('/onboarding?add=1'),
-              icon: Icons.add,
-              label: '添加学校',
-              iconColor: palette.accent,
-              size: 48,
-            ),
-            const SizedBox(height: 8),
             Text(
               '切换学校后，另一所学校的课表数据仍保留在本机，只是不再显示。',
               style: TextStyle(
@@ -173,13 +188,15 @@ class SchoolManagePage extends ConsumerWidget {
     WidgetRef ref,
     String schoolId,
   ) async {
-    final controller = TextEditingController();
+    // Let TextField own its controller through the route's exit animation.
+    // The pop future completes before the dialog's widgets are unmounted.
+    var enteredUrl = '';
     final ok = await showGlassDialog<bool>(
       context: context,
       builder: (dialogContext) => GlassDialog(
         title: const Text('修改教务网址'),
         content: GlassTextField(
-          controller: controller,
+          onChanged: (value) => enteredUrl = value,
           autofocus: true,
           decoration: const InputDecoration(
             hintText: 'https:// 或 http://jw.example.edu.cn',
@@ -198,9 +215,8 @@ class SchoolManagePage extends ConsumerWidget {
         ],
       ),
     );
-    final enteredUrl = controller.text;
-    controller.dispose();
     if (ok != true) return;
+    if (!context.mounted) return;
     final check = checkLoginUrl(enteredUrl, required: true);
     if (!check.ok) {
       if (context.mounted) {

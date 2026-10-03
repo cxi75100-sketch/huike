@@ -48,9 +48,8 @@ class TodayTimeline extends StatelessWidget {
         .toList();
     final hasMarker = showCurrentTime && known.isNotEmpty;
     final before = hasMarker && active < 0 && next == 0;
-    final after = hasMarker && active < 0 && next < 0;
-    final clock =
-        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    final after =
+        hasMarker && known.length == items.length && active < 0 && next < 0;
 
     if (items.isEmpty) {
       return Center(
@@ -72,7 +71,10 @@ class TodayTimeline extends StatelessWidget {
           Column(
             children: [
               if (before)
-                _NowBand(clock: clock, label: '尚未开始', location: 'before'),
+                _StatusNote(
+                  label: '下一节还有${_duration(items[next].start! - minute)}',
+                  location: 'before',
+                ),
               for (var i = 0; i < items.length; i++) ...[
                 if (i > 0)
                   _Gap(
@@ -81,17 +83,18 @@ class TodayTimeline extends StatelessWidget {
                       return end == null || item.end! > end ? item.end : end;
                     }),
                     next: items[i].start,
-                    clock: hasMarker && active < 0 && next == i ? clock : null,
+                    remaining: hasMarker && active < 0 && next == i
+                        ? items[i].start! - minute
+                        : null,
                   ),
                 _CourseNode(
                   item: items[i],
                   nowMinute: minute,
-                  clock: hasMarker && active == i ? clock : null,
+                  highlighted: hasMarker && active == i,
                   onTap: () => onCourseTap(items[i].course),
                 ),
               ],
-              if (after)
-                _NowBand(clock: clock, label: '今日课程已结束', location: 'after'),
+              if (after) const _StatusNote(label: '今日课程已结束', location: 'after'),
             ],
           ),
         ],
@@ -142,15 +145,22 @@ class _TimedCourse {
 }
 
 class _Gap extends StatelessWidget {
-  const _Gap({required this.previous, required this.next, required this.clock});
+  const _Gap({
+    required this.previous,
+    required this.next,
+    required this.remaining,
+  });
   final int? previous;
   final int? next;
-  final String? clock;
+  final int? remaining;
 
   @override
   Widget build(BuildContext context) {
-    if (clock != null) {
-      return _NowBand(clock: clock!, label: '课间', location: 'between');
+    if (remaining != null) {
+      return _StatusNote(
+        label: '下一节还有${_duration(remaining!)}',
+        location: 'between',
+      );
     }
     final gap = previous == null || next == null ? 0 : next! - previous!;
     final height = gap <= 10
@@ -178,40 +188,29 @@ class _Gap extends StatelessWidget {
   }
 }
 
-class _NowBand extends StatelessWidget {
-  const _NowBand({
-    required this.clock,
-    required this.label,
-    required this.location,
-  });
-  final String clock;
+String _duration(int minutes) => minutes < 60
+    ? '$minutes分钟'
+    : '${minutes ~/ 60}小时${minutes % 60 == 0 ? '' : '${minutes % 60}分钟'}';
+
+class _StatusNote extends StatelessWidget {
+  const _StatusNote({required this.label, required this.location});
   final String label;
   final String location;
 
   @override
   Widget build(BuildContext context) {
-    final accent = AppTheme.paletteOf(context).accent;
-    return Semantics(
-      label: '现在 $clock，$label',
-      child: SizedBox(
-        key: ValueKey('today-now-$location'),
-        height: 40,
-        child: Row(
-          children: [
-            SizedBox(
-              width: 49,
-              child: Text(
-                clock,
-                textAlign: TextAlign.right,
-                style: TextStyle(fontSize: 10, color: accent),
-              ),
-            ),
-            const SizedBox(width: 1),
-            CircleAvatar(radius: 3, backgroundColor: accent),
-            Expanded(child: Container(height: 1, color: accent)),
-            const SizedBox(width: 6),
-            Text(label, style: TextStyle(fontSize: 11, color: accent)),
-          ],
+    return Padding(
+      key: ValueKey('today-now-$location'),
+      padding: const EdgeInsets.fromLTRB(66, 12, 0, 12),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            height: 1.4,
+            color: AppTheme.paletteOf(context).inkSecondary,
+          ),
         ),
       ),
     );
@@ -222,25 +221,26 @@ class _CourseNode extends StatelessWidget {
   const _CourseNode({
     required this.item,
     required this.nowMinute,
-    required this.clock,
+    required this.highlighted,
     required this.onTap,
   });
   final _TimedCourse item;
   final int nowMinute;
-  final String? clock;
+  final bool highlighted;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final palette = AppTheme.paletteOf(context);
     final course = item.course;
+    final tint = courseTint(course.colorKey, Theme.of(context).brightness);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
           width: 66,
           child: Padding(
-            padding: const EdgeInsets.only(top: 14),
+            padding: const EdgeInsets.only(top: 8),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -253,6 +253,7 @@ class _CourseNode extends StatelessWidget {
                         item.start == null ? '待定' : item.range!.$1,
                         style: TextStyle(
                           fontSize: 11,
+                          height: 1.2,
                           fontWeight: FontWeight.w600,
                           color: palette.ink,
                         ),
@@ -262,23 +263,8 @@ class _CourseNode extends StatelessWidget {
                           item.range!.$2,
                           style: TextStyle(
                             fontSize: 10,
+                            height: 1.2,
                             color: palette.inkTertiary,
-                          ),
-                        ),
-                      if (clock != null)
-                        Semantics(
-                          label: '现在 $clock，${course.name}进行中',
-                          child: Padding(
-                            key: ValueKey('today-now-course-${course.id}'),
-                            padding: const EdgeInsets.only(top: 6),
-                            child: Text(
-                              '现在\n$clock',
-                              textAlign: TextAlign.right,
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: palette.accent,
-                              ),
-                            ),
                           ),
                         ),
                     ],
@@ -289,7 +275,7 @@ class _CourseNode extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 4),
                   child: CircleAvatar(
                     radius: 3,
-                    backgroundColor: clock != null
+                    backgroundColor: highlighted
                         ? palette.accent
                         : palette.inkTertiary,
                   ),
@@ -301,7 +287,7 @@ class _CourseNode extends StatelessWidget {
         Expanded(
           child: ConstrainedBox(
             key: ValueKey('today-course-${course.id}'),
-            constraints: const BoxConstraints(minHeight: 134),
+            constraints: const BoxConstraints(minHeight: 134 * 0.75),
             child: CourseHero(
               tag: CourseHeroTag.forDetails(
                 course,
@@ -321,44 +307,79 @@ class _CourseNode extends StatelessWidget {
                   course.note,
                 ].where((value) => value.isNotEmpty).join('，'),
                 blurSigma: 0,
-                tint: courseTint(
-                  course.colorKey,
-                  Theme.of(context).brightness,
-                ).onChip,
+                tint: tint.onChip,
+                solidColor: tint.card,
                 radius: 16,
-                padding: const EdgeInsets.fromLTRB(13, 10, 13, 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (highlighted)
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Container(
+                          key: ValueKey('today-now-course-${course.id}'),
+                          margin: const EdgeInsets.only(bottom: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: palette.accentSoft,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            '进行中 · ${item.range!.$2}结束',
+                            style: TextStyle(
+                              fontSize: 11,
+                              height: 1.3,
+                              color: palette.ink,
+                            ),
+                          ),
+                        ),
+                      ),
                     Text(
                       course.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 16,
                         height: 1.2,
                         fontWeight: FontWeight.w700,
-                        color: palette.ink,
+                        color: tint.onCard,
                       ),
                     ),
-                    const SizedBox(height: 5),
-                    _Info(
-                      '${item.range == null ? '时间未定' : '${item.range!.$1} - ${item.range!.$2}'} · ${sectionRangeLabel(course)}',
-                      color: palette.inkSecondary,
+                    const SizedBox(height: 4),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        _Info(
+                          item.range == null
+                              ? '时间未定'
+                              : '${item.range!.$1} - ${item.range!.$2}',
+                          color: tint.onCard,
+                        ),
+                        _Info(sectionRangeLabel(course), color: tint.onCard),
+                        if (!highlighted)
+                          _Info(item.status(nowMinute), color: tint.onCard),
+                      ],
                     ),
-                    _Info(item.status(nowMinute), color: palette.accent),
-                    if (course.classroom.isNotEmpty)
-                      _Info(course.classroom, color: palette.inkSecondary),
-                    if (course.teacher.isNotEmpty)
-                      _Info(course.teacher, color: palette.inkSecondary),
-                    _Info(
-                      '第 ${course.weeks.join('、')} 周',
-                      color: palette.inkTertiary,
-                      maxLines: 1,
-                    ),
+                    if (course.classroom.isNotEmpty ||
+                        course.teacher.isNotEmpty)
+                      Wrap(
+                        spacing: 10,
+                        children: [
+                          if (course.classroom.isNotEmpty)
+                            _Info(course.classroom, color: tint.onCard),
+                          if (course.teacher.isNotEmpty)
+                            _Info(course.teacher, color: tint.onCard),
+                        ],
+                      ),
+                    _Info('第 ${course.weeks.join('、')} 周', color: tint.onCard),
                     if (course.note.isNotEmpty)
-                      _Info(course.note, color: palette.inkTertiary),
+                      _Info(course.note, color: tint.onCard),
                   ],
                 ),
               ),
@@ -371,15 +392,10 @@ class _CourseNode extends StatelessWidget {
 }
 
 class _Info extends StatelessWidget {
-  const _Info(this.text, {required this.color, this.maxLines = 2});
+  const _Info(this.text, {required this.color});
   final String text;
   final Color color;
-  final int maxLines;
   @override
-  Widget build(BuildContext context) => Text(
-    text,
-    maxLines: maxLines,
-    overflow: TextOverflow.ellipsis,
-    style: TextStyle(fontSize: 12, height: 1.25, color: color),
-  );
+  Widget build(BuildContext context) =>
+      Text(text, style: TextStyle(fontSize: 12, height: 1.25, color: color));
 }

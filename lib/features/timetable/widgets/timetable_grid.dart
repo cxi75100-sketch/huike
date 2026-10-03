@@ -38,7 +38,7 @@ class TimetableGrid extends StatelessWidget {
   final WeekAgenda agenda;
   final BellSchedule schedule;
   final ValueChanged<Course> onCourseTap;
-  final void Function(Course, Rect)? onCourseSourceTap;
+  final void Function(Course, Rect, GlobalKey)? onCourseSourceTap;
   final ValueChanged<List<Course>> onConflictTap;
   final bool loading;
   final String? errorMessage;
@@ -187,7 +187,7 @@ class _GridBody extends StatelessWidget {
   final CourseBlockTypography typography;
   final List<CourseCollisionLayoutResult> layouts;
   final ValueChanged<Course> onCourseTap;
-  final void Function(Course, Rect)? onCourseSourceTap;
+  final void Function(Course, Rect, GlobalKey)? onCourseSourceTap;
   final ValueChanged<List<Course>> onConflictTap;
 
   @override
@@ -240,7 +240,7 @@ class _GridBody extends StatelessWidget {
                 dayIndex,
                 dayWidth,
               ),
-            ?_nowIndicator(context, dayWidth),
+            ?_nowIndicator(context),
           ],
         );
       },
@@ -281,8 +281,8 @@ class _GridBody extends StatelessWidget {
             conflictCount: peers.length,
             onConflictTap: () => onConflictTap([placement.course, ...peers]),
             onTap: () => onCourseTap(placement.course),
-            onSourceTap: (rect) =>
-                onCourseSourceTap?.call(placement.course, rect),
+            onSourceTap: (rect, key) =>
+                onCourseSourceTap?.call(placement.course, rect, key),
           ),
         ),
       );
@@ -290,7 +290,7 @@ class _GridBody extends StatelessWidget {
     return widgets;
   }
 
-  Widget? _nowIndicator(BuildContext context, double dayWidth) {
+  Widget? _nowIndicator(BuildContext context) {
     final todayIndex = agenda.anchorIndex;
     if (todayIndex == null) return null;
     final now = TimeOfDay.now();
@@ -310,29 +310,32 @@ class _GridBody extends StatelessWidget {
     if (current == null) return null;
     return Positioned(
       key: const ValueKey('timetable-now-indicator'),
-      left: metrics.axisWidth + todayIndex * dayWidth + 2,
-      width: dayWidth - 4,
+      left: 2,
+      width: metrics.axisWidth - 4,
       top: (current.index - 0.5) * metrics.sectionHeight,
-      child: Semantics(
-        label: '当前正在第 ${current.index} 节',
-        child: ExcludeSemantics(
-          child: Row(
-            children: [
-              Container(
-                width: 5,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: AppTheme.paletteOf(context).accent,
-                  shape: BoxShape.circle,
+      child: IgnorePointer(
+        child: Semantics(
+          label: '当前第 ${current.index} 节，按学校作息标记',
+          child: ExcludeSemantics(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: AppTheme.paletteOf(context).accentSoft,
+                borderRadius: BorderRadius.circular(5),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 3),
+                child: Text(
+                  '当前\n${current.index}节',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 9,
+                    height: 1.2,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.paletteOf(context).ink,
+                  ),
                 ),
               ),
-              Expanded(
-                child: Container(
-                  height: 1.2,
-                  color: AppTheme.paletteOf(context).accent,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),

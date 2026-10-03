@@ -2,7 +2,184 @@
 
 ## Last Updated
 
-2026-09-27 17:23 +08:00（累积工作区已归档并推送 Gitee；v0.1.4 于同日 17:21 发 release 挂 APK）
+2026-10-03 +08:00（TASK-RELEASE-100；正式版1.00收口）
+
+## 正式版1.00收口（2026-10-03）
+
+- 版本`1.0.0+9`，用户名称1.00。导入页可更换学校、管理页可新增；新增后返回导入确认，ID变化同步网址并重置同意，原档案/课表保留；异步导航校验当前route避免连续点击误退。专项7/7、全量395/395、analyze无问题、复审APPROVE。
+- 发布/构建/签名/远端结果以`release_1.0.0.md`为准；旧章节中的“未提交/推送”是当时快照。
+- 真实学校/真机/iOS仍`UNVERIFIED`；当前huike构建沿用既有debug签名以兼容安装，生产签名未配置。
+
+## 登录状态恢复（2026-10-03）
+
+- 可信主frame401/明确重定向循环自动恢复一次，默认保留Cookie，网络错误/403不清；主动重登作补充。精确Cookie属性/已访问origin，未知或共享父域/iOS返回partial。旧原生上下文撤销后才清Cookie，旧回调与旧确认绑定generation，课表DB不变。
+- `CONFIRMED`：真实API36/WebView133.0.6943.137 synthetic服务清理1/1及实际ImportWebPage自动401恢复1/1（无需点击按钮，重建一次后Cookie消失/200/导入就绪）；专项10/10、全量394/394、最终analyze/diff-check无问题，代码/安全复审APPROVE；已验前缀Cookie和其他host状态保留。
+- `CONFIRMED`：Debug0.1.7+8，`build/app/outputs/flutter-apk/huike-20261003-login-recovery-debug.apk`；SHA256 `9404856E29E2FC370A1B0EB0D2BAE7341FA5AD067E04C59301146605897BEE59`，签名与上一轮一致，APKcatalog schema2。详见report_2026-10-03_login_recovery.md。无提交/推送。
+- `UNVERIFIED`：真实学校/真机/iOS与截图内网连接中止的根因，不能宣称实际登录恢复。
+
+## 首次使用与框架可靠性（2026-10-03）
+
+- `CONFIRMED`：空库启动直接显示首页，不再强制填学校或网址，也不播种虚构学校。今日/整周均有导入入口，主动导入才显示学校/网址/校历表单；完成后provider切为风险确认页，保留返回首页的栈。已有课表和schema保持。
+- `CONFIRMED`：UI专项29/29；补充320×568、字体1.3与真实router.pop回归通过，UI复审APPROVE。
+- `CONFIRMED`：同源frame安全布尔探针、4秒有限采样、局部脚本作用域/owner桥/fetch/timer清理；严格CSP与下载正文取消缺口经复审修复。框架专项10/10、真实Android WebView synthetic1/1（API36/WebView133.0.6943.137）通过，含POST302/307、Cookie、严格CSP动态frame、完整URP、跨源不可读、旧timer与流式body取消。最终全量385/385、analyze无问题、复审APPROVE；详见report_2026-10-03_import_reliability_startup.md。
+- `CONFIRMED`：新版Debug包`build/app/outputs/flutter-apk/huike-20261003-startup-import-debug.apk`，0.1.6+7、com.huike.huike_timetable、签名与上一轮一致、APK内catalog schema2；SHA256 `11EE9B94A17A64C0B9D44B3637BFE73959FC3806F9354810D1BEDB450F1B9B99`。未新建Release、未提交/推送。
+- `UNVERIFIED`：真实学校/真机/iOS、完整ImportWebPage跨host确认UI/真实CAS、新窗口；仅URP在本轮实跑合成解析，其他三个脚本为源码兼容核对。独立WebView组件测试不等于完整App端到端。
+
+## TASK-WEBVIEW-FRAMEWORK-01（2026-10-03，通用登录浏览器框架）
+
+- `CONFIRMED`：昨日adapter更新未修改登录URL/平台权限/导航；候选脚本只在执行导入后运行，bootstrap不联网。没有发现直接导致截图加载失败的路径；昨日未验真实WebView登录。
+- `CONFIRMED`：Android两个Client接入NavigationPolicy快照，已确认导航继续原请求，新主机仍确认；子frame原生检查scheme。加载失败安全提示/手动reload、导入门控、generation隔离旧尝试。无学校网址特例、schema或依赖升级。
+- `CONFIRMED`：Java14/14、入口专项34/34、全量381/381、最终状态专项4/4、analyze无问题、复审APPROVE、汇课Release/Debug构建成功；详见report_2026-10-03_webview_framework.md。
+- `UNVERIFIED`：用户手机对内网地址的路由、连接中止直接原因、真实登录/SSO/POST、真机/iOS。没有设备安装、提交或推送；框架修复不等于真实登录恢复。
+
+## TASK-ADAPTER-GENERAL-01（2026-10-02，通用教务适配框架）
+
+- `CONFIRMED`：catalog schema 2 分离 adapter family 与 school profile；支持精确名称/别名、精确 host/path、variant/options。真实学校 profile 目录为空，没有新增猜测映射；`courseFieldAliases` 接入统一 normalizer，可用同一 family 处理不同桥字段名。
+- `CONFIRMED`：WebView 按学校配置、精确 URL、安全页面特征和剩余脚本兼容回退排序；探针只返回布尔/协议标记。四个本地脚本保留既有桥名/数据首参并携带尝试 ID，迟到 save/completion 不会污染新尝试。成功仍要求当前尝试完成且至少一门课程通过既有校验；失败提供按需查看/复制的固定码安全诊断。
+- `CONFIRMED`：四类 synthetic bridge/page-feature fixture、profile alias/URL、两组同协议字段 option、旧 catalog schema 兼容、stale callback 与安全诊断测试通过。全量 **377/377**（`--concurrency 2`）、`flutter analyze --no-pub` 无问题、`git diff --check` 通过。`flutter build apk --flavor huike --debug --no-pub`成功，已核对`app-huike-debug.apk`内catalog为schema 2；详情与SHA-256见 `report_2026-10-02_adapter_framework.md`。
+- `CONFIRMED`：没有更改 WebView 导航判定/跨 host 确认、导入确认事务、学校/学期隔离或手动课程写入；无 Drift migration，schema 仍为 3。未增加远端加载/更新或依赖。
+- `UNVERIFIED`：四类脚本在真实学校/真实登录页的命中与字段覆盖、真实跨框架/网络行为、真机/iOS。fixture 是 bridge 与安全特征快照，不等同实际教务验收。无提交/推送。
+
+## TASK-LOGIN-REPAIR-01（2026-10-02，旧入口自动修复）
+
+- `CONFIRMED`：历史commit4f7cef7只更新新建学校默认入口、未迁移已有loginUrl；导入确认原本只记host、不保存更改的URL。两处实现缺口会让旧入口继续使用，不是按使用时长过期。
+- `CONFIRMED`：学校首读前事务修复已知学校的失效默认root入口，其他自定义网址不动；确认进入导入后网址与host同事务保存、取消/非法不保存。课程/学期/主题不改。
+- `CONFIRMED`：专项18/18、全量367/367、analyze/复审通过；Release/Debug构建与包名/版本/证书/哈希核对完成，本机入口正常GET200；验证/产物见report_2026-10-02_login_repair.md。手机旧档案与登录/实际导入仍`UNVERIFIED`。不自动放行新host，不改变HTTP确认/网络边界，无提交/推送。
+
+## 全量完成度报告（2026-10-02）
+
+- 报告：`report_2026-10-02_project_completion.md`。18个模块中12项核心实现齐备、3项部分完成、3项未实现；66.7%/83.3%仅为等权模块覆盖率，不是正式发布完成率。
+- `CONFIRMED`：本轮全量362/362、analyze无问题、diff-check通过；rapid及最新light-launch-status两组APK哈希与专项报告一致，没有重建/安装/联网核对远端。
+- 写报告期间三项UI任务已收口，按下节最新交付与report_2026-10-02_today_launch_root.md判断；完整今日页方案的其余部分仍未实施。
+- 真实导入有09-14用户截图局部证据，完整验收待完成；iOS/真机GPU/新版覆盖安装仍`UNVERIFIED`。小组件/提醒/联网更新未实现，普通汇课正式签名未完成。未提交/推送，保留现有业务代码与改动。
+
+## 2026-10-02 今日状态、浅色启动与底部手势（最新）
+
+- `CONFIRMED`：今日蓝色横线移除，进行中课程卡右上淡底标签显示结束时刻、对应轴点蓝色；课前/课间显示距下一节时间，全天结束仅灰色文字。未知时间混入不宣称全结束，卡片字段与现有点击保持。
+- `CONFIRMED`：启动保留原矢量标志，浅色#F5F6F9品牌层/「汇课」在就绪后280ms退场；首页不透明、第一触摸立即完成装饰，Reduced无过渡、不重播。Android日夜启动底色与系统栏均浅色；品牌前景接管系统栏，过渡到目的主题时按背景亮度选图标。iOS原生白底保持。
+- `CONFIRMED`：底部272×64控件内滑动（左今日/右周课表）与点按均可切换；控件外无根分支切换手势，取消/Reduced/分支保留验证通过。
+- `CONFIRMED`：最终全量362/362（concurrency2），analyze无问题、复审APPROVE、资源校验通过；Release/Debug构建见report_2026-10-02_today_launch_root.md。设备/GPU/iOS仍`UNVERIFIED`，不改数据库/导入机制，无提交/推送。
+- 导课截图加载旧jwxt域名，当前代码预设为既有IP入口；本机旧地址HTTP无响应/HTTPS握手失败，IP入口HEAD403但正常GET200。未改用户已存网址、未尝试登录，手机网络可达性未知。
+
+## TASK-PREVIEW-RAPID-01（2026-10-02，最新连续操作规则）
+
+- `CONFIRMED`：Weekly预览开始关闭后遮罩/面板立即放行点击；新课程或同课程点击通过generation key取消旧关闭ticker、从当前进度重开；旧完成回调不清新预览。编辑待执行导航保持所有权。
+- `CONFIRMED`：箭头立即换周/换网格，标签轻量动画不阻塞；新的横向拖动可结束上一段落位并接受本次手势，普通点击/纵滚不提前提交。保留每次手势单周、取消回弹、边界与多指规则。替代旧“落位期间整次忽略”合同。
+- `CONFIRMED`：全量355/355、analyze无问题、代码复审APPROVE；预览先复现关闭40ms后点击无响应，再回归通过。APK见report_2026-10-02_rapid_interaction.md。
+- 今日页改版仅整理proposal_2026-10-02_today.md，未实施；用户设备/iOS/GPU帧率仍`UNVERIFIED`。保留既有改动，无提交/推送。
+
+## TASK-COURSE-HUES-01（2026-10-02，最新课程色规则）
+
+- `CONFIRMED`：16色覆盖红橙黄绿青蓝紫粉，明暗分别统一明度/饱和度；替代上一轮冷色色板。Today/Weekly共用，hash/16色取模/数据库字段不变，既有动画与节次提示保留。
+- `CONFIRMED`：专项8/8，明暗8个色相区间覆盖、16色唯一/不透明、正文对比度≥4.5；明暗360/430dp合成静态渲染检查通过，代码复审APPROVE。构建结果见report_2026-10-02_course_hues.md。
+- `UNVERIFIED`：真机视觉与GPU流畅度、iOS；本轮只改色板，上一轮全量349/349为历史验证。本轮不承诺不同课程绝不重复颜色（名称hash仍可能同余）。
+
+## TASK-TODAY-MOTION-COLOR-01（2026-10-02，当前课程色与今日过渡）
+
+- `CONFIRMED`：课程16色改为蓝/青/绿为主的冷色配对，保留原hash、colorKey、纯色底与明暗文字对比度≥4.5；替代前轮混合粉橙紫色板。用户未回复可选配色询问，按已说明推荐方向落地。
+- `CONFIRMED`：今日预览透明PageRoute不再整层Fade/Slide；只对终态尺寸面板平移、遮罩颜色独立变化，同一曲线映射保证入场中Back不跳变，Reduced无位移。Today source不挂Hero，详情复用glassPage且不重复渐显正文；Today预览/详情父面板和按钮不采样BackdropFilter。Weekly路径保持前轮规则。
+- `CONFIRMED`：Weekly横穿课程的蓝杠撤除，当前节次改左轴「当前/4节」式文字提示，IgnorePointer、不遮课程；仍按学校作息节次显示，不声称精确分钟线。
+- `CONFIRMED`：全量349/349、实画/交互专项47/47、analyze无问题、独立复审APPROVE；合成数据明暗360/430dp静态检查完成。安装包与证据见report_2026-10-02_today_motion_color.md。
+- `UNVERIFIED`：无连接设备，真机GPU/60Hz/高刷流畅度与安装、iOS、真实教务未验；结构减负不等于真机卡顿已消除。保留未提交改动，无提交/推送。
+
+## TASK-VISUAL-RETURN-01（2026-10-02，当前视觉规则）
+
+- `CONFIRMED`：Android adaptive/monochrome及Android 12+启动标志改为独立矢量资源；保留旧Flutter标志与PNG/iOS fallback。所有adaptive路径顶点在66dp安全圆内，不再复用低分辨率launcher前景放大。
+- `CONFIRMED`：课程16色改为直接定义的明亮纯色/夜间深色，不再由灰暗基色混白；原hash、colorKey、数据库均不变，文字对比度≥4.5。
+- `CONFIRMED`：Weekly预览使用终态尺寸底部平移，不接source几何；正文全程保留，背景不缩放、遮罩不模糊，仅压暗。父面板blur22和单次关闭状态机保持。启动取消全屏Opacity，保留一次性4dp平移与Reduced Motion。
+- `CONFIRMED`：专项36/36、全量342/342、analyze无问题、独立复审通过。产物、资源验证与边界见report_2026-10-02_visual_return.md；保留前轮未提交改动，无提交/推送。
+- `UNVERIFIED`：未连接设备，用户真机启动/桌面清晰度、60Hz/高刷返回流畅度与iOS未验；不把减小代码渲染工作等同于卡顿已消失。下方早期任务为历史快照，本节替代其视觉规则。
+
+## TASK-LEGACY-UPGRADE-01（2026-10-01）
+
+- 用户明确要求旧图标、Debug APK直接覆盖旧应用并保留原数据；Android新增huike/legacyUpgrade发行类型，普通应用身份保持，兼容包使用既有应用ID与更高versionCode。
+- `CONFIRMED`：图标恢复蓝色Flutter标志；15张Android PNG、15张iOS PNG与槽位/原图字节/引用校验通过。唯一生成入口tools/make_icon.py从入库模板原样复制。
+- `CONFIRMED`：旧schema1文件只读导入目标schema3；beforeOpen阻塞首读，整体事务/成功marker，已有学校不覆盖。学期、课程、自定义节次与主题保留，学期名归档为显式元数据，未知设置不复制。迁移专项8/8。
+- `CONFIRMED`：正式签名兼容Debug包证书与旧正式APK一致，包名一致，versionCode10006高于已核对旧universal版4；最终产物与验证见report_2026-10-01_legacy_upgrade.md。用户真机/iOS `UNVERIFIED`。
+- `CONFIRMED`：最终全量341/341、analyze无问题、图标检查与diff-check通过；正式/Debug证书分别匹配对应旧安装，旧1.0.1/1.0.2/1.0.3正式证书一致。迁移失败提示/重试和导入回归14/14；独立复审通过。未提交/推送。
+
+## TASK-SCHOOL-URL-DIALOG-01（2026-10-01）
+
+- `CONFIRMED`：修改教务网址关闭时提前释放 TextEditingController，先触发 disposed 异常，再触发与用户截图一致的 `framework.dart:6281 _dependents.isEmpty` 焦点组件断言。修复为输入框自主管理控制器，通过 onChanged 读取文本，保存前检查页面 mounted。
+- `CONFIRMED`：专项 6/6、全量 332/332；保存 HTTP/HTTPS、取消、空值/非法网址、遮罩与系统返回、重复打开均覆盖退出动画帧和数据库结果。详见 `report_2026-10-01_school_url_dialog.md`。
+- `UNVERIFIED`：用户真机/iOS复测；保留原未提交改动，无提交或推送。
+
+## TASK-UI-COMPACT-COLOR-01（2026-10-01）
+
+- `CONFIRMED`：学校管理移除添加学校按钮；学校切换、编辑地址、删除仍沿用原实现。初始化建校路由保留；ISSUE-019 的该 UI 触发入口已撤除，未修改 redirect。
+- `CONFIRMED`：Today 常规卡片最小高度 134 × 0.75 = 100.5dp；宽度和字号保持可读，短信息同行，名称、地点、教师、周次、备注不限行，长内容自然撑高。
+- `CONFIRMED`：共享课程色板扩为16色；Today/Weekly 每卡使用不透明纯色底，无渐变。hash/数据库不变，取色模数从8变16，部分既有课程显示色会变化。
+- 验证与边界见 `report_2026-10-01_compact_color.md`；原未提交改动保留，无提交/推送。
+
+## TASK-PERF-BLUR-01（2026-10-01）
+
+- `CONFIRMED` / **EMULATOR PROFILE EVIDENCE**：API 36、60 Hz、Impeller OpenGLES profile，
+  A–H 每组预热后 3 次。单关 Sheet/Preview 面板无稳定明显收益；下层 Weekly glass 与
+  Preview 嵌套按钮各为组级 `CONTRIBUTOR`；同时关闭 Weekly/Preview glass、保留 Sheet
+  为 6.162–7.947 ms。不能按层数外推性能，也未排序每个下层控件。
+- 仅 Weekly Preview 的 X/详情/编辑按钮复用父面板 sigma 22 的模糊；GlassButton 可选
+  blurSigma 默认 null。Today、全屏 Sheet blur、几何/关闭状态机、RepaintBoundary 均保持。
+  最终三次 open Raster 21.026/22.202/24.841 → 18.205/17.553/18.441 ms，
+  峰值中位数约下降 18%；UI 无超预算。**仍有 Raster 超预算，不宣称达到帧预算**。
+- `CONFIRMED`：模拟器 Light/Dark、open/close 抽帧、长拖/短拖回弹、实际 Reduced Motion
+  检查；连续 60 Hz 视觉、真机/iOS/release/14+ 节仍 `UNVERIFIED`。
+- `CONFIRMED`：analyze 无问题，全量 **322/322**，Preview 专项 **27/27**；临时接线完全
+  移除，main/GlassSurface/GlassSheetHost 开工哈希恢复。APK 与最终 diff 结果见报告。
+  未清理旧批次、提交或推送。逐帧证据与离群关闭帧保留在
+  `evidence_2026-10-01_blur_profile.json`；完整结论见 `report_2026-10-01_perf_blur_01.md`。
+
+## TASK-WS-AUDIT-01 工作区盘点（2026-09-30，只读）
+
+- `CONFIRMED`：工作区即 2026-09-28 批次的未提交改动——15 个修改文件（lib 7、knowledge 7、
+  test 1，+776/−236）+ 22 个未跟踪文件（knowledge 18、test 4），逐项映射到
+  TASK-DATA-INTEGRITY-01、TASK-CALENDAR-DATE-01、TASK-PREVIEW-BACK-01、
+  TASK-PREVIEW-GEOMETRY-01、TASK-WEEKLY-PERF-PROFILE-01 与两轮审计/ISSUE-019 诊断，
+  无孤儿改动、无文档与代码冲突。本地 master = origin/master = `7bc4f10`，已提交内容全部推送。
+- `CONFIRMED`（当日复验，`S:\`）：analyze 无问题、全量 **314/314**、`git diff --check` 通过；
+  `app-debug.apk`（207,132,994 字节）与 `huike-0.1.4-release.apk`（63,982,250 字节）
+  SHA-256 复算与既有记录逐字一致。
+- 待处置：① 删除 `.playwright-mcp/` 遗留截图并把该目录加入 `.gitignore`；
+  ② 本批改动已滞留 2 天未归档，建议按 2026-09-27 模式提交并推送（推送需用户令牌）。
+  详见 `report_2026-09-30_workspace_audit.md`。
+
+## TASK-WEEKLY-PERF-PROFILE-01（2026-09-28）
+
+- `CONFIRMED`：Android 16/API 36、60 Hz 模拟器 profile 中，Weekly 切周多次采到超过 16.7 ms 的代表帧；但慢帧总数/频率未可靠统计，warm revisit 的 UI 40.8 ms 为单次峰值，未证明持续掉帧或 cold mount 更慢。
+- `CONFIRMED`（范围仅限当前模拟器 Preview-open）：启用 blur 的三次代表 Raster 帧为 34.9–37.2 ms；临时 profile-only 绕过 `GlassSurface` 与 Sheet blur 后为 5.9–7.2 ms，几何与动画保留。表明 blur/filter 工作与该路径 Raster 峰值强相关，但没有隔离各个滤镜层，也不外推到真机。
+- `NOT OBSERVED`：静止约 15 秒未产生新帧；无 blur A/B 的 Preview-open 代表帧未超预算；没有可重复 cold > warm 差异。
+- `UNVERIFIED`：14+ 节滚动、真机/iOS、release、具体 repaint 区域与慢帧频率。AVD 仅有 10 条节次时间配置，未添加合成数据。
+- 最终 `flutter analyze --no-pub` 无问题、`flutter test --no-pub` 314/314、Debug APK 构建成功（207,132,994 字节）、`git diff --check` 通过；无生产行为更改，A/B 开关已恢复。详见 `report_2026-09-28_weekly_perf_profile_01.md`。
+
+## TASK-PREVIEW-GEOMETRY-01（2026-09-28）
+
+- `CONFIRMED`：Weekly Preview source 使用点击 Course Block 的 `RenderBox.localToGlobal`；纵向滚动偏移包含在采样位置。destination 在 Preview 正常底部约束下经透明首帧实际布局测量；两者转换至 `GlassSheetHost` Stack-local 后 `Rect.lerp`。移除原 `size.height * 0.5` 与整张 Preview 的非等比 scale。
+- `CONFIRMED`：10 个几何 Widget 用例覆盖 640/1000dp viewport、点击起点、14 节滚动起点、终点与实际测量内容重合、Reduced Motion、resize fallback、反向回源/单回调、关闭时 source 已失效 fallback、source 移位与拖动跟手/回弹。定向几何 10/10；最终全量 314/314；基线 304/304。
+- `CONFIRMED`：关闭仍服从 TASK-PREVIEW-BACK-01 状态机；destination/source 不可测或运行时 Host 几何环境变化时回退至底部位移。未保存 RenderObject，关闭时通过 GlobalKey 查询存活 source。
+- `UNVERIFIED`：模拟器实画、Android 真机、iOS、旋转/resize 动画、predictive back 几何联动、极端快速触摸与性能 profile。`flutter build apk --debug --no-pub` 按本批计划 `PENDING`。
+
+## 统一 Debug APK（2026-09-28 17:01 +08:00；早于 TASK-PREVIEW-GEOMETRY-01）
+
+- `CONFIRMED`：在 `S:\` 执行 `flutter build apk --debug --no-pub` 成功；产物 `build/app/outputs/flutter-apk/app-debug.apk`，207,125,368 字节，SHA-256 `90cda25ad60f05b6d4b97d763d0585196ee49b2e570b9a0d6a3e5bd8849f965c`。基于当前未提交工作树，未提交或推送；此前全量 304/304 测试和 analyze 无问题。未安装到设备，真机/iOS 行为仍 `UNVERIFIED`。
+
+## TASK-PREVIEW-BACK-01（2026-09-28）
+
+- `CONFIRMED`：Weekly Preview 仍为页内 `GlassSheetHost`；Android Back 由 `TimetablePage` 的 `PopScope` 在 Sheet 存在期间消费并请求关闭。X、背景、下拖及编辑入口共用关闭状态机；仅动画正常完成后一次回调清理。完整详情仍只 push，不关闭 Preview。
+- `CONFIRMED`：9 个 Widget 测试覆盖 Back、双 Back、关闭中 Back、两入口交叉、下拖/回弹、Reduced Motion、重新打开和编辑路由；基线 295/295，最终全量 304/304。静态分析与 diff check 结果见专项报告。
+- `UNVERIFIED`：Android 真机 predictive back、iOS 手势、极端高速触摸。APK 依用户要求待本批任务结束统一构建。
+
+## TASK-CALENDAR-DATE-01（2026-09-28）
+
+- `CONFIRMED`：校历例外新增优先今天、编辑优先已有日期；两者均按既有学期日期范围夹取，历史和未来学期可打开 DatePicker。`firstDate` / `lastDate` 计算未变。
+- `CONFIRMED`：新增 5 个 Widget 行为测试覆盖当前、历史、未来、合法旧日期和越界旧日期；修复前 3 个边界场景失败，修复后均通过。基线 analyze 无问题、290/290；最终 analyze 无问题、295/295、Debug APK 与 diff check 通过，见专项报告。
+- `INFERRED`：学期设置页若读到 2020–2040 之外的已保存开学日期，其固定范围 DatePicker 可能有同类断言；本轮只审查，未改此页。
+- `UNVERIFIED`：真实设备日期选择器与 iOS。
+
+## TASK-DATA-INTEGRITY-01（2026-09-28）
+
+- `CONFIRMED`：导入课程 ID 现在按 `schoolId + semesterId + 课程内容` 稳定计算；同校不同学期同课程可共存，同学期重导仍按 `(schoolId, semesterId, source=imported)` 删除后重建。旧格式 ID 在下一次同学期重导时随旧行删除，自然换为新 ID。
+- `CONFIRMED`：`CourseRepository.confirmImport` 用一个 Drift 事务顺序写入选中的作息、课程和选中的学期配置；内部原始写入步骤不再各自开事务。定向故障注入验证课程写入失败与学期更新后失败均回滚全部旧数据。
+- `CONFIRMED`：基线 283/283；当前全量 290/290、`flutter analyze --no-pub` 无问题。Debug APK 构建及最终 `git diff --check` 结果见本轮报告。
+- `UNVERIFIED`：真实教务端到端、真机和 iOS。本轮不处理 Preview/Motion 其他问题。
 
 ## 归档与推送（2026-09-27 17:11–17:15 +08:00）
 
@@ -191,12 +368,13 @@ UI 融合，以及首页信息架构重做（今日改为当日议程、整周�
   仅作播种，`BellSchedule.equalsFallback()` 用于判断「未被修改」。
 - 导入链路（TASK-001 核心，TASK-009 修复）：风险确认门（明文 HTTP 额外警示）→ 受限 WebView
   （导航放行范围 = 入口地址 + 学校档案已确认主机 + 会话中新确认主机；主框架跳新主机时
-  弹窗确认一次并记住，只增不减）→ 注入社区契约桥 → 点「执行导入」后
-  App **自动逐个尝试全部内置适配器**（用户不需要知道学校用什么教务系统，也看不到
-  逐个尝试的过程；每个脚本自己校验当前页面，读不到课表就换下一个，脚本之间间隔 800ms；
-  桥弹窗打开时暂停该次超时）→
+  弹窗确认一次并记住，只增不减）→ 注入社区契约桥 → 点「执行导入」后由catalog schema 2
+  的 School Profile / adapter family、已保存adapter偏好、精确URL规则与页面布尔特征排序候选，
+  最后兼容回退剩余内置适配器。用户看不到逐个尝试过程；每次尝试用attemptId隔离迟到桥回调，
+  脚本之间间隔800ms，桥弹窗打开时暂停该次超时→
   脚本回传数据全部暂存内存 → 预览页（新增/移除/修改/无效四类明细 + 附加选项）→
-  确认后事务替换 (schoolId, semesterId, imported)。全部失败只给一句可操作提示。
+  确认后事务替换 (schoolId, semesterId, imported)。当前attempt完成且至少一门课程通过规范化才算匹配成功；
+  全部失败默认只给可操作提示，用户主动请求时可查看固定码安全诊断。
   手动课程永不触碰。
 - 教务地址校验统一在 `features/schools/services/login_url_policy.dart`（`checkLoginUrl`），
   引导页建校、学校管理改址、导入入口三处共用；http/https 都收，明文由入口额外警示

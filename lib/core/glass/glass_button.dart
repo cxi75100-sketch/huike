@@ -22,6 +22,7 @@ class GlassButton extends StatelessWidget {
     this.shape = GlassButtonShape.rounded,
     this.size = 40,
     this.intensity = GlassIntensity.regular,
+    this.blurSigma,
     this.radius,
     this.iconSize = 20,
     this.padding,
@@ -42,6 +43,7 @@ class GlassButton extends StatelessWidget {
     this.onLongPress,
     this.size = 36,
     this.intensity = GlassIntensity.regular,
+    this.blurSigma,
     this.iconSize = 19,
     this.depth = 1,
     this.iconColor,
@@ -62,6 +64,9 @@ class GlassButton extends StatelessWidget {
   final GlassButtonShape shape;
   final double size;
   final GlassIntensity intensity;
+
+  /// Reuse an already blurred parent surface with zero; null keeps the default.
+  final double? blurSigma;
   final double? radius;
   final double iconSize;
   final EdgeInsets? padding;
@@ -112,6 +117,7 @@ class GlassButton extends StatelessWidget {
     Widget visual = GlassSurface(
       radius: effectiveRadius,
       intensity: enabled ? intensity : GlassIntensity.subtle,
+      blurSigma: blurSigma,
       tint: tint,
       interactive: enabled,
       onTap: onPressed,

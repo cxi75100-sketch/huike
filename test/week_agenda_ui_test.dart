@@ -15,6 +15,7 @@ import 'package:huike_timetable/features/timetable/widgets/timetable_grid.dart';
 import 'package:huike_timetable/features/timetable/widgets/timetable_header.dart';
 import 'package:huike_timetable/features/timetable/widgets/week_swipe.dart';
 import 'package:huike_timetable/features/timetable/pages/today_page.dart';
+import 'package:huike_timetable/features/timetable/pages/course_detail_page.dart';
 import 'package:huike_timetable/models/bell_schedule.dart';
 import 'package:huike_timetable/models/course.dart';
 import 'package:huike_timetable/models/semester.dart';
@@ -216,6 +217,42 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
+
+  for (final reduced in [false, true]) {
+    testWidgets('底部小区域滑动和点按均能切换，区域外不切分支 reduced=$reduced', (tester) async {
+      tester.platformDispatcher.accessibilityFeaturesTestValue =
+          FakeAccessibilityFeatures(disableAnimations: reduced);
+      addTearDown(
+        tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
+      );
+      await pumpWeeklyHome(tester);
+      final switcher = find.byKey(const ValueKey('root-switcher'));
+      await tester.drag(switcher, const Offset(-120, 0));
+      await tester.pumpAndSettle();
+      expect(find.byType(TodayPage), findsOneWidget);
+      final outside = tester.getCenter(switcher) - const Offset(0, 100);
+      await tester.dragFrom(outside, const Offset(120, 0));
+      await tester.pumpAndSettle();
+      expect(find.byType(TodayPage), findsOneWidget);
+      final gesture = await tester.startGesture(tester.getCenter(switcher));
+      await gesture.moveBy(const Offset(100, 0));
+      await tester.pump();
+      await gesture.cancel();
+      await tester.pumpAndSettle();
+      expect(find.byType(TodayPage), findsOneWidget);
+      await tester.drag(switcher, const Offset(120, 0));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('weekly-grid')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('root-tab-today')));
+      await tester.pumpAndSettle();
+      expect(find.byType(TodayPage), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('root-tab-weekly')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('weekly-grid')), findsOneWidget);
+      expect(find.text('第 4 周'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  }
 
   testWidgets('课程块按 startSection 到 endSection 跨越正确行数', (tester) async {
     await pumpWeeklyHome(
@@ -630,7 +667,7 @@ void main() {
     expect(displayedWeek(tester), 6);
   });
 
-  testWidgets('TASK-020A 动画中按下的手势不能接管或产生第二次切周', (tester) async {
+  testWidgets('落位中开始下一次独立手势立即接管，每次仍只切一周', (tester) async {
     await pumpWeeklyHome(tester);
     await tester.fling(
       find.byType(WeekSwipePager),
@@ -645,14 +682,14 @@ void main() {
     );
     await gesture.moveBy(const Offset(-30, 0));
     await tester.pumpAndSettle();
-    // 保持同一次 pointer session，跨过动画完成后继续长拖。
+    // 同一次pointer session长拖仍只提交一周。
     await gesture.moveBy(const Offset(-700, 0));
     await tester.pump();
     await gesture.up();
     await tester.pumpAndSettle();
-    expect(displayedWeek(tester), 5);
-    await slowSwipe(tester, -110);
     expect(displayedWeek(tester), 6);
+    await slowSwipe(tester, -110);
+    expect(displayedWeek(tester), 7);
   });
 
   testWidgets('TASK-020A cancel 回弹，不漂移；箭头仍各切一周', (tester) async {
@@ -673,11 +710,17 @@ void main() {
     expect(displayedWeek(tester), 4);
   });
 
-  testWidgets('TASK-020A 动画中按下并等落位后才拖动，整次手势仍忽略', (tester) async {
+  testWidgets('箭头立即切周，连续点击不等待label动画', (tester) async {
     await pumpWeeklyHome(tester);
     await tester.tap(find.byTooltip('下一周'));
     await tester.pump();
-    expect(displayedWeek(tester), 4);
+    expect(displayedWeek(tester), 5);
+    await tester.tap(find.byTooltip('下一周'));
+    await tester.pump();
+    expect(displayedWeek(tester), 6);
+    await tester.tap(find.byTooltip('上一周'));
+    await tester.pump();
+    expect(displayedWeek(tester), 5);
     final gesture = await tester.startGesture(
       tester.getCenter(find.byType(WeekSwipePager)),
     );
@@ -687,10 +730,10 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
     await gesture.up();
     await tester.pumpAndSettle();
-    expect(displayedWeek(tester), 5);
+    expect(displayedWeek(tester), 6);
     await slowSwipe(tester, 110);
     await slowSwipe(tester, 110);
-    expect(displayedWeek(tester), 3);
+    expect(displayedWeek(tester), 4);
   });
 
   testWidgets('TASK-020A Reduced Motion 长拖、取消、独立手势均不漂移', (tester) async {
@@ -754,7 +797,7 @@ void main() {
     expect(weekSwipeTarget(dragPixels: 10, velocityPx: -1200, width: 390), -1);
   });
 
-  testWidgets('周导航箭头也走同一段跟手过渡：周次标签滑入而不是瞬间跳变', (tester) async {
+  testWidgets('箭头立即换网格，周次标签仍有轻量滑入', (tester) async {
     await pumpWeeklyHome(tester);
 
     await tester.tap(find.byTooltip('下一周'));
@@ -767,6 +810,41 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('第 5 周'), findsOneWidget);
     expect(find.text('第 4 周'), findsNothing);
+  });
+
+  testWidgets('连续箭头与落位接管在第一周/最后一周不越界', (tester) async {
+    await pumpWeeklyHome(tester);
+    for (var i = 0; i < 3; i++) {
+      await tester.tap(find.byTooltip('上一周'));
+      await tester.pump();
+    }
+    expect(displayedWeek(tester), 1);
+    await tester.fling(find.byType(WeekSwipePager), const Offset(100, 0), 1500);
+    await tester.pumpAndSettle();
+    expect(displayedWeek(tester), 1);
+    for (var i = 0; i < 14; i++) {
+      await tester.tap(find.byTooltip('下一周'));
+      await tester.pump();
+    }
+    expect(displayedWeek(tester), 15);
+    await tester.fling(
+      find.byType(WeekSwipePager),
+      const Offset(-100, 0),
+      1500,
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 30));
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byType(WeekSwipePager)),
+    );
+    await gesture.moveBy(const Offset(-30, 0));
+    await tester.pump();
+    expect(displayedWeek(tester), 16);
+    await gesture.moveBy(const Offset(-250, 0));
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(displayedWeek(tester), 16);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('点按课程有压缩反馈，随后升起课程预览 Sheet（课表不被顶掉）', (tester) async {
@@ -810,6 +888,111 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('今日预览入场中立即Back从当前位置连续退出', (tester) async {
+    await pumpWeeklyHome(
+      tester,
+      courses: [course('today-fast-back', weekday: DateTime.now().weekday)],
+    );
+    await tester.tap(find.byTooltip('今日课程'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Course today-fast-back'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 40));
+    final slide = find.byKey(const ValueKey('today-preview-slide'));
+    final before = tester.widget<FractionalTranslation>(slide).translation.dy;
+    expect(before, inExclusiveRange(0, 1));
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+    expect(
+      tester.widget<FractionalTranslation>(slide).translation.dy,
+      closeTo(before, 0.001),
+    );
+    await tester.pump(const Duration(milliseconds: 8));
+    expect(
+      tester.widget<FractionalTranslation>(slide).translation.dy,
+      greaterThan(before),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(TodayCoursePreviewPage), findsNothing);
+    expect(
+      find.byKey(const ValueKey('today-course-today-fast-back')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  for (final reduced in [false, true]) {
+    testWidgets('今日面板独立平移、正文不淡出，详情返回可关闭 reduced=$reduced', (tester) async {
+      tester.platformDispatcher.accessibilityFeaturesTestValue =
+          FakeAccessibilityFeatures(disableAnimations: reduced);
+      addTearDown(
+        tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
+      );
+      await pumpWeeklyHome(
+        tester,
+        courses: [course('today-motion', weekday: DateTime.now().weekday)],
+      );
+      await tester.tap(find.byTooltip('今日课程'));
+      await tester.pumpAndSettle();
+      final card = find.byKey(const ValueKey('today-course-today-motion'));
+      final origin = tester.getRect(card);
+      await tester.tap(find.text('Course today-motion'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 40));
+      final slide = find.byKey(const ValueKey('today-preview-slide'));
+      final preview = find.byType(TodayCoursePreviewPage);
+      final entry = tester.widget<FractionalTranslation>(slide).translation.dy;
+      expect(entry, reduced ? 0 : greaterThan(0));
+      expect(tester.getRect(slide).width, 390);
+      expect(
+        find.descendant(of: preview, matching: find.byType(BackdropFilter)),
+        findsNothing,
+      );
+      expect(
+        find.descendant(of: preview, matching: find.byType(FadeTransition)),
+        findsNothing,
+      );
+      expect(find.byType(Hero), findsNothing);
+      final dim = find.byKey(const ValueKey('today-preview-dim'));
+      expect(tester.getRect(dim), const Rect.fromLTWH(0, 0, 390, 844));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<FractionalTranslation>(slide).translation,
+        Offset.zero,
+      );
+      final stable = tester.getRect(slide);
+      await tester.tap(find.text('完整详情'));
+      await tester.pumpAndSettle();
+      final detail = find.byType(CourseDetailPage);
+      expect(detail, findsOneWidget);
+      expect(
+        find.descendant(of: detail, matching: find.byType(BackdropFilter)),
+        findsNothing,
+      );
+      expect(
+        find.descendant(of: detail, matching: find.byType(FadeTransition)),
+        findsNothing,
+      );
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(tester.getRect(slide), stable);
+      await tester.tap(find.byTooltip('关闭课程预览'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 40));
+      if (!reduced) {
+        expect(tester.getRect(slide).size, stable.size);
+        expect(
+          tester.widget<FractionalTranslation>(slide).translation.dy,
+          greaterThan(0),
+        );
+      }
+      await tester.pumpAndSettle();
+      expect(preview, findsNothing);
+      expect(tester.getRect(card), origin);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('今日课程可进入预览与详情', (tester) async {
     final weekday = DateTime.now().weekday;
     await pumpWeeklyHome(
@@ -821,46 +1004,23 @@ void main() {
     );
     await tester.tap(find.byTooltip('今日课程'));
     await tester.pumpAndSettle();
-    final todayTags = tester
-        .widgetList<Hero>(find.byType(Hero))
-        .map((hero) => hero.tag as CourseHeroTag)
-        .toList();
-    expect(todayTags.map((tag) => tag.courseId).toSet(), {
-      'today-detail',
-      'today-other',
-    });
+    expect(find.byType(Hero), findsNothing);
 
     await tester.tap(find.text('Course today-detail'));
     await tester.pumpAndSettle();
     expect(find.text('完整详情'), findsOneWidget);
+    expect(find.byType(Hero), findsNothing);
     expect(
-      tester
-          .widgetList<Hero>(find.byType(Hero))
-          .where(
-            (hero) =>
-                (hero.tag as CourseHeroTag).courseId == 'today-detail' &&
-                (hero.tag as CourseHeroTag).source ==
-                    CourseHeroSourceContext.today,
-          ),
-      isNotEmpty,
+      find.descendant(
+        of: find.byType(TodayCoursePreviewPage),
+        matching: find.byType(BackdropFilter),
+      ),
+      findsNothing,
     );
     await tester.tap(find.text('完整详情'));
     await tester.pumpAndSettle();
     expect(find.byTooltip('删除'), findsOneWidget);
-    final journeyTags = tester
-        .widgetList<Hero>(find.byType(Hero, skipOffstage: false))
-        .map((hero) => hero.tag)
-        .whereType<CourseHeroTag>()
-        .where((tag) => tag.courseId == 'today-detail')
-        .toList();
-    expect(journeyTags, hasLength(3));
-    expect(journeyTags.map((tag) => tag.courseId).toSet(), {'today-detail'});
-    expect(journeyTags.map((tag) => tag.source).toSet(), {
-      CourseHeroSourceContext.today,
-    });
-    expect(journeyTags.map((tag) => tag.destination).toSet(), {
-      CourseHeroDestination.fullDetails,
-    });
+    expect(find.byType(Hero), findsNothing);
     expect(tester.takeException(), isNull);
 
     await tester.pageBack();

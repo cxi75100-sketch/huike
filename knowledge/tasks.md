@@ -2,16 +2,7 @@
 
 ## Now
 
-
-
-
-
-
-
-
-
-
-
+- [ ] TASK-RELEASE-100（2026-10-03）：补齐导入时更换/添加学校，验证正式版1.00（1.0.0+9），同步GitHub与Gitee源码/版本标签；核验远端，记录发布签名与真实学校未验边界。
 
 
 
@@ -45,6 +36,66 @@
 - 无工程阻塞。TASK-006 已转入 Now，等用户本人在设备上完成需本人凭据的验收步骤。
 
 ## Done
+
+- [x] TASK-LOGIN-RESET-01（2026-10-03，工程交付）：可信主frame401/重定向循环自动恢复一次，正常网络/403不清；主动重登作补充，Cookie实际属性/已访问origin精确清理、旧view/旧确认隔离、部分失败固定提示。394/394、专项10/10、analyze/diff-check通过，代码/安全复审APPROVE；API36服务真实synthetic1/1及实际导入页401自动清理/重建/200就绪1/1通过。Debug0.1.7+8签名/元数据/catalog核验，报告report_2026-10-03_login_recovery.md。真实学校/真机/iOS/截图网络根因仍未验，未知path/共享父域不假称全清；无提交/推送。
+
+- [x] TASK-DEFER-SCHOOL-01 / TASK-IMPORT-RELIABILITY-02（2026-10-03，工程交付）：启动直接首页，主动导入才填写学校/网址，建校继续导入且保留返回栈；同源frame安全探针/4秒有限采样、局部脚本与owner桥/fetch/timer清理。严格CSP和正文取消缺口经复审修正。最终385/385、analyze/diff-check、复审APPROVE；真实Android WebView synthetic1/1（API36）验证POST302/307、Cookie、CSP动态frame/URP、跨源不可读、timer与正文abort。Debug0.1.6+7构建且核对签名/元数据/catalog。真实学校/真机/iOS及完整跨host登录/新窗口未验；见report_2026-10-03_import_reliability_startup.md。文件/在线更新留后续，无提交/推送。
+
+- [x] TASK-WEBVIEW-FRAMEWORK-01（2026-10-03，工程修复）：完成三处入口/WebView/原生插件/平台网络盘点；昨日adapter更新未发现直接网络失败路径。修正已确认导航取消重发、子frame scheme判定、主frame错误/手动重试/导入门控与页面generation隔离；无学校特例。Java14/14、专项34/34、全量381/381与最终状态4/4，analyze无问题、复审APPROVE、Release/Debug构建成功；详见report_2026-10-03_webview_framework.md。真实学校网络/登录、真机/iOS未验，TASK-006保持；无提交/推送。
+
+- [x] TASK-ADAPTER-GENERAL-01（2026-10-02）：导入链路审计后引入catalog schema 2、学校级profile/协议family、精确URL规则、页面特征候选计划、尝试ID隔离、统一匹配门槛及按需脱敏诊断；保留现有预览、事务、手动课和导航策略。四类synthetic fixture；schema仍3、无远端更新/新依赖/真实学校猜测。专项与全量377/377、analyze、diff-check和Debug APK通过；真实教务/设备/iOS未验。详见report_2026-10-02_adapter_framework.md。
+
+- [x] TASK-LOGIN-REPAIR-01（2026-10-02）：核对09-14默认入口修复未迁移已有档案、导入候选地址未持久保存两处缺口；首读前定向修复、确认后事务保存网址/host。专项18/18、全量367/367、analyze/复审/diff通过，汇课Release/Debug构建并核对签名/版本/哈希。本机入口GET200，真机登录/导入未验；见report_2026-10-02_login_repair.md，无提交/推送。
+
+- [x] TASK-PROGRESS-REPORT-01（2026-10-02）：全量报告覆盖18个模块、数据/安全/视觉/性能/测试/平台/发布/待办；本轮362/362、analyze/diff-check通过，rapid及最新UI两组APK哈希一致。纳入三项UI任务最新收口；未改业务代码/重建/装机/提交/推送。见report_2026-10-02_project_completion.md。
+
+- [x] TASK-TODAY-STATUS-01 / TASK-LAUNCH-BRAND-01 / TASK-ROOT-SWIPE-01（2026-10-02）：今日蓝线改卡内标签/下一节倒计时/结束文字，日夜浅色品牌启动，底部控件内滑动保留点按。全量362/362、analyze/复审/资源检查通过，Release/Debug构建成功；见report_2026-10-02_today_launch_root.md。导课旧网址只诊断/提供现有预设入口，未登录或改用户地址；设备/iOS未验，无提交/推送。
+
+- [x] TASK-PREVIEW-RAPID-01（2026-10-02）：Weekly关闭可立即换课/同课重开，箭头立即换周，新横向手势接管旧落位；全量355/355、analyze/复审通过、Release/Debug构建成功。见report_2026-10-02_rapid_interaction.md；今日改版仅提案，真机/iOS未验，无提交/推送。
+
+- [x] TASK-COURSE-HUES-01（2026-10-02）：16色覆盖红橙黄绿青蓝紫粉，统一明暗亮度/饱和度；hash/数据/动画保持。专项8/8、analyze无问题、合成静态检查与代码复审通过，汇课Release/Debug构建成功；见report_2026-10-02_course_hues.md。真机/iOS未验，未提交/推送。
+
+- [x] TASK-TODAY-MOTION-COLOR-01（2026-10-02）：课程统一冷色16配对，Today终态面板独立平移/无Hero/无BackdropFilter/详情无重复渐显，Weekly当前节次移至左轴文字badge。全量349/349、实画交互47/47、最终对比度/颜色6/6、analyze/diff及独立复审通过；汇课同包名同证书Release/Debug构建并核对。真机帧率/安装与iOS未验，无提交/推送；见report_2026-10-02_today_motion_color.md。
+
+- [x] TASK-VISUAL-RETURN-01（2026-10-02）：Android adaptive/独立启动标志矢量与安全圆校验；课程16色直接配对；Weekly终态尺寸平移/固定背景/仅压暗，启动去Opacity。专项36/36、全量342/342、analyze/图标/diff/独立复审通过；普通Debug和两签名兼容Debug包完成，证书核对见report_2026-10-02_visual_return.md。真机清晰度/返回帧耗时/iOS未验；无提交/推送。
+
+- [x] TASK-LEGACY-UPGRADE-01（2026-10-01）：蓝色Flutter旧图标恢复，兼容包同ID/更高版本+对应原签名；旧库只读事务导入，保留课表/自定义作息/主题，失败阻断与重试。迁移8/8、启动1/1、全量341/341、analyze/图标/diff检查通过；APK/证书/哈希见report_2026-10-01_legacy_upgrade.md。真机/iOS与模拟器覆盖迁移未验，无提交/推送。
+
+- [x] TASK-KB-INDEX-01（2026-10-01）：知识库报告整理——排查类报告（诊断/修复/审计/盘点/性能取证）H1 标题统一为「YYYY-MM-DD 中文标题（TASK/ISSUE 号）」共 12 份；README 任务报告索引按「排查修复审计 / 功能实施 / 计划交接」分组倒序，补 3 个此前遗漏条目（calendar_date_01、data_integrity_01、preview_back_01），核心文档单列一节；功能实施类标题按用户要求不带日期。仅文档改动，无代码/测试变化。
+
+- [x] TASK-SCHOOL-URL-DIALOG-01（2026-10-01）：确认控制器提前 dispose 导致关闭动画重建失败及截图同款焦点断言；改由 TextField 管理生命周期。专项6/6、全量332/332，报告见 `report_2026-10-01_school_url_dialog.md`；真机/iOS未复测，未提交/推送。
+
+- [x] TASK-UI-COMPACT-COLOR-01（2026-10-01）：学校管理移除添加入口；Today 常规最小高度100.5dp、全字段自然换行；共享16色纯色卡。analyze、326/326、Debug APK通过，明暗合成数据视觉检查完成；真机/iOS未验证，未提交/推送。见本轮报告。
+- [x] TASK-NAV-ADD-SCHOOL-01（2026-10-01）：按用户要求撤除学校管理添加学校入口，原修复任务被新需求取代；redirect机制未改，ISSUE-019历史诊断保留。
+
+- [x] TASK-PERF-BLUR-01（2026-10-01）：API 36/60 Hz 模拟器 A–H 分层采样，各 3 次；
+      Sheet/面板单关无稳定明显收益，下层 Weekly glass 与 Preview 三按钮各为 CONTRIBUTOR。
+      仅 Weekly 三按钮复用父面板 blur，Today/default 保持；最终 open Raster 峰值中位数
+      22.202→18.205 ms，UI 无超预算，仍有 Raster 超预算。原帧/关闭离群值均保留。
+      模拟器明暗、开合抽帧、长拖/短拖回弹、实际 Reduced Motion 检查；真机/iOS/release 等未验。
+      analyze 无问题、322/322、Preview 专项27/27、Debug APK 构建与 diff-check通过；
+      实验源码移除，原批次保留，无提交/推送。报告 `report_2026-10-01_perf_blur_01.md`。
+
+- [x] TASK-WS-AUDIT-01（2026-09-30）：2026-09-28 批次未提交工作区的只读盘点与当日复验。
+      37 个改动/新增文件逐项映射到已登记任务，与知识库记载无冲突；APK 大小与 SHA-256
+      复算一致；当日 analyze 无问题、314/314、diff-check 通过。未改生产代码。
+      待处置：删 `.playwright-mcp/` 遗留并 gitignore；整批工作区归档提交（推送需用户令牌）。
+      见 `report_2026-09-30_workspace_audit.md`。
+
+- [x] TASK-WEEKLY-PERF-PROFILE-01（2026-09-28）：Android API 36 / 60 Hz 模拟器 profile 与 DevTools 取证完成。确认 Preview-open blur A/B 下代表 Raster 由 34.9–37.2 ms 降至 5.9–7.2 ms（仅限该模拟器与路径；未隔离具体滤镜层）；切周有超预算代表帧但频率与 cold/warm 差异未确认。静置无持续帧；14+ 节布局因无样本而未验证。临时 A/B 改动已恢复，未实施优化；最终 analyze 无问题、314/314、Debug APK 与 diff check 通过。详见专项报告。
+
+- [x] TASK-PREVIEW-GEOMETRY-01（2026-09-28）：Weekly Preview 从真实 Course Block source Rect
+      插值到透明首帧实测的 destination Rect，统一到 Host-local；移除高度估算和整页非等比缩放，
+      内文渐显。拖动使用 raw progress，关闭时检查并刷新 live source（补偿背景缩放），失效时安全
+      fallback；保留 TASK-PREVIEW-BACK-01 状态机。新增 10 项几何 Widget 测试，基线 304/304、
+      最终 314/314，analyze 与 diff check 通过。Debug APK 遵本批计划 `PENDING`；模拟器/真机/iOS
+      实画未验。详见 `report_2026-09-28_preview_geometry_01.md`。
+
+- [x] TASK-PREVIEW-BACK-01（2026-09-28）：Weekly Preview 的 Android Back 用 PopScope 消费；X、背景、下拖及编辑统一一次关闭状态机，正常动画完成后单次清理。新增 9 例 Widget 回归，基线 295/295、最终 304/304；analyze 与 diff check 通过。APK 按用户安排待本批结束统一构建，真机/iOS 未验，未提交/推送。见 `report_2026-09-28_preview_back_01.md`。
+
+- [x] TASK-CALENDAR-DATE-01（2026-09-28）：校历例外新增/编辑日期夹取到原有 firstDate/lastDate；新增 5 例真实路由 Widget 测试，基线 290/290、最终 295/295，analyze 与 diff check 通过。审查其余两处 DatePicker；APK 遵用户最新安排留到本批结束统一构建。未提交/推送，见 `report_2026-09-28_calendar_date_01.md`。
+
+- [x] TASK-DATA-INTEGRITY-01（2026-09-28）：导入 ID 纳入 semesterId，确认导入单事务覆盖作息、课程和学期配置；新增 7 例跨学期、重导、隔离、旧 ID、成功及两阶段回滚验证。基线 283/283，最终 290/290；analyze、Debug APK、diff check 通过。未提交/推送；真实教务、真机、iOS 未验。见 `report_2026-09-28_data_integrity_01.md`。
 
 - [x] 归档提交与推送（2026-09-27 17:11–17:15 +08:00）：自 2026-09-15 起的未提交工作区
       （TASK-013～TASK-026）整体归档为 `e804223`（17:11:01，图标与启动底色）与 `f9eccc9`

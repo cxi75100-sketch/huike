@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:huike_timetable/app.dart';
@@ -74,22 +75,99 @@ void main() {
           );
           await tester.pumpWidget(app(false));
           expect(find.text('课程'), findsNothing);
+          expect(find.byType(FlutterLogo), findsOneWidget);
+          final fill = find.descendant(
+            of: find.byKey(const ValueKey('launch-brand-overlay')),
+            matching: find.byType(ColoredBox),
+          );
+          expect(
+            tester.widget<ColoredBox>(fill).color,
+            const Color(0xFFF5F6F9),
+          );
           await tester.pumpWidget(app(true));
           expect(find.text('课程'), findsOneWidget);
+          if (reduced) {
+            expect(
+              find.byKey(const ValueKey('launch-brand-overlay')),
+              findsNothing,
+            );
+          } else {
+            expect(
+              find.byKey(const ValueKey('launch-brand-overlay')),
+              findsOneWidget,
+            );
+          }
           await tester.tap(find.text('课程'));
+          await tester.pump();
           expect(taps, 1);
-          final opacity = tester.widget<Opacity>(find.byType(Opacity).last);
-          expect(opacity.opacity, reduced ? 1 : 0.92);
+          expect(
+            find.byKey(const ValueKey('launch-brand-overlay')),
+            findsNothing,
+          );
+          // Startup content stays opaque even while it translates into place.
+          expect(
+            find.ancestor(of: find.text('课程'), matching: find.byType(Opacity)),
+            findsNothing,
+          );
           await tester.pump(const Duration(milliseconds: 180));
-          expect(tester.widget<Opacity>(find.byType(Opacity).last).opacity, 1);
+          expect(find.text('课程'), findsOneWidget);
           // Readiness updates (or resume/rebuild) cannot replay launch.
           await tester.pumpWidget(app(false));
           await tester.pumpWidget(app(true));
-          expect(tester.widget<Opacity>(find.byType(Opacity).last).opacity, 1);
+          expect(find.text('课程'), findsOneWidget);
         },
       );
     }
   }
+
+  testWidgets('品牌退场自然完成且重建不重播', (tester) async {
+    Widget app(bool ready) => MaterialApp(
+      home: LaunchReveal(ready: ready, child: const Text('首页')),
+    );
+    await tester.pumpWidget(app(false));
+    await tester.pumpWidget(app(true));
+    await tester.pump(const Duration(milliseconds: 100));
+    final overlay = tester.widget<Opacity>(
+      find.byKey(const ValueKey('launch-brand-overlay')),
+    );
+    expect(overlay.opacity, inExclusiveRange(0, 1));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('launch-brand-overlay')), findsNothing);
+    await tester.pumpWidget(app(false));
+    await tester.pumpWidget(app(true));
+    expect(find.byKey(const ValueKey('launch-brand-overlay')), findsNothing);
+    expect(find.text('首页'), findsOneWidget);
+  });
+
+  testWidgets('浅色品牌层接管深色AppBar系统栏，淡出后段切换图标', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(),
+        home: LaunchReveal(
+          ready: true,
+          child: Scaffold(appBar: AppBar(title: const Text('首页'))),
+        ),
+      ),
+    );
+    final styleFinder = find.byKey(const ValueKey('launch-system-style'));
+    expect(
+      tester
+          .widget<AnnotatedRegion<SystemUiOverlayStyle>>(styleFinder)
+          .value
+          .statusBarIconBrightness,
+      Brightness.dark,
+    );
+    await tester.pump(const Duration(milliseconds: 170));
+    expect(
+      tester
+          .widget<AnnotatedRegion<SystemUiOverlayStyle>>(styleFinder)
+          .value
+          .statusBarIconBrightness,
+      Brightness.light,
+    );
+    await tester.pumpAndSettle();
+    expect(styleFinder, findsNothing);
+  });
 
   testWidgets(
     'unresolved school never paints onboarding as a loading default',
@@ -117,7 +195,7 @@ void main() {
       expect(find.text('欢迎使用汇课'), findsNothing);
       schoolId.add(null);
       await tester.pumpAndSettle();
-      expect(find.text('欢迎使用汇课'), findsOneWidget);
+      expect(find.text('你的课表，从这里开始'), findsOneWidget);
     },
   );
 }

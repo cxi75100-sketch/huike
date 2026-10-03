@@ -98,6 +98,15 @@ void main() {
             sections: sections,
             textScale: scale,
           );
+          final decoration =
+              tester
+                      .widget<DecoratedBox>(
+                        find.byKey(const ValueKey('course-block-course-2')),
+                      )
+                      .decoration
+                  as BoxDecoration;
+          expect(decoration.gradient, isNull);
+          expect(decoration.color?.a, 1);
           expect(tester.takeException(), isNull);
           final grid = tester.getRect(
             find.byKey(const ValueKey('weekly-grid')),

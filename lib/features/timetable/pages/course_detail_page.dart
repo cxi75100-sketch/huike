@@ -34,6 +34,7 @@ class CourseDetailPage extends ConsumerWidget {
     final courseAsync = ref.watch(courseByIdProvider(courseId));
     final course = courseAsync.value;
     final bell = ref.watch(bellForActiveSchoolProvider);
+    final blur = heroSource == CourseHeroSourceContext.today ? 0.0 : null;
 
     if (courseAsync.isLoading && !courseAsync.hasValue) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -62,6 +63,7 @@ class CourseDetailPage extends ConsumerWidget {
       appBar: AppBar(
         actions: [
           GlassButton.icon(
+            blurSigma: blur,
             icon: Icons.edit_outlined,
             tooltip: '编辑',
             semanticLabel: '编辑课程',
@@ -70,6 +72,7 @@ class CourseDetailPage extends ConsumerWidget {
             size: 36,
           ),
           GlassButton.icon(
+            blurSigma: blur,
             icon: Icons.delete_outline,
             tooltip: '删除',
             semanticLabel: '删除课程',
@@ -92,6 +95,7 @@ class CourseDetailPage extends ConsumerWidget {
             _revealBody(
               context,
               GlassSurface(
+                blurSigma: blur,
                 padding: const EdgeInsets.all(16),
                 child: _SectionRoute(
                   startSection: course.startSection,
@@ -108,6 +112,7 @@ class CourseDetailPage extends ConsumerWidget {
             _revealBody(
               context,
               GlassSurface(
+                blurSigma: blur,
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [

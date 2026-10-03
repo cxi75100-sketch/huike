@@ -1,0 +1,11 @@
+{
+  "family": "urp",
+  "features": {
+    "matches": {"urp": true},
+    "loginFormPresent": false,
+    "timetableMarkerPresent": true
+  },
+  "courses": [
+    {"name": "Fixture URP Course", "day": 3, "startSection": 5, "endSection": 6, "weeks": [2, 4, 6]}
+  ]
+}

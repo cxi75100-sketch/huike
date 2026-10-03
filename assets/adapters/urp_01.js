@@ -157,8 +157,8 @@ async function fetchAndParseJwData() {
 
         return { courses, timeSlots };
     } catch (e) {
-        console.error("HTML解析失败详情:", e);
-        window.shiguangBridge.showToast("同步失败: " + e.message);
+        console.error("HTML解析失败");
+        window.shiguangBridge.showToast("同步失败，请确认课表页面已加载后重试。");
         return null;
     }
 }
@@ -166,12 +166,12 @@ async function fetchAndParseJwData() {
 /**
  * 辅助：保存数据到外部 APP
  */
-async function saveToApp(result) {
-    const courseSuccess = await window.shiguangBridgePromise.saveImportedCourses(JSON.stringify(result.courses));
+async function saveToApp(result, attemptId) {
+    const courseSuccess = await window.shiguangBridgePromise.saveImportedCourses(JSON.stringify(result.courses), attemptId);
     if (!courseSuccess) return false;
 
     if (result.timeSlots && result.timeSlots.length > 0) {
-        await window.shiguangBridgePromise.savePresetTimeSlots(JSON.stringify(result.timeSlots));
+        await window.shiguangBridgePromise.savePresetTimeSlots(JSON.stringify(result.timeSlots), attemptId);
     }
     return true;
 }
@@ -180,6 +180,7 @@ async function saveToApp(result) {
  * 流程控制流程
  */
 async function runImportFlow() {
+    const attemptId = window.__huikeAdapterContext?.attemptId;
     const alertResult = await window.shiguangBridgePromise.showAlert(
         "教务网页课表导入",
         "请确保您当前的网页已加载出课表视图后再开始导入",
@@ -190,9 +191,9 @@ async function runImportFlow() {
     const result = await fetchAndParseJwData();
     if (!result || result.courses.length === 0) return;
 
-    if (await saveToApp(result)) {
+    if (await saveToApp(result, attemptId)) {
         window.shiguangBridge.showToast(`成功从网页导入 ${result.courses.length} 个课程时段`);
-        window.shiguangBridge.notifyTaskCompletion(); 
+        window.shiguangBridge.notifyTaskCompletion(attemptId);
     }
 }
 

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../models/adapter_diagnostic.dart';
 import '../models/adapter_batch.dart';
 
 /// 一次导入会话在内存中的暂存区。
@@ -15,6 +16,13 @@ class AdapterImportSession {
     this.rawTimeSlots,
     this.rawConfig,
     this.normalized,
+    this.activeAttemptId,
+    this.adapterId,
+    this.adapterFamilyId,
+    this.adapterVariant,
+    this.attemptTokenRequired = false,
+    this.courseFieldAliases = const {},
+    this.diagnostics = const [],
     this.completed = false,
   });
 
@@ -22,6 +30,13 @@ class AdapterImportSession {
   final List<dynamic>? rawTimeSlots;
   final Map<String, dynamic>? rawConfig;
   final AdapterImportBatch? normalized;
+  final String? activeAttemptId;
+  final String? adapterId;
+  final String? adapterFamilyId;
+  final String? adapterVariant;
+  final bool attemptTokenRequired;
+  final Map<String, String> courseFieldAliases;
+  final List<AdapterAttemptDiagnostic> diagnostics;
   final bool completed;
 }
 
@@ -31,34 +46,87 @@ class ImportSessionNotifier extends Notifier<AdapterImportSession> {
   @override
   AdapterImportSession build() => const AdapterImportSession();
 
-  bool stageCourses(String rawJson) {
+  void beginAttempt({
+    required String attemptId,
+    required String adapterId,
+    required String familyId,
+    required bool tokenRequired,
+    Map<String, String> courseFieldAliases = const {},
+    String? variant,
+  }) {
+    state = AdapterImportSession(
+      activeAttemptId: attemptId,
+      adapterId: adapterId,
+      adapterFamilyId: familyId,
+      adapterVariant: variant,
+      attemptTokenRequired: tokenRequired,
+      courseFieldAliases: Map.unmodifiable(courseFieldAliases),
+    );
+  }
+
+  bool acceptsAttempt(String? attemptId) {
+    final active = state.activeAttemptId;
+    if (active == null) return attemptId == null;
+    if (attemptId == null) return !state.attemptTokenRequired;
+    return attemptId == active;
+  }
+
+  bool stageCourses(String rawJson, {String? attemptId}) {
+    if (!acceptsAttempt(attemptId)) return false;
     final decoded = _decodeList(rawJson);
     if (decoded == null) return false;
     _rebuild(rawCourses: decoded);
     return true;
   }
 
-  bool stageTimeSlots(String rawJson) {
+  bool stageTimeSlots(String rawJson, {String? attemptId}) {
+    if (!acceptsAttempt(attemptId)) return false;
     final decoded = _decodeList(rawJson);
     if (decoded == null) return false;
     _rebuild(rawTimeSlots: decoded);
     return true;
   }
 
-  bool stageConfig(String rawJson) {
+  bool stageConfig(String rawJson, {String? attemptId}) {
+    if (!acceptsAttempt(attemptId)) return false;
     final decoded = _decodeMap(rawJson);
     if (decoded == null) return false;
     _rebuild(rawConfig: decoded);
     return true;
   }
 
-  void complete() {
+  void complete({String? attemptId}) {
+    if (!acceptsAttempt(attemptId)) return;
     state = AdapterImportSession(
       rawCourses: state.rawCourses,
       rawTimeSlots: state.rawTimeSlots,
       rawConfig: state.rawConfig,
       normalized: state.normalized,
+      activeAttemptId: state.activeAttemptId,
+      adapterId: state.adapterId,
+      adapterFamilyId: state.adapterFamilyId,
+      adapterVariant: state.adapterVariant,
+      attemptTokenRequired: state.attemptTokenRequired,
+      courseFieldAliases: state.courseFieldAliases,
+      diagnostics: state.diagnostics,
       completed: true,
+    );
+  }
+
+  void setDiagnostics(List<AdapterAttemptDiagnostic> diagnostics) {
+    state = AdapterImportSession(
+      rawCourses: state.rawCourses,
+      rawTimeSlots: state.rawTimeSlots,
+      rawConfig: state.rawConfig,
+      normalized: state.normalized,
+      activeAttemptId: state.activeAttemptId,
+      adapterId: state.adapterId,
+      adapterFamilyId: state.adapterFamilyId,
+      adapterVariant: state.adapterVariant,
+      attemptTokenRequired: state.attemptTokenRequired,
+      courseFieldAliases: state.courseFieldAliases,
+      diagnostics: List.unmodifiable(diagnostics),
+      completed: state.completed,
     );
   }
 
@@ -78,12 +146,20 @@ class ImportSessionNotifier extends Notifier<AdapterImportSession> {
       rawCourses: courses ?? const [],
       rawTimeSlots: slots,
       rawConfig: config,
+      courseFieldAliases: state.courseFieldAliases,
     );
     state = AdapterImportSession(
       rawCourses: courses,
       rawTimeSlots: slots,
       rawConfig: config,
       normalized: batch,
+      activeAttemptId: state.activeAttemptId,
+      adapterId: state.adapterId,
+      adapterFamilyId: state.adapterFamilyId,
+      adapterVariant: state.adapterVariant,
+      attemptTokenRequired: state.attemptTokenRequired,
+      courseFieldAliases: state.courseFieldAliases,
+      diagnostics: state.diagnostics,
       completed: false,
     );
   }

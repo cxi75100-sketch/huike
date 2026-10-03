@@ -55,7 +55,7 @@ class WeekSwipeState extends ChangeNotifier {
 ///
 /// - 拖动过程：三页（上一周 / 本周 / 下一周）跟着手指平移，[state] 同步广播进度；
 /// - 松手：按「位置 + 速度」决定提交还是回位，两个方向都用弹簧落位；
-/// - 一次手势只在松手时提交一次；落位期间开始的手势整次忽略；
+/// - 一次手势只在松手时提交一次；新的拖动可立即结束上一段落位；
 /// - Reduced Motion：不位移，只按阈值提交。
 /// 一次拖拽的提交判定：位置与速度一起看。
 ///
@@ -187,14 +187,16 @@ class _WeekSwipePagerState extends State<WeekSwipePager>
   bool get _canGoPrevious => widget.previous != null;
   bool get _canGoNext => widget.next != null;
 
-  /// 箭头 / 回本周请求：+1 下一周，-1 上一周。
+  /// 箭头 / 回本周请求立即切换，不等待滑动落位。
   void _step(int direction) {
     if (direction > 0 ? !_canGoNext : !_canGoPrevious) return;
     // 按钮仍走既有切周路径，但已经接管的拖动不能再于松手时提交。
     _gestureAccepted = false;
     _dragActive = false;
     widget.state.dragging = false;
-    _settle(-direction.toDouble(), velocity: 0);
+    _offset.stop();
+    _target = null;
+    _finish(-direction.toDouble());
   }
 
   void _settle(double target, {double velocity = 0}) {
@@ -218,13 +220,24 @@ class _WeekSwipePagerState extends State<WeekSwipePager>
   }
 
   void _handleDragDown(DragDownDetails details) {
-    // 在 pointer down 锁定资格，而非等 drag start：动画期间按下，
-    // 即使等到动画结束再移动，也不能接管下一周。
-    _gestureAccepted = _target == null && !_offset.isAnimating;
+    _gestureAccepted = true;
   }
 
   void _handleDragStart(DragStartDetails details) {
     if (!_gestureAccepted) return;
+    // Only an accepted horizontal drag interrupts settling; a tap on a course
+    // or a vertical scroll must not commit another week.
+    final pending = _target;
+    if (pending != null) {
+      _offset.stop();
+      _target = null;
+      if (pending != 0) {
+        _finish(pending);
+      } else {
+        _offset.value = 0;
+        widget.state.reset();
+      }
+    }
     _dragActive = true;
     _dragPixels = 0;
     widget.state.dragging = true;

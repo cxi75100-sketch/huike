@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart';
 
+import 'legacy_database_import.dart';
+
 import '../../models/bell_schedule.dart';
 import '../../models/calendar_exception.dart';
 import '../../models/school_profile.dart';
@@ -23,10 +25,12 @@ class Schools extends Table {
   /// 内置学校档案 id（如南工）；空串表示走通用兜底作息。
   TextColumn get presetId => text().withDefault(const Constant(''))();
   TextColumn get loginUrl => text().withDefault(const Constant(''))();
-  TextColumn get acceptedHostsJson => text().withDefault(const Constant('[]'))();
+  TextColumn get acceptedHostsJson =>
+      text().withDefault(const Constant('[]'))();
 
   /// 按教室匹配的作息变体（ScheduleVariant 列表 JSON）。
-  TextColumn get scheduleVariantsJson => text().withDefault(const Constant('[]'))();
+  TextColumn get scheduleVariantsJson =>
+      text().withDefault(const Constant('[]'))();
   DateTimeColumn get createdAt => dateTime()();
 
   @override
@@ -139,8 +143,8 @@ extension SchoolRowMapping on School {
     adapterId: adapterId,
     presetId: presetId,
     loginUrl: loginUrl,
-    acceptedHosts:
-        (jsonDecode(acceptedHostsJson) as List<dynamic>).cast<String>(),
+    acceptedHosts: (jsonDecode(acceptedHostsJson) as List<dynamic>)
+        .cast<String>(),
     scheduleVariants: schoolVariantsFromRow(this),
     createdAt: createdAt,
   );
@@ -173,41 +177,49 @@ extension CalendarExceptionRowMapping on CalendarExceptionRow {
   );
 }
 
-BellSchedule bellScheduleFromRows(List<SectionTimeEntry> rows) =>
-    BellSchedule(
-      sections:
-          rows
-              .map(
-                (row) => SectionSpec(
-                  index: row.sectionIndex,
-                  start: row.start,
-                  end: row.end,
-                  group: row.periodGroup,
-                ),
-              )
-              .toList(),
-    );
+BellSchedule bellScheduleFromRows(List<SectionTimeEntry> rows) => BellSchedule(
+  sections: rows
+      .map(
+        (row) => SectionSpec(
+          index: row.sectionIndex,
+          start: row.start,
+          end: row.end,
+          group: row.periodGroup,
+        ),
+      )
+      .toList(),
+);
 
 String encodeWeeks(List<int> weeks) => jsonEncode(weeks);
 
 String encodeHosts(List<String> hosts) => jsonEncode(hosts);
 
-@DriftDatabase(tables: [
-  Schools,
-  Semesters,
-  CourseEntries,
-  SectionTimeEntries,
-  CalendarExceptions,
-  Settings,
-])
+@DriftDatabase(
+  tables: [
+    Schools,
+    Semesters,
+    CourseEntries,
+    SectionTimeEntries,
+    CalendarExceptions,
+    Settings,
+  ],
+)
 class AppDatabase extends _$AppDatabase {
-  AppDatabase(super.e);
+  AppDatabase(super.e, {this.legacyDatabasePath});
+
+  /// The awaited open hook runs before any provider can observe the
+  /// destination database. Tests may omit the optional source resolver.
+  final Future<String?> Function()? legacyDatabasePath;
 
   @override
   int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
+    beforeOpen: (_) async {
+      final path = await legacyDatabasePath?.call();
+      if (path != null) await importLegacyDatabase(this, path);
+    },
     onUpgrade: (migrator, from, to) async {
       if (from < 2) {
         // v2：学校档案新增内置预设 id 与作息变体列；老数据走通用兜底语义不变。
@@ -228,15 +240,15 @@ class AppDatabase extends _$AppDatabase {
   Future<void> ensureDefaults() async {}
 
   Future<String> settingValue(String key, {String fallback = ''}) async {
-    final row =
-        await (select(settings)..where((t) => t.key.equals(key)))
-            .getSingleOrNull();
+    final row = await (select(
+      settings,
+    )..where((t) => t.key.equals(key))).getSingleOrNull();
     return row?.value ?? fallback;
   }
 
   Future<void> setSetting(String key, String value) async {
-    await into(settings).insertOnConflictUpdate(
-      SettingsCompanion.insert(key: key, value: value),
-    );
+    await into(
+      settings,
+    ).insertOnConflictUpdate(SettingsCompanion.insert(key: key, value: value));
   }
 }

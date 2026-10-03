@@ -13,6 +13,8 @@ import 'package:huike_timetable/features/timetable/providers/timetable_providers
 import 'package:huike_timetable/features/timetable/widgets/today_timeline.dart';
 import 'package:huike_timetable/models/bell_schedule.dart';
 import 'package:huike_timetable/models/course.dart';
+import 'package:huike_timetable/models/school_profile.dart';
+import 'package:huike_timetable/features/schools/providers/school_providers.dart';
 import 'package:huike_timetable/services/calendar_exception_service.dart';
 
 Course course(
@@ -38,10 +40,10 @@ Course course(
 );
 
 List<Course> fourCourses() => [
-  course('a', '08:20', '09:50'),
-  course('b', '10:00', '11:30'),
-  course('c', '14:00', '15:30'),
-  course('d', '15:40', '17:10'),
+  course('a', '08:20', '09:50').copyWith(colorKey: 0),
+  course('b', '10:00', '11:30').copyWith(colorKey: 2),
+  course('c', '14:00', '15:30').copyWith(colorKey: 3),
+  course('d', '15:40', '17:10').copyWith(colorKey: 8),
 ];
 
 void main() {
@@ -64,6 +66,7 @@ void main() {
     double width = 390,
     double scale = 1,
     bool dark = false,
+    bool showCurrentTime = true,
     ValueChanged<Course>? onTap,
   }) async {
     tester.view.physicalSize = Size(width, 800);
@@ -73,13 +76,23 @@ void main() {
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
     await tester.pumpWidget(
       MaterialApp(
-        theme: dark ? AppTheme.dark() : AppTheme.light(),
-        home: Scaffold(
-          body: TodayTimeline(
-            courses: courses,
-            schedule: BellSchedule.fallback(),
-            now: DateTime(2026, 9, 27, hour, minute),
-            onCourseTap: onTap ?? (_) {},
+        theme: (dark ? AppTheme.dark() : AppTheme.light()).copyWith(
+          textTheme: Platform.environment['HUIKE_TODAY_QA_DIR'] == null
+              ? null
+              : (dark ? AppTheme.dark() : AppTheme.light()).textTheme.apply(
+                  fontFamily: 'TodayQA',
+                ),
+        ),
+        home: RepaintBoundary(
+          key: const ValueKey('today-status-qa'),
+          child: Scaffold(
+            body: TodayTimeline(
+              courses: courses,
+              schedule: BellSchedule.fallback(),
+              now: DateTime(2026, 9, 27, hour, minute),
+              onCourseTap: onTap ?? (_) {},
+              showCurrentTime: showCurrentTime,
+            ),
           ),
         ),
       ),
@@ -90,13 +103,44 @@ void main() {
   Rect card(WidgetTester tester, String id) =>
       tester.getRect(find.byKey(ValueKey('today-course-$id')));
 
+  for (final dark in [false, true]) {
+    testWidgets('三种今日状态有明确文字且不重复当前时间 dark=$dark', (tester) async {
+      for (final (hour, label, state) in [
+        (9, '进行中 · 09:50结束', 'active'),
+        (12, '下一节还有2小时', 'between'),
+        (20, '今日课程已结束', 'after'),
+      ]) {
+        await pumpTimeline(tester, fourCourses(), hour: hour, dark: dark);
+        expect(find.text(label), findsOneWidget);
+        expect(find.text('$hour:00'), findsNothing);
+        final qaDirectory = Platform.environment['HUIKE_TODAY_QA_DIR'];
+        if (qaDirectory != null) {
+          final boundary = tester.renderObject<RenderRepaintBoundary>(
+            find.byKey(const ValueKey('today-status-qa')),
+          );
+          await tester.runAsync(() async {
+            final capture = await boundary.toImage();
+            final data = await capture.toByteData(
+              format: ui.ImageByteFormat.png,
+            );
+            await Directory(qaDirectory).create(recursive: true);
+            await File(
+              '$qaDirectory/status-$state-${dark ? 'dark' : 'light'}.png',
+            ).writeAsBytes(data!.buffer.asUint8List());
+            capture.dispose();
+          });
+        }
+      }
+    });
+  }
+
   testWidgets('90分钟与六小时课程内容定高，duration不撑高卡片', (tester) async {
     await pumpTimeline(tester, [
       course('a', '08:20', '09:50'),
       course('b', '10:00', '16:00'),
     ]);
-    expect(card(tester, 'a').height, inInclusiveRange(130, 180));
-    expect(card(tester, 'b').height, closeTo(card(tester, 'a').height, 0.1));
+    expect(card(tester, 'a').height, inInclusiveRange(100.5, 150));
+    expect(card(tester, 'b').height, closeTo(134 * 0.75, 0.1));
     expect(find.textContaining('10:00 - 16:00'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -149,7 +193,7 @@ void main() {
     );
     expect(marker.top, greaterThanOrEqualTo(card(tester, 'a').top));
     expect(marker.bottom, lessThanOrEqualTo(card(tester, 'a').bottom));
-    expect(find.text('进行中'), findsOneWidget);
+    expect(find.text('进行中 · 09:50结束'), findsOneWidget);
     expect(find.byKey(const ValueKey('today-now-between')), findsNothing);
     final firstY = marker.top;
     await pumpTimeline(tester, fourCourses(), hour: 9, minute: 40);
@@ -168,16 +212,20 @@ void main() {
       expect(marker.top, greaterThanOrEqualTo(card(tester, 'a').bottom));
       expect(marker.bottom, lessThanOrEqualTo(card(tester, 'b').top));
       expect(find.text('进行中'), findsNothing);
+      expect(find.text('下一节还有${60 - minute}分钟'), findsOneWidget);
     }
   });
 
   testWidgets('课前与课后indicator位于首尾，空Today无伪造时间节点', (tester) async {
     await pumpTimeline(tester, fourCourses(), hour: 7);
+    expect(find.text('下一节还有1小时20分钟'), findsOneWidget);
     expect(
       tester.getRect(find.byKey(const ValueKey('today-now-before'))).bottom,
       lessThanOrEqualTo(card(tester, 'a').top),
     );
     await pumpTimeline(tester, fourCourses(), hour: 20);
+    expect(find.text('今日课程已结束'), findsOneWidget);
+    expect(find.text('20:00'), findsNothing);
     expect(
       tester.getRect(find.byKey(const ValueKey('today-now-after'))).top,
       greaterThanOrEqualTo(card(tester, 'd').bottom),
@@ -186,6 +234,19 @@ void main() {
     expect(find.text('今天没有课程'), findsOneWidget);
     expect(find.byType(GlassSurface), findsNothing);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('未知作息混入时不宣称全部结束，隐藏当前状态仍保留课程', (tester) async {
+    await pumpTimeline(tester, [
+      course('a', '08:20', '09:50'),
+      course('u', 'bad', 'bad'),
+    ], hour: 20);
+    expect(find.text('今日课程已结束'), findsNothing);
+    await pumpTimeline(tester, fourCourses(), showCurrentTime: false);
+    expect(find.text('课程 a'), findsOneWidget);
+    expect(find.byKey(const ValueKey('today-now-course-a')), findsNothing);
+    expect(find.byKey(const ValueKey('today-now-after')), findsNothing);
+    expect(find.textContaining('下一节还有'), findsNothing);
   });
 
   testWidgets('单课程保留所有信息、Glass/tint与点击；未知时间不假造indicator', (tester) async {
@@ -218,11 +279,57 @@ void main() {
     ], hour: 11);
     expect(find.byKey(const ValueKey('today-now-course-a')), findsOneWidget);
     expect(find.byKey(const ValueKey('today-now-course-b')), findsNothing);
-    expect(find.text('进行中'), findsOneWidget);
+    expect(find.text('进行中 · 12:00结束'), findsOneWidget);
     expect(find.text('已结束'), findsOneWidget);
     expect(card(tester, 'c').top - card(tester, 'b').bottom, 24);
     expect(tester.takeException(), isNull);
   });
+
+  for (final dark in [false, true]) {
+    testWidgets('窄屏大字号完整显示长课程字段，无省略 dark=$dark', (tester) async {
+      final item =
+          course(
+            'long',
+            '08:20',
+            '09:50',
+            name: '复杂工程系统建模与跨学科实验研究方法导论',
+            note: '请携带实验记录本与教材，完成课前准备练习并记录每一步实验结果，课后提交完整报告。',
+          ).copyWith(
+            classroom: '九龙湖校区西区实训中心三号楼A010实验室',
+            teacher: '联合授课教师与实验指导教师',
+            weeks: List.generate(20, (i) => i + 1),
+          );
+      await pumpTimeline(tester, [item], width: 360, scale: 2, dark: dark);
+      final courseFinder = find.byKey(const ValueKey('today-course-long'));
+      for (final value in [
+        item.name,
+        item.classroom,
+        item.teacher,
+        item.note,
+      ]) {
+        expect(find.text(value), findsOneWidget);
+        expect(
+          tester.getRect(find.text(value)).bottom,
+          lessThanOrEqualTo(card(tester, 'long').bottom),
+        );
+      }
+      for (final paragraph
+          in find
+              .descendant(of: courseFinder, matching: find.byType(RichText))
+              .evaluate()) {
+        expect(
+          (paragraph.renderObject! as RenderParagraph).didExceedMaxLines,
+          isFalse,
+        );
+      }
+      expect(card(tester, 'long').height, greaterThan(134 * 0.75));
+      expect(
+        tester.widget<GlassSurface>(find.byType(GlassSurface)).solidColor,
+        isNotNull,
+      );
+      expect(tester.takeException(), isNull);
+    });
+  }
 
   for (final width in [360.0, 390.0, 430.0]) {
     for (final scale in [1.0, 1.3]) {
@@ -238,6 +345,16 @@ void main() {
           await tester.pumpWidget(
             ProviderScope(
               overrides: [
+                activeSchoolProvider.overrideWith(
+                  (ref) => SchoolProfile(
+                    id: 'qa',
+                    displayName: '合成学校',
+                    adapterId: '',
+                    loginUrl: '',
+                    acceptedHosts: const [],
+                    createdAt: DateTime(2026, 1, 1),
+                  ),
+                ),
                 todayCoursesProvider.overrideWith((ref) => fourCourses()),
                 todayDayScheduleProvider.overrideWith(
                   (ref) => const DaySchedule(weekday: 1, suspended: false),
@@ -270,7 +387,7 @@ void main() {
           expect(card(tester, 'b').bottom, lessThanOrEqualTo(viewport.bottom));
           expect(card(tester, 'c').top + 50, lessThan(viewport.bottom));
           for (final id in ['a', 'b', 'c', 'd']) {
-            expect(card(tester, id).height, inInclusiveRange(130, 200));
+            expect(card(tester, id).height, inInclusiveRange(100.5, 200));
             expect(card(tester, id).right, lessThanOrEqualTo(width));
           }
           expect(

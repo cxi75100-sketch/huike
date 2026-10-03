@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:huike_timetable/core/theme/app_theme.dart';
-import 'package:huike_timetable/core/theme/app_palette.dart';
 import 'package:huike_timetable/features/timetable/models/course_block_layout.dart';
 import 'package:huike_timetable/features/timetable/models/timetable_layout.dart';
 import 'package:huike_timetable/features/timetable/widgets/timetable_course_block.dart';
@@ -64,9 +63,8 @@ void main() {
 
   for (final dark in [false, true]) {
     testWidgets(
-      'small text keeps contrast across eight course colors in ${dark ? "dark" : "light"}',
+      'small text keeps contrast across sixteen solid colors in ${dark ? "dark" : "light"}',
       (tester) async {
-        final palette = dark ? AppPalette.dark : AppPalette.light;
         void checkContrast() {
           final decoration =
               tester
@@ -76,20 +74,18 @@ void main() {
                       .decoration
                   as BoxDecoration;
           final textColor = tester.widget<Text>(find.text('张冠男')).style!.color!;
-          for (final background in [palette.background, palette.surfaceAlt]) {
-            for (final stop in decoration.gradient!.colors) {
-              final surface = Color.alphaBlend(stop, background);
-              final a = textColor.computeLuminance();
-              final b = surface.computeLuminance();
-              final ratio = a > b
-                  ? (a + 0.05) / (b + 0.05)
-                  : (b + 0.05) / (a + 0.05);
-              expect(ratio, greaterThanOrEqualTo(4.5));
-            }
-          }
+          expect(decoration.gradient, isNull);
+          final surface = decoration.color!;
+          expect(surface.a, 1);
+          final a = textColor.computeLuminance();
+          final b = surface.computeLuminance();
+          final ratio = a > b
+              ? (a + 0.05) / (b + 0.05)
+              : (b + 0.05) / (a + 0.05);
+          expect(ratio, greaterThanOrEqualTo(4.5));
         }
 
-        for (var key = 0; key < 8; key++) {
+        for (var key = 0; key < 16; key++) {
           await pumpBlock(tester, dark: dark, colorKey: key);
           checkContrast();
           final gesture = await tester.startGesture(
@@ -130,7 +126,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
     testWidgets(
-      'glass tint distinguishes courses and responds to press in ${dark ? "dark" : "light"}',
+      'solid colors distinguish courses and stay single during press in ${dark ? "dark" : "light"}',
       (tester) async {
         BoxDecoration decoration() =>
             tester
@@ -143,8 +139,8 @@ void main() {
         final first = decoration();
         await pumpBlock(tester, dark: dark, colorKey: 2);
         final second = decoration();
-        expect(second.gradient, isNot(first.gradient));
-        expect(second.border, isNot(first.border));
+        expect(second.color, isNot(first.color));
+        expect(second.gradient, isNull);
         final border = second.border! as Border;
         expect(border.left, border.right);
         expect(border.left, border.top);
@@ -154,7 +150,9 @@ void main() {
         );
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 100));
-        expect(decoration().gradient, isNot(second.gradient));
+        expect(decoration().color, second.color);
+        expect(decoration().gradient, isNull);
+        expect(decoration().border, isNot(second.border));
         await gesture.up();
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);

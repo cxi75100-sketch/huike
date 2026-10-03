@@ -9,6 +9,7 @@ import '../../../core/glass/glass_metrics.dart';
 import '../../../core/glass/glass_motion.dart';
 import '../../../core/glass/glass_surface.dart';
 import '../../../core/theme/app_theme.dart';
+import 'week_swipe.dart';
 
 /// Root-only geometry; this overlay does not resize the Weekly viewport.
 abstract final class RootSwitcherLayout {
@@ -191,10 +192,21 @@ class RetainedTimetablePages extends StatelessWidget {
   }
 }
 
-class _FloatingSwitcher extends StatelessWidget {
+class _FloatingSwitcher extends StatefulWidget {
   const _FloatingSwitcher({required this.progress, required this.onSelect});
   final Animation<double> progress;
   final ValueChanged<int> onSelect;
+
+  @override
+  State<_FloatingSwitcher> createState() => _FloatingSwitcherState();
+}
+
+class _FloatingSwitcherState extends State<_FloatingSwitcher> {
+  Animation<double> get progress => widget.progress;
+  ValueChanged<int> get onSelect => widget.onSelect;
+  double _dragPixels = 0;
+  bool _dragActive = false;
+  int? _pointer;
 
   @override
   Widget build(BuildContext context) {
@@ -206,116 +218,154 @@ class _FloatingSwitcher extends StatelessWidget {
       builder: (context, constraints) {
         final width = math.min(272.0, constraints.maxWidth);
         final cell = (width - 12) / 2;
-        return SizedBox(
-          key: const ValueKey('root-switcher'),
-          width: width,
-          height: RootSwitcherLayout.height,
-          child: GlassSurface(
-            radius: RootSwitcherLayout.height / 2,
-            intensity: GlassIntensity.subtle,
-            depth: 0.35,
-            padding: const EdgeInsets.all(6),
-            child: AnimatedBuilder(
-              animation: progress,
-              child: RepaintBoundary(
-                child: SizedBox(
-                  key: const ValueKey('root-active-capsule'),
-                  width: cell,
-                  height: RootSwitcherLayout.height - 12,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(26),
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Colors.white.withValues(alpha: dark ? 0.16 : 0.78),
-                          Colors.white.withValues(alpha: dark ? 0.07 : 0.38),
-                        ],
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(
-                            alpha: dark ? 0.10 : 0.035,
+        return Listener(
+          onPointerDown: (event) => _pointer ??= event.pointer,
+          onPointerUp: (event) {
+            if (_pointer == event.pointer) _pointer = null;
+          },
+          onPointerCancel: (event) {
+            if (_pointer != event.pointer) return;
+            _pointer = null;
+            _dragActive = false;
+          },
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onHorizontalDragStart: (_) {
+              _dragPixels = 0;
+              _dragActive = true;
+            },
+            onHorizontalDragUpdate: (details) {
+              if (_dragActive) _dragPixels += details.primaryDelta ?? 0;
+            },
+            onHorizontalDragCancel: () => _dragActive = false,
+            onHorizontalDragEnd: (details) {
+              if (!_dragActive) return;
+              _dragActive = false;
+              final direction = weekSwipeTarget(
+                dragPixels: _dragPixels,
+                velocityPx: details.primaryVelocity ?? 0,
+                width: width,
+              );
+              if (direction != 0) onSelect(direction > 0 ? 1 : 0);
+            },
+            child: SizedBox(
+              key: const ValueKey('root-switcher'),
+              width: width,
+              height: RootSwitcherLayout.height,
+              child: GlassSurface(
+                radius: RootSwitcherLayout.height / 2,
+                intensity: GlassIntensity.subtle,
+                depth: 0.35,
+                padding: const EdgeInsets.all(6),
+                child: AnimatedBuilder(
+                  animation: progress,
+                  child: RepaintBoundary(
+                    child: SizedBox(
+                      key: const ValueKey('root-active-capsule'),
+                      width: cell,
+                      height: RootSwitcherLayout.height - 12,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(26),
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              Colors.white.withValues(
+                                alpha: dark ? 0.16 : 0.78,
+                              ),
+                              Colors.white.withValues(
+                                alpha: dark ? 0.07 : 0.38,
+                              ),
+                            ],
                           ),
-                          blurRadius: 7,
-                          offset: const Offset(0, 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(
+                                alpha: dark ? 0.10 : 0.035,
+                              ),
+                              blurRadius: 7,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
-                ),
-              ),
-              builder: (context, capsule) => Stack(
-                children: [
-                  Transform.translate(
-                    offset: Offset(cell * progress.value, 0),
-                    child: capsule,
-                  ),
-                  Row(
+                  builder: (context, capsule) => Stack(
                     children: [
-                      for (var i = 0; i < 2; i++)
-                        Expanded(
-                          child: Semantics(
-                            selected: i == selected,
-                            button: true,
-                            label: i == 0 ? '今日' : '周课表',
-                            child: Tooltip(
-                              message: i == 0 ? '今日课程' : '周课表',
-                              child: GestureDetector(
-                                key: ValueKey(
-                                  i == 0 ? 'root-tab-today' : 'root-tab-weekly',
-                                ),
-                                behavior: HitTestBehavior.opaque,
-                                onTap: () => onSelect(i),
-                                child: ExcludeSemantics(
-                                  child: SizedBox(
-                                    height: RootSwitcherLayout.height - 12,
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Icon(
-                                          i == 0
-                                              ? Icons.today_outlined
-                                              : Icons
-                                                    .calendar_view_week_rounded,
-                                          size: 20,
-                                          color: Color.lerp(
-                                            palette.inkSecondary,
-                                            palette.ink,
-                                            i == 0
-                                                ? 1 - progress.value
-                                                : progress.value,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 7),
-                                        Text(
-                                          i == 0 ? '今日' : '周课表',
-                                          style: TextStyle(
-                                            inherit: false,
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600,
-                                            color: Color.lerp(
-                                              palette.inkSecondary,
-                                              palette.ink,
+                      Transform.translate(
+                        offset: Offset(cell * progress.value, 0),
+                        child: capsule,
+                      ),
+                      Row(
+                        children: [
+                          for (var i = 0; i < 2; i++)
+                            Expanded(
+                              child: Semantics(
+                                selected: i == selected,
+                                button: true,
+                                label: i == 0 ? '今日' : '周课表',
+                                child: Tooltip(
+                                  message: i == 0 ? '今日课程' : '周课表',
+                                  child: GestureDetector(
+                                    key: ValueKey(
+                                      i == 0
+                                          ? 'root-tab-today'
+                                          : 'root-tab-weekly',
+                                    ),
+                                    behavior: HitTestBehavior.opaque,
+                                    onTap: () => onSelect(i),
+                                    child: ExcludeSemantics(
+                                      child: SizedBox(
+                                        height: RootSwitcherLayout.height - 12,
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
                                               i == 0
-                                                  ? 1 - progress.value
-                                                  : progress.value,
+                                                  ? Icons.today_outlined
+                                                  : Icons
+                                                        .calendar_view_week_rounded,
+                                              size: 20,
+                                              color: Color.lerp(
+                                                palette.inkSecondary,
+                                                palette.ink,
+                                                i == 0
+                                                    ? 1 - progress.value
+                                                    : progress.value,
+                                              ),
                                             ),
-                                          ),
+                                            const SizedBox(width: 7),
+                                            Text(
+                                              i == 0 ? '今日' : '周课表',
+                                              style: TextStyle(
+                                                inherit: false,
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                                color: Color.lerp(
+                                                  palette.inkSecondary,
+                                                  palette.ink,
+                                                  i == 0
+                                                      ? 1 - progress.value
+                                                      : progress.value,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                      ],
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                        ),
+                        ],
+                      ),
                     ],
                   ),
-                ],
+                ),
               ),
             ),
           ),

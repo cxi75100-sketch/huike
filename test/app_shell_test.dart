@@ -6,6 +6,7 @@ import 'package:huike_timetable/app.dart';
 import 'package:huike_timetable/core/database/app_database.dart';
 import 'package:huike_timetable/core/database/database_provider.dart';
 import 'package:huike_timetable/core/glass/glass_dialog.dart';
+import 'package:huike_timetable/core/router/app_router.dart';
 import 'package:huike_timetable/core/theme/theme_preference.dart';
 import 'package:huike_timetable/core/theme/theme_preference_provider.dart';
 import 'package:huike_timetable/features/import/services/course_repository.dart';
@@ -41,14 +42,31 @@ void main() {
     return container;
   }
 
-  testWidgets('全新安装先进入引导页', (tester) async {
+  testWidgets('全新安装直接进入首页且不创建学校', (tester) async {
+    tester.view.physicalSize = const Size(320, 568);
+    tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+    addTearDown(tester.view.reset);
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
     await pumpApp(tester);
-    expect(find.text('欢迎使用汇课'), findsOneWidget);
-    expect(find.text('创建学校'), findsOneWidget);
+    expect(find.text('你的课表，从这里开始'), findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
+    expect(await db.select(db.schools).get(), isEmpty);
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.byTooltip('今日课程'));
+    await tester.pumpAndSettle();
+    expect(find.text('还没有课程'), findsOneWidget);
+    await tester.tap(find.text('导入课表'));
+    await tester.pumpAndSettle();
+    expect(find.text('准备导入课表'), findsOneWidget);
+    expect(find.widgetWithText(TextField, '学校名称（必填）'), findsOneWidget);
+    expect(await db.select(db.schools).get(), isEmpty);
   });
 
   testWidgets('创建学校与学期后进入课表首页', (tester) async {
     final container = await pumpApp(tester);
+    container.read(appRouterProvider).push('/onboarding');
+    await tester.pumpAndSettle();
 
     // 走真实交互：填名称 → 点底部 CTA。
     await tester.enterText(find.widgetWithText(TextField, '学校名称（必填）'), '测试大学');
@@ -72,6 +90,85 @@ void main() {
     for (var day = 1; day <= 7; day++) {
       expect(find.byKey(ValueKey('weekday-$day')), findsOneWidget);
     }
+  });
+
+  testWidgets('首次导入建校后继续导入，返回仍可浏览首页', (tester) async {
+    final container = await pumpApp(tester);
+    await tester.tap(find.text('导入课表'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, '学校名称（必填）'), '合成大学');
+    await tester.tap(find.text('创建学校'));
+    await tester.pumpAndSettle();
+    expect(
+      container.read(appRouterProvider).routerDelegate.state.uri.path,
+      '/import',
+    );
+    expect(find.text('合成大学'), findsOneWidget);
+    expect(find.text('确认并进入教务登录'), findsOneWidget);
+    expect((await db.select(db.schools).get()).single.displayName, '合成大学');
+    expect(container.read(appRouterProvider).canPop(), isTrue);
+    container.read(appRouterProvider).pop();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('weekly-grid')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('导入时切换与新增学校保留原档案并更新网址', (tester) async {
+    final repository = SchoolRepository(db);
+    final first = await repository.createSchool(
+      displayName: '合成甲大学',
+      adapterId: '',
+      loginUrl: 'https://first.example.edu.cn',
+      confirmedHosts: const [],
+    );
+    final second = await repository.createSchool(
+      displayName: '合成乙大学',
+      adapterId: '',
+      loginUrl: 'https://second.example.edu.cn',
+      confirmedHosts: const [],
+    );
+    await repository.setActiveSchool(first.id);
+    final container = await pumpApp(tester);
+    container.read(appRouterProvider).push('/import');
+    await tester.pumpAndSettle();
+    expect(
+      find.widgetWithText(TextField, 'https://first.example.edu.cn'),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('更换学校'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('合成乙大学'));
+    await tester.pumpAndSettle();
+    expect(container.read(activeSchoolIdProvider).value, second.id);
+    expect(
+      container.read(appRouterProvider).routerDelegate.state.uri.path,
+      '/import',
+    );
+    expect(
+      find.widgetWithText(TextField, 'https://second.example.edu.cn'),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('更换学校'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('添加学校'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, '学校名称（必填）'), '合成丙大学');
+    await tester.tap(find.text('创建学校'));
+    await tester.pumpAndSettle();
+    expect(
+      container.read(appRouterProvider).routerDelegate.state.uri.path,
+      '/import',
+    );
+    expect(find.text('合成丙大学'), findsOneWidget);
+    expect(find.text('确认并进入教务登录'), findsOneWidget);
+    expect(await db.select(db.schools).get(), hasLength(3));
+    expect(
+      (await db.select(db.schools).get())
+          .firstWhere((s) => s.id == first.id)
+          .loginUrl,
+      'https://first.example.edu.cn',
+    );
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('空课周仍显示完整周课表', (tester) async {

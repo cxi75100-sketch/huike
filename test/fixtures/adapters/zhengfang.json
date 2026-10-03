@@ -1,0 +1,11 @@
+{
+  "family": "zhengfang",
+  "features": {
+    "matches": {"zhengfang": true},
+    "loginFormPresent": false,
+    "timetableMarkerPresent": true
+  },
+  "courses": [
+    {"name": "Fixture ZF Course", "day": 1, "startSection": 1, "endSection": 2, "weeks": [1, 2]}
+  ]
+}

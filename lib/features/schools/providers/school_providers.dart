@@ -7,26 +7,27 @@ import '../../../core/database/database_provider.dart';
 import '../../../models/bell_schedule.dart';
 import '../../../models/school_profile.dart';
 import '../../../models/semester.dart';
+import '../services/school_repository.dart';
 
 const _activeSchoolKey = 'active_school_id';
 
 String activeSemesterKey(String schoolId) => 'active_semester:$schoolId';
 
 /// 读取单个设置键的实时流；键不存在时发 null。
-final settingValueProvider = StreamProvider.family
-    .autoDispose<String?, String>((ref, key) {
-      final db = ref.watch(databaseProvider);
-      final query = db.select(db.settings)..where((t) => t.key.equals(key));
-      return query.watchSingleOrNull().map((row) => row?.value);
-    });
+final settingValueProvider = StreamProvider.family.autoDispose<String?, String>(
+  (ref, key) {
+    final db = ref.watch(databaseProvider);
+    final query = db.select(db.settings)..where((t) => t.key.equals(key));
+    return query.watchSingleOrNull().map((row) => row?.value);
+  },
+);
 
-final schoolsProvider = StreamProvider<List<SchoolProfile>>((ref) {
+final schoolsProvider = StreamProvider<List<SchoolProfile>>((ref) async* {
   final db = ref.watch(databaseProvider);
+  await ref.read(schoolRepositoryProvider).repairRetiredLoginUrls();
   final query = db.select(db.schools)
     ..orderBy([(t) => OrderingTerm.asc(t.createdAt)]);
-  return query.watch().map(
-    (rows) => rows.map((row) => row.toModel()).toList(),
-  );
+  yield* query.watch().map((rows) => rows.map((row) => row.toModel()).toList());
 });
 
 final activeSchoolIdProvider = StreamProvider<String?>((ref) {
@@ -37,7 +38,7 @@ final activeSchoolIdProvider = StreamProvider<String?>((ref) {
 });
 
 /// 当前激活的学校；一台设备同一时间只服务一所学校。
-/// 没有任何学校或未选择时为 null，首页据此进入引导。
+/// 没有任何学校或未选择时为 null，首页显示导入入口。
 final activeSchoolProvider = Provider<SchoolProfile?>((ref) {
   final schools = ref.watch(schoolsProvider).value ?? const [];
   final activeId = ref.watch(activeSchoolIdProvider).value;
@@ -93,7 +94,10 @@ final schoolBellProvider = Provider.family.autoDispose<BellSchedule, String>((
   final schools = ref.watch(schoolsProvider).value ?? const [];
   for (final school in schools) {
     if (school.id == schoolId) {
-      return BellSchedule(sections: base.sections, variants: school.scheduleVariants);
+      return BellSchedule(
+        sections: base.sections,
+        variants: school.scheduleVariants,
+      );
     }
   }
   return base;

@@ -1,7 +1,7 @@
 name: huike_timetable
 description: 汇课：多校通用课表 App。
 publish_to: 'none'
-version: 0.1.4+5
+version: 1.0.0+9
 
 environment:
   sdk: ^3.13.2
@@ -13,6 +13,7 @@ dependencies:
     sdk: flutter
   cupertino_icons: ^1.0.8
   drift: ^2.34.4
+  sqlite3: 3.5.2
   flutter_riverpod: ^3.4.3
   go_router: ^18.0.1
   path: ^1.9.1
@@ -22,6 +23,8 @@ dependencies:
   flutter_inappwebview: ^6.1.5
 
 dev_dependencies:
+  integration_test:
+    sdk: flutter
   flutter_test:
     sdk: flutter
   build_runner: ^2.16.1
@@ -30,7 +33,8 @@ dev_dependencies:
   flutter_launcher_icons: ^0.14.4
 
 # flutter_inappwebview_android 1.1.3 使用了 AGP 9 已移除的默认 ProGuard 文件。
-# 固定到项目内同版本源码，仅修正该构建配置，避免依赖本机 Pub Cache 补丁。
+# 固定到项目内同版本源码修正该构建配置，避免依赖本机 Pub Cache 补丁。
+# 同时接入导入浏览器同步导航策略，避免已确认的登录跳转被取消重发。
 dependency_overrides:
   flutter_inappwebview_android:
     path: third_party/flutter_inappwebview_android
@@ -46,6 +50,6 @@ flutter_launcher_icons:
   image_path_android: assets/icon/app_icon_android.png
   image_path_ios: assets/icon/app_icon_ios.png
   remove_alpha_ios: true
-  adaptive_icon_background: "#3057D5"
+  adaptive_icon_background: "#FFFFFF"
   adaptive_icon_foreground: assets/icon/foreground.png
   adaptive_icon_monochrome: assets/icon/foreground.png

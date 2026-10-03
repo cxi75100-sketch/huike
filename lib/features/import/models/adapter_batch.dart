@@ -80,13 +80,14 @@ class AdapterBatchNormalizer {
     required List<dynamic> rawCourses,
     List<dynamic>? rawTimeSlots,
     Map<String, dynamic>? rawConfig,
+    Map<String, String> courseFieldAliases = const {},
   }) {
     final reasons = <String>[];
     final courses = <AdapterCourseDraft>[];
     for (var i = 0; i < rawCourses.length; i++) {
-      final draft = _normalizeCourse(rawCourses[i]);
+      final draft = _normalizeCourse(rawCourses[i], courseFieldAliases);
       if (draft == null) {
-        reasons.add(_describe(rawCourses[i], i));
+        reasons.add(_describe(rawCourses[i], i, courseFieldAliases));
       } else {
         courses.add(draft);
       }
@@ -108,29 +109,50 @@ class AdapterBatchNormalizer {
     );
   }
 
-  AdapterCourseDraft? _normalizeCourse(Object? raw) {
+  AdapterCourseDraft? _normalizeCourse(
+    Object? raw,
+    Map<String, String> fieldAliases,
+  ) {
     if (raw is! Map) return null;
-    final name = _string(raw['name']);
+    final name = _string(_field(raw, fieldAliases, 'name', const ['name']));
     if (name.isEmpty) return null;
 
-    final weekday = _int(raw['day'] ?? raw['weekday']);
+    final weekday = _int(
+      _field(raw, fieldAliases, 'day', const ['day', 'weekday']),
+    );
     if (weekday == null || weekday < 1 || weekday > 7) return null;
 
-    final startSection = _int(raw['startSection'] ?? raw['start']);
+    final startSection = _int(
+      _field(raw, fieldAliases, 'startSection', const [
+        'startSection',
+        'start',
+      ]),
+    );
     if (startSection == null || startSection < 1 || startSection > 30) {
       return null;
     }
     final endSection =
-        _int(raw['endSection'] ?? raw['end']) ?? startSection;
+        _int(
+          _field(raw, fieldAliases, 'endSection', const ['endSection', 'end']),
+        ) ??
+        startSection;
     if (endSection < startSection || endSection > 30) return null;
 
-    final weeks = _normalizeWeeks(raw['weeks']);
+    final weeks = _normalizeWeeks(
+      _field(raw, fieldAliases, 'weeks', const ['weeks']),
+    );
     if (weeks == null || weeks.isEmpty) return null;
 
     return AdapterCourseDraft(
       name: name,
-      teacher: _string(raw['teacher']),
-      classroom: _string(raw['position'] ?? raw['classroom'] ?? raw['room']),
+      teacher: _string(_field(raw, fieldAliases, 'teacher', const ['teacher'])),
+      classroom: _string(
+        _field(raw, fieldAliases, 'position', const [
+          'position',
+          'classroom',
+          'room',
+        ]),
+      ),
       weekday: weekday,
       startSection: startSection,
       endSection: endSection,
@@ -200,14 +222,30 @@ class AdapterBatchNormalizer {
 
   String _string(Object? raw) => raw?.toString().trim() ?? '';
 
-  String _describe(Object? raw, int index) {
+  String _describe(Object? raw, int index, Map<String, String> fieldAliases) {
     if (raw is! Map) return '第 ${index + 1} 条：不是对象';
-    final name = _string(raw['name']);
+    final name = _string(_field(raw, fieldAliases, 'name', const ['name']));
     if (name.isEmpty) return '第 ${index + 1} 条：缺少课程名';
-    final weekday = _int(raw['day'] ?? raw['weekday']);
+    final weekday = _int(
+      _field(raw, fieldAliases, 'day', const ['day', 'weekday']),
+    );
     if (weekday == null || weekday < 1 || weekday > 7) {
       return '第 ${index + 1} 条：星期无法识别（$name）';
     }
     return '第 ${index + 1} 条：节次或周次无法识别（$name）';
+  }
+
+  Object? _field(
+    Map raw,
+    Map<String, String> aliases,
+    String canonical,
+    List<String> existingKeys,
+  ) {
+    final alias = aliases[canonical];
+    if (alias != null && raw.containsKey(alias)) return raw[alias];
+    for (final key in existingKeys) {
+      if (raw.containsKey(key)) return raw[key];
+    }
+    return null;
   }
 }

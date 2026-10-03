@@ -15,8 +15,10 @@ import '../../../models/course.dart';
 import '../../../models/semester.dart';
 import '../../../services/course_time_service.dart';
 import '../../schools/providers/school_providers.dart';
+import '../../schools/services/adapter_catalog.dart';
 import '../../schools/services/school_repository.dart';
 import '../models/adapter_batch.dart';
+import '../models/adapter_diagnostic.dart';
 import '../services/course_repository.dart';
 import '../services/import_diff.dart';
 import '../services/import_session.dart';
@@ -81,6 +83,11 @@ class _ImportPreviewPageState extends ConsumerState<ImportPreviewPage> {
     final diff = diffImportedCourses(existing, nextCourses);
 
     final config = batch.courseConfig;
+    final adapterName = ref
+        .watch(adapterCatalogProvider)
+        .value
+        ?.byId(session.adapterId ?? '')
+        ?.name;
     final showConfigOption =
         config.semesterStartDate != null || config.totalWeeks != null;
 
@@ -91,7 +98,14 @@ class _ImportPreviewPageState extends ConsumerState<ImportPreviewPage> {
           : ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
               children: [
-                _summary(context, diff, batch),
+                _summary(
+                  context,
+                  diff,
+                  batch,
+                  schoolName: school.displayName,
+                  firstWeekMonday: semester.firstWeekMonday,
+                  adapterName: adapterName ?? session.adapterFamilyId,
+                ),
                 if (batch.invalidCount > 0) ...[
                   const SizedBox(height: 12),
                   _invalidBlock(context, batch),
@@ -136,8 +150,11 @@ class _ImportPreviewPageState extends ConsumerState<ImportPreviewPage> {
   Widget _summary(
     BuildContext context,
     ImportDiff diff,
-    AdapterImportBatch batch,
-  ) {
+    AdapterImportBatch batch, {
+    required String schoolName,
+    required DateTime firstWeekMonday,
+    required String? adapterName,
+  }) {
     final palette = AppTheme.paletteOf(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -146,17 +163,34 @@ class _ImportPreviewPageState extends ConsumerState<ImportPreviewPage> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: palette.hairline),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _count(context, '新增', diff.added.length),
-          _divider(palette),
-          _count(context, '移除', diff.removed.length),
-          _divider(palette),
-          _count(context, '修改', diff.changed.length),
-          if (batch.invalidCount > 0) ...[
-            _divider(palette),
-            _count(context, '无效', batch.invalidCount, warn: true),
+          Text(
+            '导入目标：$schoolName · 开学周一 ${_iso(firstWeekMonday)}',
+            style: TextStyle(fontSize: 12, color: palette.inkSecondary),
+          ),
+          if (adapterName != null) ...[
+            const SizedBox(height: 5),
+            Text(
+              '识别类型：$adapterName · 有效 ${batch.courses.length} 门 · 无效 ${batch.invalidCount} 门',
+              style: TextStyle(fontSize: 12, color: palette.inkSecondary),
+            ),
           ],
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _count(context, '新增', diff.added.length),
+              _divider(palette),
+              _count(context, '移除', diff.removed.length),
+              _divider(palette),
+              _count(context, '修改', diff.changed.length),
+              if (batch.invalidCount > 0) ...[
+                _divider(palette),
+                _count(context, '无效', batch.invalidCount, warn: true),
+              ],
+            ],
+          ),
         ],
       ),
     );
@@ -379,7 +413,7 @@ class _ImportPreviewPageState extends ConsumerState<ImportPreviewPage> {
         schedule,
       );
       return Course(
-        id: CourseRepository.importedCourseId(schoolId, draft),
+        id: CourseRepository.importedCourseId(schoolId, semesterId, draft),
         schoolId: schoolId,
         semesterId: semesterId,
         name: draft.name,
@@ -413,33 +447,38 @@ class _ImportPreviewPageState extends ConsumerState<ImportPreviewPage> {
     final schoolRepo = ref.read(schoolRepositoryProvider);
 
     try {
-      if (_replaceSchedule && batch.timeSlots.isNotEmpty) {
-        await courseRepo.replaceSectionTimes(schoolId, batch.timeSlots);
-      }
       final effectiveBell = (_replaceSchedule && batch.timeSlots.isNotEmpty)
           ? _scheduleFromSlots(batch.timeSlots)
           : schedule;
-      await courseRepo.replaceImportedCourses(
+      await courseRepo.confirmImport(
         schoolId: schoolId,
         semesterId: semesterId,
-        drafts: batch.courses,
+        batch: batch,
         schedule: effectiveBell,
+        schoolRepository: schoolRepo,
+        replaceSchedule: _replaceSchedule,
+        applyConfig: _applyConfig,
       );
-      if (_applyConfig) {
-        final config = batch.courseConfig;
-        await schoolRepo.updateSemester(
-          semesterId,
-          firstWeekMonday: config.semesterStartDate,
-          totalWeeks: config.totalWeeks,
-        );
-      }
       ref.read(importSessionProvider.notifier).reset();
       messenger.showSnackBar(
         SnackBar(content: Text('已写入 ${batch.courses.length} 门课程')),
       );
       router.go('/');
-    } catch (error) {
-      messenger.showSnackBar(SnackBar(content: Text('写入失败：$error')));
+    } catch (_) {
+      final current = ref.read(importSessionProvider);
+      final diagnostic = AdapterAttemptDiagnostic(
+        adapterId: current.adapterId ?? 'unknown',
+        familyId: current.adapterFamilyId ?? 'unknown',
+        variant: current.adapterVariant,
+        stage: AdapterDiagnosticStage.databaseWrite,
+        status: AdapterDiagnosticStatus.failed,
+        code: AdapterDiagnosticCode.writeFailed,
+      );
+      ref.read(importSessionProvider.notifier).setDiagnostics([
+        ...current.diagnostics,
+        diagnostic,
+      ]);
+      messenger.showSnackBar(SnackBar(content: Text(diagnostic.userMessage)));
       if (mounted) setState(() => _applying = false);
     }
   }

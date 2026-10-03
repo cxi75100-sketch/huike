@@ -17,12 +17,17 @@ import '../../import/widgets/import_widgets.dart';
 /// 创建学校 + 第一学期。
 ///
 /// 学生不需要知道学校用什么教务系统：教务网址选填，适配器在导入时
-/// 由 App 依次自动尝试。没有「默认学校」：全新安装必经此页。
+/// 由 App 依次自动尝试。没有「默认学校」：主动导入时才建立档案。
 /// 开学周一必须由用户按校历给出，App 不猜测日期。
 class OnboardingPage extends ConsumerStatefulWidget {
-  const OnboardingPage({super.key, this.isAddingSchool = false});
+  const OnboardingPage({
+    super.key,
+    this.isAddingSchool = false,
+    this.forImport = false,
+  });
 
   final bool isAddingSchool;
+  final bool forImport;
 
   @override
   ConsumerState<OnboardingPage> createState() => _OnboardingPageState();
@@ -85,7 +90,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     final palette = AppTheme.paletteOf(context);
 
     return Scaffold(
-      appBar: AppBar(title: Text(widget.isAddingSchool ? '添加学校' : '欢迎使用汇课')),
+      appBar: AppBar(title: Text(widget.forImport ? '准备导入课表' : '添加学校')),
       body: AmbientBackdrop(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
@@ -298,9 +303,16 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
         totalWeeks: _totalWeeks,
       );
       await repository.setActiveSchool(school.id);
-      if (mounted) {
+      if (mounted && ModalRoute.of(context)?.isCurrent == true) {
         messenger.showSnackBar(SnackBar(content: Text('「$name」已就绪')));
-        context.go('/');
+        // 导入入口内的表单由activeSchoolProvider切换为确认页，保留首页返回栈。
+        if (!widget.forImport) {
+          if (widget.isAddingSchool && context.canPop()) {
+            context.pop(true);
+          } else {
+            context.go('/');
+          }
+        }
       }
     } catch (error) {
       messenger.showSnackBar(SnackBar(content: Text('创建失败：$error')));

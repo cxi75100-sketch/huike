@@ -769,6 +769,10 @@ final public class InAppWebView extends InputAwareWebView implements InAppWebVie
   @SuppressLint("RestrictedApi")
   public void setSettings(InAppWebViewSettings newCustomSettings, HashMap<String, Object> newSettingsMap) {
 
+    if (!newSettingsMap.containsKey("huikeNavigationPolicy")) {
+      newCustomSettings.huikeNavigationPolicy = customSettings.huikeNavigationPolicy;
+    }
+
     WebSettings settings = getSettings();
 
     if (newSettingsMap.get("javaScriptEnabled") != null && customSettings.javaScriptEnabled != newCustomSettings.javaScriptEnabled)

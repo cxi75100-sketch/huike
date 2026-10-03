@@ -13,7 +13,6 @@ import '../../features/settings/pages/calendar_exception_page.dart';
 import '../../features/settings/pages/school_manage_page.dart';
 import '../../features/settings/pages/semester_settings_page.dart';
 import '../../features/settings/pages/settings_page.dart';
-import '../../features/schools/providers/school_providers.dart';
 import '../../features/timetable/pages/course_detail_page.dart';
 import '../../features/timetable/pages/course_edit_page.dart';
 import '../../features/timetable/pages/timetable_page.dart';
@@ -31,8 +30,7 @@ final rootNavigatorKeyProvider = Provider<GlobalKey<NavigatorState>>(
 
 /// 单一 GoRouter 实例。
 ///
-/// 学校是否存在决定 redirect；该状态通过 refreshListenable 驱动重新
-/// 评估，而不是重建 Router 本身——重建会让进行中的导航与动画悬挂。
+/// 未建校也可浏览首页；只有主动导入或创建档案时才填写学校信息。
 GoRoute _ordinaryRoute({
   required String path,
   required Widget Function(BuildContext, GoRouterState) builder,
@@ -43,23 +41,9 @@ GoRoute _ordinaryRoute({
 );
 
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final refresh = ValueNotifier(0);
-  ref.onDispose(refresh.dispose);
-  ref.listen<AsyncValue<String?>>(activeSchoolIdProvider, (_, _) {
-    refresh.value++;
-  });
-
   return GoRouter(
     navigatorKey: ref.watch(rootNavigatorKeyProvider),
     initialLocation: '/',
-    refreshListenable: refresh,
-    redirect: (context, state) {
-      final hasSchool = ref.read(activeSchoolIdProvider).value != null;
-      final onOnboarding = state.matchedLocation == '/onboarding';
-      if (!hasSchool && !onOnboarding) return '/onboarding';
-      if (hasSchool && onOnboarding) return '/';
-      return null;
-    },
     routes: [
       StatefulShellRoute(
         builder: (context, state, shell) =>
@@ -108,23 +92,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 ? state.extra! as Course
                 : null,
           ),
-          transitionsBuilder: (context, animation, secondary, child) {
-            final curved = CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeOutCubic,
-              reverseCurve: Curves.easeInCubic,
-            );
-            return FadeTransition(
-              opacity: curved,
-              child: SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(0, 0.14),
-                  end: Offset.zero,
-                ).animate(curved),
-                child: child,
-              ),
-            );
-          },
+          // The page animates only its panel and dim color, not the full
+          // transparent route (which would also fade its material layers).
+          transitionsBuilder: (context, animation, secondary, child) => child,
         ),
       ),
       GoRoute(
@@ -165,11 +135,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           final page = CourseDetailPage(
             courseId: state.pathParameters['id']!,
             heroSource: source,
-            revealMetadata: state.extra is CourseHeroSourceContext,
+            revealMetadata:
+                state.extra is CourseHeroSourceContext &&
+                source != CourseHeroSourceContext.today,
           );
           // Dedicated Preview/Hero journeys keep their existing route and
           // timing. Direct detail entry follows the ordinary page language.
-          if (state.extra is! CourseHeroSourceContext) {
+          if (state.extra is! CourseHeroSourceContext ||
+              source == CourseHeroSourceContext.today) {
             return glassPage(context: context, state: state, child: page);
           }
           if (MediaQuery.disableAnimationsOf(context)) {
@@ -197,7 +170,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       _ordinaryRoute(
         path: '/settings/schools',
-        builder: (context, state) => const SchoolManagePage(),
+        builder: (context, state) => SchoolManagePage(
+          forImport: state.uri.queryParameters['import'] == '1',
+        ),
       ),
       _ordinaryRoute(
         path: '/settings/semester',

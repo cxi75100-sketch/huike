@@ -41,7 +41,8 @@ class AdapterBridge {
 
   /// 注入到页面的桥实现。幂等：重复注入只安装一次，脚本可在任意
   /// 页面加载后执行。契约名保持 `shiguangBridge*`，让社区脚本无需修改。
-  static String get bootstrapJs => '''
+  static String get bootstrapJs =>
+      '''
 (function () {
   if (window.__huikeBridgeInstalled) return;
   window.__huikeBridgeInstalled = true;
@@ -58,7 +59,7 @@ class AdapterBridge {
   };
   window.shiguangBridge = {
     showToast: function (msg) { native('$toastHandler')(String(msg)); },
-    notifyTaskCompletion: function () { native('$completionHandler')(); }
+    notifyTaskCompletion: function (attemptId) { native('$completionHandler')(attemptId); }
   };
   var promised = function (name) {
     return function () {

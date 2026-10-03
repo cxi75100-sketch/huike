@@ -11,7 +11,7 @@ import '../../../models/semester.dart';
 import 'school_presets.dart';
 
 /// 学校与学期的写路径。所有播种都只在缺失时发生，
-/// 不存在“用内置值覆盖用户修改”的路径。
+/// 自定义值保持；仅已知失效的预设默认入口支持定向修复。
 class SchoolRepository {
   SchoolRepository(this._db);
 
@@ -37,9 +37,9 @@ class SchoolRepository {
             presetId: Value(preset?.id ?? ''),
             loginUrl: Value(loginUrl),
             acceptedHostsJson: Value(jsonEncode(confirmedHosts)),
-            scheduleVariantsJson: Value(jsonEncode(
-              [for (final v in variants) v.toJson()],
-            )),
+            scheduleVariantsJson: Value(
+              jsonEncode([for (final v in variants) v.toJson()]),
+            ),
             createdAt: DateTime.now(),
           ),
         );
@@ -60,22 +60,35 @@ class SchoolRepository {
   Future<void> setActiveSchool(String schoolId) =>
       _db.setSetting('active_school_id', schoolId);
 
+  /// Repair only a known school's retired default root URL before first read.
+  /// No courses/settings change, and no new navigation host is pre-authorized.
+  Future<void> repairRetiredLoginUrls() => _db.transaction(() async {
+    final rows = await _db.select(_db.schools).get();
+    for (final row in rows) {
+      final preset = row.presetId.isNotEmpty
+          ? presetById(row.presetId)
+          : presetByDisplayName(row.displayName);
+      final replacement = preset?.replacementForRetiredLoginUrl(row.loginUrl);
+      if (replacement == null) continue;
+      await (_db.update(_db.schools)..where(
+            (t) => t.id.equals(row.id) & t.loginUrl.equals(row.loginUrl),
+          ))
+          .write(SchoolsCompanion(loginUrl: Value(replacement)));
+    }
+  });
+
   /// 用户确认新主机后追加白名单；只增不减，需要收紧时由用户重建学校。
   Future<void> appendConfirmedHost(String schoolId, String host) async {
-    final row =
-        await (_db.select(
-          _db.schools,
-        )..where((t) => t.id.equals(schoolId))).getSingleOrNull();
+    final row = await (_db.select(
+      _db.schools,
+    )..where((t) => t.id.equals(schoolId))).getSingleOrNull();
     if (row == null) return;
     final hosts = (jsonDecode(row.acceptedHostsJson) as List<dynamic>)
         .cast<String>();
     if (!hosts.contains(host)) {
       hosts.add(host);
-      await (_db.update(
-        _db.schools,
-      )..where((t) => t.id.equals(schoolId))).write(
-        SchoolsCompanion(acceptedHostsJson: Value(jsonEncode(hosts))),
-      );
+      await (_db.update(_db.schools)..where((t) => t.id.equals(schoolId)))
+          .write(SchoolsCompanion(acceptedHostsJson: Value(jsonEncode(hosts))));
     }
   }
 
@@ -92,9 +105,7 @@ class SchoolRepository {
           ? presetById(row.presetId)
           : presetByDisplayName(row.displayName);
       if (preset == null || preset.bell.variants.isEmpty) continue;
-      await (_db.update(
-        _db.schools,
-      )..where((t) => t.id.equals(row.id))).write(
+      await (_db.update(_db.schools)..where((t) => t.id.equals(row.id))).write(
         SchoolsCompanion(
           scheduleVariantsJson: Value(
             jsonEncode([
@@ -107,14 +118,16 @@ class SchoolRepository {
   }
 
   /// 更新教务登录地址（http/https 均可）并把新主机并入白名单。
-  Future<void> updateLoginUrl(String schoolId, Uri uri) async {
-    await appendConfirmedHost(schoolId, uri.host);
-    await (_db.update(
-      _db.schools,
-    )..where((t) => t.id.equals(schoolId))).write(
-      SchoolsCompanion(loginUrl: Value(uri.toString())),
-    );
-  }
+  Future<void> updateLoginUrl(String schoolId, Uri uri) =>
+      _db.transaction(() async {
+        await appendConfirmedHost(schoolId, uri.host);
+        final row = await (_db.select(
+          _db.schools,
+        )..where((t) => t.id.equals(schoolId))).getSingleOrNull();
+        if (row == null || row.loginUrl == uri.toString()) return;
+        await (_db.update(_db.schools)..where((t) => t.id.equals(schoolId)))
+            .write(SchoolsCompanion(loginUrl: Value(uri.toString())));
+      });
 
   Future<Semester> createSemester({
     required String schoolId,
@@ -173,22 +186,21 @@ class SchoolRepository {
     required String start,
     required String end,
   }) async {
-    await (_db.update(_db.sectionTimeEntries)
-          ..where(
-            (t) =>
-                t.schoolId.equals(schoolId) &
-                t.sectionIndex.equals(sectionIndex),
-          ))
-        .write(SectionTimeEntriesCompanion(start: Value(start), end: Value(end)));
+    await (_db.update(_db.sectionTimeEntries)..where(
+          (t) =>
+              t.schoolId.equals(schoolId) & t.sectionIndex.equals(sectionIndex),
+        ))
+        .write(
+          SectionTimeEntriesCompanion(start: Value(start), end: Value(end)),
+        );
   }
 
   /// 把作息恢复为该校的默认值（内置档案学校回到官方作息，其他走通用兜底）；
   /// 这是用户显式操作，不是启动行为。
   Future<void> resetSectionTimes(String schoolId) async {
-    final row =
-        await (_db.select(
-          _db.schools,
-        )..where((t) => t.id.equals(schoolId))).getSingleOrNull();
+    final row = await (_db.select(
+      _db.schools,
+    )..where((t) => t.id.equals(schoolId))).getSingleOrNull();
     final preset = presetById(row?.presetId ?? '');
     await (_db.delete(
       _db.sectionTimeEntries,
@@ -197,10 +209,9 @@ class SchoolRepository {
   }
 
   Future<void> _seedSectionTimes(String schoolId, BellSchedule schedule) async {
-    final existing =
-        await (_db.select(
-          _db.sectionTimeEntries,
-        )..where((t) => t.schoolId.equals(schoolId))).get();
+    final existing = await (_db.select(
+      _db.sectionTimeEntries,
+    )..where((t) => t.schoolId.equals(schoolId))).get();
     if (existing.isNotEmpty) return; // 只播种，不覆盖。
     for (final spec in schedule.sections) {
       await _db

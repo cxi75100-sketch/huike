@@ -2,8 +2,9 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 /// 离开导入页时的清理。
 ///
-/// 只清 HTTP 缓存与内存暂存；按既有取舍（单校版 DEC-010 的延续）
-/// 保留 Cookie 与 WebStorage，避免同校重复登录。任何会话数据都不落盘。
+/// 正常离开只清 HTTP 缓存与导入内存暂存，保留内核管理的 Cookie 与
+/// WebStorage；内核可持久保存这些登录状态，App不另行持久保存、写日志或上传。
+/// 用户主动「重新登录」时另走受限的 LoginSessionReset。
 class ImportSessionCleaner {
   ImportSessionCleaner(this._resetSession);
 

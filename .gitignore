@@ -46,3 +46,11 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Local attachments and generated diagnostics (never published)
+.codex-remote-attachments/
+.playwright-mcp/
+/android/build/
+*.keystore
+*.jks
+*signing*.properties

@@ -29,6 +29,8 @@ public class InAppWebViewSettings implements ISettings<InAppWebViewInterface> {
   public static final String LOG_TAG = "InAppWebViewSettings";
 
   public Boolean useShouldOverrideUrlLoading = false;
+  @Nullable
+  public Map<String, Object> huikeNavigationPolicy;
   public Boolean useOnLoadResource = false;
   public Boolean useOnDownloadStart = false;
   /**
@@ -145,6 +147,9 @@ public class InAppWebViewSettings implements ISettings<InAppWebViewInterface> {
       }
 
       switch (key) {
+        case "huikeNavigationPolicy":
+          huikeNavigationPolicy = (Map<String, Object>) value;
+          break;
         case "useShouldOverrideUrlLoading":
           useShouldOverrideUrlLoading = (Boolean) value;
           break;
@@ -422,6 +427,7 @@ public class InAppWebViewSettings implements ISettings<InAppWebViewInterface> {
   @Override
   public Map<String, Object> toMap() {
     Map<String, Object> settings = new HashMap<>();
+    settings.put("huikeNavigationPolicy", huikeNavigationPolicy);
     settings.put("useShouldOverrideUrlLoading", useShouldOverrideUrlLoading);
     settings.put("useOnLoadResource", useOnLoadResource);
     settings.put("useOnDownloadStart", useOnDownloadStart);

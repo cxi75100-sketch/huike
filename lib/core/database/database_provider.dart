@@ -16,6 +16,10 @@ final databaseProvider = Provider<AppDatabase>((ref) {
       final path = p.join(dir.path, 'huike_timetable.sqlite');
       return NativeDatabase.createInBackground(File(path));
     }),
+    legacyDatabasePath: () async {
+      final dir = await getApplicationDocumentsDirectory();
+      return p.join(dir.path, 'ncpu_timetable.sqlite');
+    },
   );
   ref.onDispose(db.close);
   return db;

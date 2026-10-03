@@ -1,5 +1,13 @@
 # Architecture
 
+2026-10-03：导入WebView新增加载/错误/重试状态与页面generation隔离；NavigationPolicy快照通过既有settings接口交给vendored Android同步执行已确认导航，未知主机仍确认。无学校网址特例、数据迁移或依赖升级；见TASK-WEBVIEW-FRAMEWORK-01报告。
+
+## 兼容安装与启动导入（2026-10-01）
+
+Android有两个发行类型：huike维持正常应用身份；legacyUpgrade用于用户明确要求的旧安装覆盖升级，同源码、独立应用沙箱。SQLite仍使用当前schema3，不原地改写不同结构的旧文件。databaseProvider向AppDatabase提供旧文件路径resolver；beforeOpen调用legacy_database_import完成只读源→目标单事务导入，任何provider首读等待完成。成功marker保证幂等，已有学校不覆盖，无旧文件无动作。只复制结构化课表与明确白名单偏好，不复制认证/未知settings。
+
+主题的既有启动读取同样等待beforeOpen，迁移失败令其hasError；HuikeApp显示读取失败与重试界面，不创建Router或误入建校。重试invalidate数据库，重新走beforeOpen；根组件不增加学校状态直接订阅，避免额外重建WebView。兼容契约与测试见report_2026-10-01_legacy_upgrade.md。
+
 ## TASK-020B root switcher（2026-09-27）
 
 仅既有`/today`和`/`接入StatefulShellRoute两个preload分支，页面/Navigator持续挂载。
@@ -39,7 +47,7 @@ lib/
     database/
       app_database.dart         # Drift schema v3（含 v1→v2 addColumn、v2→v3 createTable）+ 行→模型扩展
       database_provider.dart    # 全局库（NativeDatabase.createInBackground；测试注入内存库）
-    router/app_router.dart      # 路由表 + onboarding redirect
+    router/app_router.dart      # 路由表；空库首页可浏览，主动导入才建校
     glass/
       glass_surface.dart      # 玻璃材质
       glass_button.dart       # 玻璃操作和触控语义
@@ -78,7 +86,12 @@ lib/
       providers/calendar_exception_providers.dart # 例外流 + 激活学校解析器
     import/
       models/adapter_batch.dart       # 脚本回传数据规范化（无效条目计数）
+      models/adapter_diagnostic.dart # 受控阶段/状态/错误码与安全描述
       services/adapter_bridge.dart    # shiguangBridge* 契约桥（8 处理器）
+      services/adapter_probe.dart    # 同源frame布尔特征、4秒有限采样、候选排序、attempt上下文
+      services/adapter_runtime.dart  # 局部脚本作用域、owner桥/fetch/timer取消，无Function/eval
+      services/login_recovery_policy.dart # 可信401/重定向循环自动恢复一次
+      services/login_session_reset.dart # Cookie实际属性/已访问origin精确重置、部分完成报告
       services/import_session.dart    # 内存暂存 + 合并规范化
       services/navigation_policy.dart # scheme（http/https）+ host 白名单（纯 Dart 可测）
       services/import_diff.dart       # added/removed/changed
@@ -114,14 +127,14 @@ lib/
       pages/semester_settings_page.dart
       pages/bell_settings_page.dart
       pages/calendar_exception_page.dart # 调休/停课：按日期维护例外
-    onboarding/pages/onboarding_page.dart  # 创建学校 + 第一学期（必经）
+    onboarding/pages/onboarding_page.dart  # 主动创建学校 + 第一学期，导入模式保留返回栈
 ```
 
 ## Data Model（schema v3；v1→v2 为 `addColumn`，v2→v3 为 `createTable`）
 
 - `schools(id PK, displayName, adapterId, presetId, loginUrl, acceptedHostsJson,
   scheduleVariantsJson, createdAt)`
-  —— 没有默认学校；空表 = 引导页。`presetId`/`scheduleVariantsJson` 为 v2 新增。
+  —— 没有默认学校；空表显示首页导入入口。`presetId`/`scheduleVariantsJson` 为 v2 新增。
 - `semesters(id PK, schoolId, firstWeekMondayIso, totalWeeks)` —— 生成类名
   `SemesterRow`（@DataClassName，避免与模型 Semester 重名）。
 - `course_entries(id PK, schoolId, semesterId, source enum, name, teacher, classroom,
@@ -134,13 +147,15 @@ lib/
 ## Data Flow
 
 页面 → Riverpod provider → repository → Drift → SQLite；列表页全部 watch 流，
-写入后自动刷新。激活学校决定首页内容；没有激活学校时路由 redirect 到引导页。
+写入后自动刷新。激活学校决定首页内容；没有激活学校时显示导入入口，不强制跳转。
 
 导入：入口确认（地址 + 明文 HTTP 额外警示 + 风险勾选）→ WebView（主框架新主机弹窗确认，
-确认后只增不减）→ 桥处理器把三类 JSON
-规范化进内存会话 → `notifyTaskCompletion` 触发跳预览 → 差异与选项确认 →
+确认后只增不减）→ 安全探针仅产生页面布尔/协议族标记 → profile、已保存 adapter 偏好、
+精确URL和特征候选排序，未知页面再走剩余内置脚本兼容回退 → 每次尝试以 attemptId 隔离桥回调；
+桥处理器把三类 JSON 规范化进内存会话 → 当前尝试完成且至少一门课程有效才触发预览 → 差异与选项确认 →
 事务替换 imported + 可选替换作息/学期配置 → 清理会话与 HTTP 缓存（保留 Cookie）。
-探测期间不展示逐个尝试的过程（DEC-007）。
+探测期间不展示逐个尝试的过程；失败仅在用户主动请求时查看固定码脱敏诊断（DEC-007/011）。
+School/Adapter Profile仅存于bundled catalog，不进入Drift；数据库schema仍为3。
 
 课表显示：课程本身以「周次 × 星期 × 起止节次」表达，某一天到底按哪天的课表上课由
 `calendar_exceptions` 经 `CalendarExceptionService` 折算，Weekly Timetable 据此决定当天

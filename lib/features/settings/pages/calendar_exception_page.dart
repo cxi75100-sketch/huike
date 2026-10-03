@@ -96,15 +96,23 @@ class CalendarExceptionPage extends ConsumerWidget {
     required Semester semester,
     CalendarException? existing,
   }) async {
-    final today = DateTime.now();
-    final initial = existing?.date ?? today;
+    final firstDate = semester.firstWeekMonday.subtract(
+      const Duration(days: 30),
+    );
+    final lastDate = semester.firstWeekMonday.add(
+      Duration(days: semester.totalWeeks * 7 + 30),
+    );
+    final selectedDate = DateUtils.dateOnly(existing?.date ?? DateTime.now());
+    final initialDate = selectedDate.isBefore(firstDate)
+        ? firstDate
+        : selectedDate.isAfter(lastDate)
+        ? lastDate
+        : selectedDate;
     final picked = await showDatePicker(
       context: context,
-      initialDate: initial,
-      firstDate: semester.firstWeekMonday.subtract(const Duration(days: 30)),
-      lastDate: semester.firstWeekMonday.add(
-        Duration(days: semester.totalWeeks * 7 + 30),
-      ),
+      initialDate: initialDate,
+      firstDate: firstDate,
+      lastDate: lastDate,
     );
     if (picked == null || !context.mounted) return;
 

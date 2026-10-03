@@ -10,6 +10,7 @@ import '../../../core/glass/glass_surface.dart';
 import '../../../core/glass/glass_form.dart';
 import '../../../core/widgets/ambient_backdrop.dart';
 import '../../schools/providers/school_providers.dart';
+import '../../onboarding/pages/onboarding_page.dart';
 import '../../schools/services/login_url_policy.dart';
 import '../../schools/services/school_repository.dart';
 import '../widgets/import_widgets.dart';
@@ -30,11 +31,13 @@ class ImportEntryPage extends ConsumerStatefulWidget {
 class _ImportEntryPageState extends ConsumerState<ImportEntryPage> {
   late final TextEditingController _urlController;
   bool _confirmed = false;
+  String? _schoolId;
 
   @override
   void initState() {
     super.initState();
     final school = ref.read(activeSchoolProvider);
+    _schoolId = school?.id;
     _urlController = TextEditingController(text: school?.loginUrl ?? '');
   }
 
@@ -47,16 +50,31 @@ class _ImportEntryPageState extends ConsumerState<ImportEntryPage> {
   @override
   Widget build(BuildContext context) {
     final palette = AppTheme.paletteOf(context);
+    // 异步档案到达或切换学校时才更新；不覆盖当前学校正在编辑的网址。
+    ref.listen(activeSchoolProvider, (previous, school) {
+      if (school != null && _schoolId != school.id) {
+        _schoolId = school.id;
+        _urlController.text = school.loginUrl;
+        setState(() => _confirmed = false);
+      }
+    });
     final school = ref.watch(activeSchoolProvider);
 
     if (school == null) {
+      final schools = ref.watch(schoolsProvider);
+      final activeId = ref.watch(activeSchoolIdProvider);
+      if (schools.hasValue &&
+          activeId.hasValue &&
+          !schools.hasError &&
+          !activeId.hasError &&
+          schools.value!.isEmpty) {
+        return const OnboardingPage(forImport: true);
+      }
       // 读取中 / 读取失败 / 确实还没建校必须区分：三者都渲染成空白页会让
       // 用户以为导入功能坏了，也永远等不到可操作的控件（见 TASK-018A）。
       return Scaffold(
         appBar: AppBar(title: const Text('导入教务课表')),
-        body: AmbientBackdrop(
-          child: Center(child: _placeholder(palette)),
-        ),
+        body: AmbientBackdrop(child: Center(child: _placeholder(palette))),
       );
     }
 
@@ -69,13 +87,23 @@ class _ImportEntryPageState extends ConsumerState<ImportEntryPage> {
             SectionHeaderLabel('学校'),
             GlassSurface(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              child: Text(
-                school.displayName,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: palette.ink,
-                ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      school.displayName,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: palette.ink,
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => context.push('/settings/schools?import=1'),
+                    child: const Text('更换学校'),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 20),
@@ -189,13 +217,13 @@ class _ImportEntryPageState extends ConsumerState<ImportEntryPage> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          '先创建学校再导入',
+          '选择学校后即可导入课表',
           style: TextStyle(fontSize: 15, color: palette.inkSecondary),
         ),
         const SizedBox(height: 16),
         GlassButton(
-          onPressed: () => context.push('/onboarding'),
-          label: '去创建学校',
+          onPressed: () => context.push('/settings/schools?import=1'),
+          label: '选择学校',
           icon: Icons.add_rounded,
           size: 44,
           iconColor: palette.accent,
@@ -240,7 +268,7 @@ class _ImportEntryPageState extends ConsumerState<ImportEntryPage> {
     if (ok != true || !mounted) return;
 
     final repository = ref.read(schoolRepositoryProvider);
-    await repository.appendConfirmedHost(schoolId, uri.host);
+    await repository.updateLoginUrl(schoolId, uri);
     if (!mounted) return;
     context.push(
       '/import/web?host=${Uri.encodeComponent(uri.host)}'

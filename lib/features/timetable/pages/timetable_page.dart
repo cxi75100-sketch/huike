@@ -46,10 +46,13 @@ class _TimetablePageState extends ConsumerState<TimetablePage> {
   final _swipe = WeekSwipeState();
   final _todayPulse = TodayPulse();
   final _scrolling = ValueNotifier<bool>(false);
+  final _sheetHostKey = GlobalKey<GlassSheetHostState>();
 
   int _weekOffset = 0;
   _TimetableSheet? _sheet;
-  Rect? _courseSourceRect;
+  bool _sheetClosing = false;
+  int _sheetGeneration = 0;
+  VoidCallback? _afterSheetDismiss;
 
   @override
   void dispose() {
@@ -113,7 +116,6 @@ class _TimetablePageState extends ConsumerState<TimetablePage> {
           ? null
           : () => ref.invalidate(coursesForProvider((school.id, semester.id))),
       onCourseTap: (course) => _openSheet(_CourseSheet(course)),
-      onCourseSourceTap: (course, rect) => _courseSourceRect = rect,
       onConflictTap: (items) => _openSheet(_ConflictSheet(items)),
       onScrolling: _onScrolling,
       todayPulse: _todayPulse,
@@ -157,33 +159,49 @@ class _TimetablePageState extends ConsumerState<TimetablePage> {
       ),
     );
 
-    return Scaffold(
-      backgroundColor: palette.background,
-      body: AmbientBackdrop(
-        child: GlassSheetHost(
-          background: Stack(
-            children: [
-              Positioned.fill(child: body),
-              Positioned(
-                right: 14,
-                bottom:
-                    14 +
-                    MediaQuery.viewPaddingOf(context).bottom +
-                    (RootSwitcherScope.maybeOf(context) == null
-                        ? 0
-                        : RootSwitcherLayout.fabLift),
-                child: LiquidAddButton(
-                  onPressed: () => context.push('/course/new'),
-                  onImport: () => context.push('/import'),
-                  onAddEvent: () => context.push('/event/new'),
-                  scrolling: _scrolling,
+    return PopScope(
+      canPop: _sheet == null,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && _sheet != null) _requestSheetDismiss();
+      },
+      child: Scaffold(
+        backgroundColor: palette.background,
+        body: AmbientBackdrop(
+          child: GlassSheetHost(
+            key: _sheetHostKey,
+            background: Stack(
+              children: [
+                Positioned.fill(child: body),
+                Positioned(
+                  right: 14,
+                  bottom:
+                      14 +
+                      MediaQuery.viewPaddingOf(context).bottom +
+                      (RootSwitcherScope.maybeOf(context) == null
+                          ? 0
+                          : RootSwitcherLayout.fabLift),
+                  child: LiquidAddButton(
+                    onPressed: () => context.push('/course/new'),
+                    onImport: () => context.push('/import'),
+                    onAddEvent: () => context.push('/event/new'),
+                    scrolling: _scrolling,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
+            sheet: _sheet == null
+                ? null
+                : KeyedSubtree(
+                    key: ValueKey(_sheetGeneration),
+                    child: _sheetWidget(schedule)!,
+                  ),
+            // Keep the grid sharp and stationary; the panel slides at its
+            // final layout size instead of collapsing into a course cell.
+            backgroundScale: 0,
+            maxBlur: 0,
+            onDismissStarted: () => _sheetClosing = true,
+            onDismissed: _finishSheetDismiss,
           ),
-          sheet: _sheetWidget(schedule),
-          sourceRect: _sheet is _CourseSheet ? _courseSourceRect : null,
-          onDismissed: _closeSheet,
         ),
       ),
     );
@@ -196,11 +214,10 @@ class _TimetablePageState extends ConsumerState<TimetablePage> {
         course: course,
         schedule: schedule,
         heroSource: CourseHeroSourceContext.weeklyTimetable,
-        onClose: _closeSheet,
-        onEdit: () {
-          _closeSheet();
-          context.push('/course/${course.id}/edit');
-        },
+        onClose: _requestSheetDismiss,
+        onEdit: () => _requestSheetDismiss(
+          after: () => context.push('/course/${course.id}/edit'),
+        ),
         onDetails: () {
           context.push(
             '/course/${course.id}',
@@ -211,23 +228,41 @@ class _TimetablePageState extends ConsumerState<TimetablePage> {
       _ConflictSheet(courses: final items) => ConflictCoursesSheet(
         courses: items,
         schedule: schedule,
-        onClose: _closeSheet,
+        onClose: _requestSheetDismiss,
         onSelected: (course) => _openSheet(_CourseSheet(course)),
       ),
     };
   }
 
   void _openSheet(_TimetableSheet sheet) {
-    if (_sheet == sheet) return;
-    if (sheet is! _CourseSheet) _courseSourceRect = null;
-    setState(() => _sheet = sheet);
+    // An edit already requested owns the pending navigation. Ordinary closes
+    // can be interrupted by another course, including reopening the same one.
+    if (_afterSheetDismiss != null || (!_sheetClosing && _sheet == sheet)) {
+      return;
+    }
+    setState(() {
+      _sheet = sheet;
+      _sheetClosing = false;
+      _sheetGeneration++;
+    });
     RootSwitcherScope.maybeOf(context)?.previewVisible.value = true;
   }
 
-  void _closeSheet() {
-    if (_sheet == null) return;
+  void _requestSheetDismiss({VoidCallback? after}) {
+    if (_sheet == null || _sheetClosing) return;
+    _sheetClosing = true;
+    _afterSheetDismiss = after;
+    _sheetHostKey.currentState?.close();
+  }
+
+  void _finishSheetDismiss() {
+    if (!mounted || _sheet == null) return;
+    final after = _afterSheetDismiss;
+    _afterSheetDismiss = null;
+    _sheetClosing = false;
     setState(() => _sheet = null);
     RootSwitcherScope.maybeOf(context)?.previewVisible.value = false;
+    after?.call();
   }
 
   void _onScrolling(bool active) => _scrolling.value = active;
@@ -315,7 +350,7 @@ class _NoSemesterBody extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              '还没有设置学期',
+              schoolId == null ? '你的课表，从这里开始' : '还没有设置学期',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
@@ -324,17 +359,21 @@ class _NoSemesterBody extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              '设置开学第一周的周一后，就能生成完整周课表。',
+              schoolId == null
+                  ? '导入学校课表后，每周课程都会出现在这里。'
+                  : '设置开学第一周的周一后，就能生成完整周课表。',
               textAlign: TextAlign.center,
               style: TextStyle(color: palette.inkSecondary),
             ),
             const SizedBox(height: 16),
             GlassButton(
               onPressed: schoolId == null
-                  ? null
+                  ? () => context.push('/import')
                   : () => context.push('/settings/semester'),
-              label: '设置学期',
-              icon: Icons.edit_calendar_outlined,
+              label: schoolId == null ? '导入课表' : '设置学期',
+              icon: schoolId == null
+                  ? Icons.download_outlined
+                  : Icons.edit_calendar_outlined,
               iconColor: palette.accent,
               size: 48,
             ),

@@ -36,6 +36,7 @@ class GlassSurface extends StatefulWidget {
     this.intensity = GlassIntensity.regular,
     this.blurSigma,
     this.tint,
+    this.solidColor,
     this.interactive = false,
     this.onTap,
     this.onLongPress,
@@ -61,6 +62,9 @@ class GlassSurface extends StatefulWidget {
 
   /// 可选课程色 / 强调色染色，仍然保持极低不透明度。
   final Color? tint;
+
+  /// Optional opaque card fill. Glass chrome keeps its default material.
+  final Color? solidColor;
 
   final bool interactive;
   final VoidCallback? onTap;
@@ -152,6 +156,7 @@ class _GlassSurfaceState extends State<GlassSurface> {
                     borderRadius: borderRadius,
                     intensity: widget.intensity,
                     tint: widget.tint,
+                    solidColor: widget.solidColor,
                     press: press,
                     highlight: touch,
                     showEdge: widget.showEdge,
@@ -208,6 +213,7 @@ class _GlassSurfacePainter extends CustomPainter {
     required this.borderRadius,
     required this.intensity,
     required this.tint,
+    required this.solidColor,
     required this.press,
     required this.highlight,
     required this.showEdge,
@@ -218,6 +224,7 @@ class _GlassSurfacePainter extends CustomPainter {
   final BorderRadius borderRadius;
   final GlassIntensity intensity;
   final Color? tint;
+  final Color? solidColor;
   final double press;
   final Alignment highlight;
   final bool showEdge;
@@ -238,6 +245,10 @@ class _GlassSurfacePainter extends CustomPainter {
       bottomLeft: borderRadius.bottomLeft,
       bottomRight: borderRadius.bottomRight,
     );
+    if (solidColor != null) {
+      canvas.drawRRect(rrect, Paint()..color = solidColor!);
+      return;
+    }
     final base = tint == null
         ? palette.surface
         : Color.alphaBlend(
@@ -343,6 +354,7 @@ class _GlassSurfacePainter extends CustomPainter {
       old.borderRadius != borderRadius ||
       old.intensity != intensity ||
       old.tint != tint ||
+      old.solidColor != solidColor ||
       old.press != press ||
       old.highlight != highlight ||
       old.showEdge != showEdge;

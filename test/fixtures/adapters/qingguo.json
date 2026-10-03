@@ -1,0 +1,11 @@
+{
+  "family": "qingguo",
+  "features": {
+    "matches": {"qingguo": true},
+    "loginFormPresent": false,
+    "timetableMarkerPresent": true
+  },
+  "courses": [
+    {"name": "Fixture QG Course", "day": 2, "startSection": 3, "weeks": "1-4"}
+  ]
+}

@@ -15,6 +15,7 @@ import 'package:huike_timetable/features/schools/providers/school_providers.dart
 import 'package:huike_timetable/features/timetable/pages/timetable_page.dart';
 import 'package:huike_timetable/features/schools/services/adapter_catalog.dart';
 import 'package:huike_timetable/features/schools/services/school_repository.dart';
+import 'package:huike_timetable/features/schools/services/school_presets.dart';
 import 'package:huike_timetable/models/school_profile.dart';
 
 /// TASK-018A：导入流程回归。
@@ -113,15 +114,17 @@ void main() {
     }
   }
 
-  GlassButton cta(WidgetTester tester) => tester.widget<GlassButton>(
-    find.widgetWithText(GlassButton, '确认并进入教务登录'),
-  );
+  GlassButton cta(WidgetTester tester) =>
+      tester.widget<GlassButton>(find.widgetWithText(GlassButton, '确认并进入教务登录'));
 
   /// 命令式 `push` 之后 go_router 的 location 访问器仍返回基线位置，
   /// 路由断言一律用页面 widget 本身，也顺带验证了路由参数的接线。
   /// 被压在下层的路由仍留在树里但不可见，所以按默认跳过 offstage 判定。
   void expectOnImportEntry({required bool visible}) {
-    expect(find.byType(ImportEntryPage), visible ? findsOneWidget : findsNothing);
+    expect(
+      find.byType(ImportEntryPage),
+      visible ? findsOneWidget : findsNothing,
+    );
   }
 
   /// WebView 在 widget test 里没有平台实现；消费掉这条预期内的断言，
@@ -145,10 +148,7 @@ void main() {
     expect(find.text('教务网址'), findsOneWidget);
     expect(find.byType(GlassTextField), findsOneWidget);
     expect(find.text('登录安全提示'), findsOneWidget);
-    expect(
-      find.text('我确认以上地址是我学校自己的教务系统'),
-      findsOneWidget,
-    );
+    expect(find.text('我确认以上地址是我学校自己的教务系统'), findsOneWidget);
 
     // body 有真实可用高度，不是被底部按钮挤成 0。
     final body = tester.getRect(find.byType(ListView));
@@ -192,10 +192,7 @@ void main() {
       container.read(activeSchoolProvider)!.acceptedHosts,
       contains('jw.example.edu.cn'),
     );
-    expect(
-      container.read(activeSchoolProvider)!.id,
-      school.id,
-    );
+    expect(container.read(activeSchoolProvider)!.id, school.id);
   });
 
   testWidgets('取消确认弹窗不进入 WebView', (tester) async {
@@ -214,14 +211,71 @@ void main() {
     expect(cta(tester).onPressed, isNotNull);
   });
 
+  testWidgets('既有学校旧入口自动修复并预填，用户无需改网址', (tester) async {
+    final repository = SchoolRepository(db);
+    final school = await repository.createSchool(
+      displayName: ncpuPreset.displayName,
+      adapterId: '',
+      loginUrl: 'http://jwxt.ncpu.edu.cn/',
+      confirmedHosts: ['jwxt.ncpu.edu.cn'],
+    );
+    await repository.setActiveSchool(school.id);
+    await pumpImportRoute(tester);
+    final field = tester.widget<GlassTextField>(find.byType(GlassTextField));
+    expect(field.controller!.text, ncpuPreset.defaultLoginUrl);
+    expect(
+      (await db.select(db.schools).getSingle()).loginUrl,
+      ncpuPreset.defaultLoginUrl,
+    );
+    await tester.tap(find.text('我确认以上地址是我学校自己的教务系统'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('确认并进入教务登录'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('继续'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    final page = webPage(tester);
+    expect(page.host, '218.204.129.252');
+    expect(page.initialUrl, ncpuPreset.defaultLoginUrl);
+  });
+
+  testWidgets('导入确认的新网址持久化，取消仍保留原网址', (tester) async {
+    await seedSchool(loginUrl: 'https://jw.example.edu.cn');
+    await pumpImportRoute(tester);
+    final field = tester.widget<GlassTextField>(find.byType(GlassTextField));
+    field.controller!.text = 'https://new.example.edu.cn/login';
+    await tester.tap(find.text('我确认以上地址是我学校自己的教务系统'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('确认并进入教务登录'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+    expect(
+      (await db.select(db.schools).getSingle()).loginUrl,
+      'https://jw.example.edu.cn',
+    );
+    await tester.tap(find.text('确认并进入教务登录'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('继续'));
+    await tester.pump();
+    // Only the known missing platform implementation is expected in widgets.
+    final first = tester.takeException();
+    if (first != null) expect('$first', contains('InAppWebViewPlatform'));
+    await tester.pump(const Duration(milliseconds: 400));
+    final second = tester.takeException();
+    if (second != null) expect('$second', contains('InAppWebViewPlatform'));
+    final page = tester.widget<ImportWebPage>(find.byType(ImportWebPage));
+    expect(page.initialUrl, 'https://new.example.edu.cn/login');
+    final row = await db.select(db.schools).getSingle();
+    expect(row.loginUrl, page.initialUrl);
+    expect(row.acceptedHostsJson, contains('new.example.edu.cn'));
+  });
+
   testWidgets('非法网址停在导入页并给出提示', (tester) async {
     await seedSchool();
     await pumpImportRoute(tester);
 
-    await tester.enterText(
-      find.byType(TextField),
-      'ftp://jw.example.edu.cn',
-    );
+    await tester.enterText(find.byType(TextField), 'ftp://jw.example.edu.cn');
     await tester.tap(find.text('我确认以上地址是我学校自己的教务系统'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('确认并进入教务登录'));
@@ -277,13 +331,13 @@ void main() {
     expect(find.byKey(const ValueKey('import-error')), findsOneWidget);
   });
 
-  testWidgets('确实没有学校时显示空状态并能去建校', (tester) async {
+  testWidgets('确实没有学校时在导入入口填写学校', (tester) async {
     await pumpImportPage(tester, makeContainer());
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('import-empty')), findsOneWidget);
-    expect(find.text('先创建学校再导入'), findsOneWidget);
-    expect(find.text('去创建学校'), findsOneWidget);
+    expect(find.text('准备导入课表'), findsOneWidget);
+    expect(find.widgetWithText(TextField, '学校名称（必填）'), findsOneWidget);
+    expect(find.text('创建学校'), findsOneWidget);
     // 没有学校时不给出会永远 disabled 的伪 CTA。
     expect(find.text('确认并进入教务登录'), findsNothing);
   });
@@ -359,10 +413,7 @@ void main() {
     // 学生不需要选教务系统类型：步骤里直接写「执行导入」自动适配。
     expect(find.text('教务网址'), findsOneWidget);
     expect(find.textContaining('点右上角「执行导入」'), findsOneWidget);
-    expect(
-      find.textContaining('账号密码只在贵校官方页面输入'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('账号密码只在贵校官方页面输入'), findsOneWidget);
   });
 
   testWidgets('离开导入 WebView 会清空内存导入会话', (tester) async {

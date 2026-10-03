@@ -53,8 +53,8 @@ class CourseHeroTag {
       Object.hash(courseId, schoolId, semesterId, source, destination);
 }
 
-/// Uses the native Hero flight in normal mode. Reduced Motion falls back to a
-/// short route cross-fade, configured by the detail route.
+/// Weekly keeps native Hero flights. Today uses one panel/page transition;
+/// moving a second surface while the panel moves causes competing motion.
 class CourseHero extends StatelessWidget {
   const CourseHero({super.key, required this.tag, required this.child});
 
@@ -63,7 +63,10 @@ class CourseHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (MediaQuery.disableAnimationsOf(context)) return child;
+    if (tag.source == CourseHeroSourceContext.today ||
+        MediaQuery.disableAnimationsOf(context)) {
+      return child;
+    }
     return Hero(
       tag: tag,
       transitionOnUserGestures: true,

@@ -74,6 +74,11 @@ public class InAppWebViewClient extends WebViewClient {
   public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
     InAppWebView webView = (InAppWebView) view;
     if (webView.customSettings.useShouldOverrideUrlLoading) {
+      HuikeNavigationPolicy.Decision decision = HuikeNavigationPolicy.decide(
+          webView.customSettings.huikeNavigationPolicy, request.getUrl().getScheme(),
+          request.getUrl().getHost(), request.isForMainFrame());
+      if (decision == HuikeNavigationPolicy.Decision.CONTINUE) return false;
+      if (decision == HuikeNavigationPolicy.Decision.CANCEL) return true;
       boolean isRedirect = false;
       if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_RESOURCE_REQUEST_IS_REDIRECT)) {
         isRedirect = WebResourceRequestCompat.isRedirect(request);
@@ -108,6 +113,12 @@ public class InAppWebViewClient extends WebViewClient {
   public boolean shouldOverrideUrlLoading(WebView webView, String url) {
     InAppWebView inAppWebView = (InAppWebView) webView;
     if (inAppWebView.customSettings.useShouldOverrideUrlLoading) {
+      Uri target = Uri.parse(url);
+      HuikeNavigationPolicy.Decision decision = HuikeNavigationPolicy.decide(
+          inAppWebView.customSettings.huikeNavigationPolicy, target.getScheme(),
+          target.getHost(), true);
+      if (decision == HuikeNavigationPolicy.Decision.CONTINUE) return false;
+      if (decision == HuikeNavigationPolicy.Decision.CANCEL) return true;
       onShouldOverrideUrlLoading(inAppWebView, url, "GET", null,true, false, false);
       return true;
     }

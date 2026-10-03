@@ -41,8 +41,13 @@ class CoursePreviewSheet extends StatelessWidget {
     final palette = AppTheme.paletteOf(context);
     final tint = courseTint(course.colorKey, Theme.of(context).brightness);
     final range = const CourseTimeService().resolve(course, schedule);
+    final today = heroSource == CourseHeroSourceContext.today;
+    // Controls reuse the parent material; Today keeps the moving panel
+    // filter-free rather than repeatedly sampling a changing backdrop.
+    const buttonBlur = 0.0;
 
     return GlassSheetPanel(
+      blurSigma: today ? 0 : 22,
       tint: tint.onChip.withValues(alpha: 0.5),
       onClose: onClose,
       closeLabel: '关闭课程预览',
@@ -62,6 +67,8 @@ class CoursePreviewSheet extends StatelessWidget {
                   size: 34,
                   iconSize: 18,
                   depth: 0.2,
+                  // The enclosing Sheet already blurs the sampled background.
+                  blurSigma: buttonBlur,
                 ),
               ],
             ),
@@ -96,6 +103,7 @@ class CoursePreviewSheet extends StatelessWidget {
                     shape: GlassButtonShape.square,
                     size: 44,
                     depth: 0.6,
+                    blurSigma: buttonBlur,
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -109,6 +117,7 @@ class CoursePreviewSheet extends StatelessWidget {
                     size: 44,
                     iconSize: 17,
                     depth: 0.6,
+                    blurSigma: buttonBlur,
                     iconColor: palette.accent,
                   ),
                 ),

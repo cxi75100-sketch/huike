@@ -199,29 +199,30 @@ async function scrapeAndParseCourses() {
         console.log(`JS: 课程数据解析成功，共找到 ${result.length} 门课程。`);
         return { courses: result };
     } catch (error) {
-        window.shiguangBridge.showToast(`抓取或解析失败: ${error.message}`);
-        console.error('JS: Scrape/Parse Error:', error);
-        await window.shiguangBridgePromise.showAlert("抓取或解析失败", `发生错误：${error.message}。请重试或联系开发者。`, "确定");
+        window.shiguangBridge.showToast('抓取或解析失败，请确认课表已加载后重试。');
+        console.error('JS: Scrape/Parse Error');
+        await window.shiguangBridgePromise.showAlert("抓取或解析失败", '请确认课表已加载后重试。', "确定");
         return null;
     }
 }
 
-async function saveCourses(parsedCourses) {
+async function saveCourses(parsedCourses, attemptId) {
     window.shiguangBridge.showToast(`正在保存 ${parsedCourses.length} 门课程...`);
     console.log(`JS: 尝试保存 ${parsedCourses.length} 门课程...`);
     try {
-        await window.shiguangBridgePromise.saveImportedCourses(JSON.stringify(parsedCourses, null, 2));
+        await window.shiguangBridgePromise.saveImportedCourses(JSON.stringify(parsedCourses, null, 2), attemptId);
         console.log("JS: 课程保存成功！");
         return true;
     } catch (error) {
-        window.shiguangBridge.showToast(`课程保存失败: ${error.message}`);
-        console.error('JS: Save Courses Error:', error);
+        window.shiguangBridge.showToast('课程保存失败，请重试。');
+        console.error('JS: Save Courses Error');
         return false;
     }
 }
 
 
 async function runImportFlow() {
+    const attemptId = window.__huikeAdapterContext?.attemptId;
     const alertConfirmed = await window.shiguangBridgePromise.showAlert(
         "教务系统课表导入",
         "导入前请确保您已在浏览器中成功登录教务系统，并处于课表查询页面且已点击查询。",
@@ -247,7 +248,7 @@ async function runImportFlow() {
     }
     const { courses } = result;
 
-    const saveResult = await saveCourses(courses);
+    const saveResult = await saveCourses(courses, attemptId);
     if (!saveResult) {
         console.log("JS: 课程保存失败，流程终止。");
         return;
@@ -255,7 +256,7 @@ async function runImportFlow() {
     
     window.shiguangBridge.showToast(`课程导入成功，共导入 ${courses.length} 门课程！`);
     console.log("JS: 整个导入流程执行完毕并成功。");
-    window.shiguangBridge.notifyTaskCompletion();
+    window.shiguangBridge.notifyTaskCompletion(attemptId);
 }
 
 runImportFlow();

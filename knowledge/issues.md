@@ -1,5 +1,25 @@
 # Issues
 
+## TASK-WEBVIEW-FRAMEWORK-01 通用登录浏览器导航与错误恢复
+
+Status: 工程缺口已修复（2026-10-03）；截图ERR_CONNECTION_ABORTED的直接根因仍UNVERIFIED。
+
+Confirmed: Android原插件取消全部主导航后在ALLOW时loadUrl重发；子frame Dart CANCEL不能实际阻止；没有主frame错误状态且错误页能运行适配。已修同步快照导航、错误提示/手动reload/导入门控和generation隔离。Java14/14、全量381/381与专项回归；不能将源码缺口等同截图故障已证实因果。昨日adapter更新未发现直接网络失败路径。见report_2026-10-03_webview_framework.md。
+
+## ISSUE-020 修改教务网址保存/取消后红屏
+
+Status: Resolved（2026-10-01，TASK-SCHOOL-URL-DIALOG-01；代码与 Widget 回归验证，用户真机复测 `UNVERIFIED`）
+
+Observed: 用户截图显示 `framework.dart:6281 _dependents.isEmpty`。修改教务网址关闭时触发。
+
+Root Cause: `showGlassDialog` 返回 navigator.push 的 popped future，pop 时即完成，而退出动画尚未结束；调用方立刻 dispose 外部控制器。尚存活的 TextField 在失焦重建时使用已销毁控制器，后续 `_FocusInheritedScope` 清理触发截图同款继承组件断言。
+
+Resolution: 删除外部控制器，通过 onChanged 记录文本，让 TextField 内部 State 持有并在自身卸载时释放；保存前增加 mounted 检查。统一网址校验/仓库更新保持原语义。
+
+Evidence: 修复前6项回归失败且捕获同款断言；修复后专项6/6、全量332/332。见 `report_2026-10-01_school_url_dialog.md`。
+
+Prevention: pop future 完成不代表路由子树卸载；资源生命周期应归属使用该资源的 State，不以固定延迟猜测释放时机。
+
 ## ISSUE-001 导航只放行入口那一台主机，教务跳统一认证时被静默拦死
 
 Status: Resolved（2026-09-14，TASK-009）
@@ -60,14 +80,15 @@ Impact: 用户要读四条与自己无关的失败原因；更糟的是容易被
 而真正的失败点（如 ISSUE-001 的跨域拦截）被淹没。
 
 Resolution: 去掉逐个尝试提示；脚本之间固定间隔 800ms（请求节奏由代码承担）；
-失败只给一句可操作提示「确认已登录并停留在课表查询页面后重试」，
-仅「执行中断」这类异常才附错误行（见 DEC-007）。
+默认失败只给可操作提示，不显示候选清单或逐项结果。TASK-ADAPTER-GENERAL-01补充用户主动打开的安全诊断：只含固定阶段、状态、错误码及静态说明；不含动态异常、原始网址/页面数据/账号或会话值（见 DEC-007/011）。
 
-Evidence: `CONFIRMED` 代码与单测；`UNVERIFIED` 装机观感。
+Evidence: `CONFIRMED` 代码与单测；2026-10-02通用框架全量377/377及诊断回归通过；`UNVERIFIED` 装机观感。见`report_2026-10-02_adapter_framework.md`。
 
 Prevention: 面向用户只呈现「你要做什么 / 结果如何」，不呈现内部机制（DEC-007）。
 
 ## ISSUE-004 真实教务导入未验收
+
+Update（2026-10-02，TASK-PROGRESS-REPORT-01）：tasks已有09-14用户截图确认课程/教室/教师落库的局部真实证据；下方「没有任何记录」是更早观察。适配器命中、四类预览、最新版本及真机变体完整验收仍待完成，保持Open/BLOCKED，不扩大为所有学校可用。
 
 Status: Open（`BLOCKED`，TASK-006）
 
@@ -228,6 +249,8 @@ Prevention: 放宽类改动做入口盘点时，除了列出文件，还要覆�
 ## ISSUE-013 南工内置档案的教务地址已失效，导入入口打不开登录页
 
 Status: Resolved（2026-09-14，用户报障）
+
+2026-10-02复查（TASK-LOGIN-REPAIR-01）：旧结论“不是代码缺陷”只适用于最初域名不可达的外部因素。commit4f7cef7只改新建档案默认入口，未迁移已有school.loginUrl；ImportEntry确认地址后原本只追加host、不保存网址，临时改新地址会在下次恢复旧值。两者是实现缺口，已补首读前定向修复和确认后事务保存；不按使用时长触发，也不是账号过期。真实设备旧档案和登录未验，自动修复用合成旧记录与入口接线回归。
 
 Observed: 用户点「南昌工学院」建校后进导入页，WebView 一直白屏、登录页打不开，
 「根本登不进去」。档案里预填的是 `http://jwxt.ncpu.edu.cn`。
@@ -419,6 +442,47 @@ Evidence: `test/import_flow_regression_test.dart` 的
 
 Prevention: 离开页面要清理的全局/内存状态，一律不在 `dispose` 里同步改 provider；
 先把依赖实例抓在 `initState`，并把改动推到帧之后再执行。
+
+## ISSUE-019 有学校时「添加学校」被 redirect 吞掉：debug 红屏、入口不可达
+
+Status: UI trigger removed（2026-10-01按用户要求撤除学校管理添加学校入口；原修复任务被替代，redirect未改。以下保留2026-09-28历史诊断，不代表当前仍有该按钮）
+
+Observed: 用户真机（debug 构建）在学校管理页点「添加学校」后整屏红，断言
+`'package:flutter/src/widgets/navigator.dart': Failed assertion: line 4096 pos 18:
+'!keyReservation.contains(key)': is not true.`，随后同树再抛
+`framework.dart:6281 '_dependents.isEmpty'`，应用不可操作。截图时间 2026-09-28 16:15。
+
+Root Cause: 两层叠加。
+① 入口层：`app_router.dart:56-62` 的 redirect 把 `/onboarding` 当成单纯的「首次启动门」
+（`hasSchool && onOnboarding → '/'`），不看 `?add=1`；而 `school_manage_page.dart:121` 的
+「添加学校」正是 `context.push('/onboarding?add=1')`，于是有学校时目标被改写成 `/`。
+② 框架层：被改写的 push 携带的是 `/` 的 match 列表（其最后一项是 `StatefulShellRoute`），
+go_router `RouteMatchList.push` → `_createNewMatchUntilIncompatible` 只用「当前栈顶 match」
+判断兼容性（当时栈顶是 `/settings/schools` 的 imperative match，与 shell 不相等），于是走
+`_cloneBranchAndInsertImperativeMatch`，返回 `copyWith` 出来的 **shell 副本**——`copyWith`
+保留 `pageKey`，而栈底原有 shell 没被替换 → 根 Navigator 的 pages 里两个 Page 同 key。
+
+Impact: debug 构建点该按钮即红屏、整树不可用；release 构建断言被剥离，不红屏，但该入口
+自 0.1.0 起就一直不可达（被静默弹回首页、无任何提示），第二所学校无法通过 UI 添加。
+红屏是 0.1.4（TASK-020B 引入 `StatefulShellRoute`）之后才出现的新形态。
+
+Resolution: 待修。已临时验证（验证后已还原，工作区无遗留）的修法：redirect 放行 `add=1`——
+`final addingSchool = state.uri.queryParameters['add'] == '1';`
+`if (hasSchool && onOnboarding && !addingSchool) return '/';`
+打上后 match 树变为 `[Shell, Imp(/settings), Imp(/settings/schools), Imp(/onboarding)]`，
+`tester.takeException()` 为 null，onboarding 表单正常出现。
+
+Evidence: `CONFIRMED`（2026-09-28，`S:\`，`flutter test --no-pub`，一次性脚本按用户真实路径
+「设置 → 学校管理 → 添加学校」用真实点击复现，逐步 dump 根 Navigator 的 match 树：第三步出现
+第二个 `ShellRouteMatch`，其 `pageKey.value` 与第一个完全相同；断言原文与截图一致）。
+机制、坐标与回归测试建议见 `knowledge/report_2026-09-28_add_school_entry_crash.md`。
+`UNVERIFIED`：修复后的真机 debug / release 走查。
+
+Prevention: ① 门禁型 redirect 要以「目标是否为合法状态」为准，不能只按路径字面判断——
+同一路径带不带 query 可以是完全不同的语义；② push / 重定向类改动要在同一轮盘点全部入口
+（本条入口清单见报告 §7）；③ 有状态 shell 之后，「把 push 改写成当前 shell 地址」这种组合
+必须进回归测试；当前测试套件没有任何一条覆盖「添加学校」入口，这是它能长期坏掉的原因。
+
 # TASK-019 只记录的范围外问题（2026-09-26）
 
 - `CONFIRMED`：原有右下角加号浮层遮挡周日11–12节的部分课程文字，API 36 约390dp 的匿名 QA 课程已复现。属于操作浮层/首页遮挡策略，本轮遵循范围约束未修改；不将该位置宣称为无遮挡验收。

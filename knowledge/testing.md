@@ -1,5 +1,139 @@
 # Testing
 
+## TASK-RELEASE-100（2026-10-03）
+
+- `flutter test --no-pub`全量395/395；学校切换/新增后返回导入与旧URL保留专项7/7；新增route-current隔离修复后专项重跑7/7、analyze无问题、复审APPROVE。
+- Release首次构建发现生成registrant引用dev插件integration_test，编译范围不含该插件。修复与最终构建证据见release_1.0.0.md。
+
+## TASK-LOGIN-RESET-01（2026-10-03）
+
+全量394/394；服务/policy/UI专项10/10。自动仅可信主frame401/TOO_MANY_REDIRECTS一次，403/连接/子资源/未知域不清，手动确认取消/忙态/旧桥及旧确认交错回归通过。真实Android服务集成1/1与实际ImportWebPage自动恢复集成1/1均通过，API36/WebView133.0.6943.137：精确Cookie含前缀删除核验、origin存储/其他host保留、scope外current partial；实际旧Cookie401→自动清理→login-webview-1→200/导入就绪，无点击。代码/安全复审APPROVE。命令及APK见report_2026-10-03_login_recovery.md；真实学校/截图连接中止/真机/iOS仍UNVERIFIED。
+
+## TASK-DEFER-SCHOOL-01 / TASK-IMPORT-RELIABILITY-02（2026-10-03）
+
+- 最终全量`flutter test --no-pub --concurrency 2 --reporter expanded` 385/385；`flutter analyze --no-pub`无问题；UI29/29、框架10/10、Today密度25/25。UI空库320×568/字体1.3、无学校写入、今日导入入口、建校后继续导入与真实router.pop回首页。旧密度fixture补齐合成学校，不改原布局断言。
+- 本地synthetic真实Android WebView组件：`flutter test integration_test/import_webview_test.dart --flavor huike -d emulator-5554 --no-pub` 1/1通过。API36、WebView133.0.6943.137；POST302/307方法、Cookie、严格CSP、动态同源frame/URP解析/attempt完成、跨源不可读、旧timer/bridge、headers后流式body abort。复审修复Function/CSP与取消body缺口后APPROVE。
+- 仍未验证完整ImportWebPage跨host确认UI/真实CAS、新窗口、真实学校、真机、iOS；四脚本只有URP本轮实跑synthetic，不能宣称全校可用。新增integration_test SDK开发依赖；APK证据见report_2026-10-03_import_reliability_startup.md。
+
+## TASK-WEBVIEW-FRAMEWORK-01（2026-10-03）
+
+全量381/381（--no-pub --concurrency 2 --reporter expanded）；入口/导航/错误模型专项34/34，最终import_web_loading_test+web_load_failure_test 4/4，analyze无问题。fake控制器覆盖主frame连接失败/403、子资源不覆盖、失败后loadStop不启用导入、手动reload、CANCELLED回调、旧bootstrap异步完成不能启用新页。JDK17执行实际共享Java解释器14/14；复审APPROVE、Release/Debug成功。adb为空，非真实内核/设备/学校/iOS验收；命令与产物详见report_2026-10-03_webview_framework.md。
+
+## TASK-ADAPTER-GENERAL-01（2026-10-02）
+
+Adapter专测覆盖schema 1兼容/schema 2 profile解析、精确别名/host/path、同family不同profile的字段alias、候选优先级和未知页面兼容回退；四类synthetic页面特征与bridge payload fixture均不含真实账号/页面数据。另覆盖课程规范化、当前attempt成功门槛、迟到attempt回调隔离及诊断JSON不泄露原始异常。最终全量`flutter test --no-pub --reporter expanded --concurrency 2`：377/377；`flutter analyze --no-pub`无问题；`git diff --check`通过。APK使用明确的`flutter build apk --flavor huike --debug --no-pub`构建，并检查包内catalog确为schema 2；无flavor命令报告成功但留下旧schema 1产物，不计作本轮构建证据。首轮全量中calendar exception测试出现一次未复现失败，单项5/5后低并发全量通过；不归因于本改动。真实WebView/教务、设备和iOS未验。详见`report_2026-10-02_adapter_framework.md`。
+
+## TASK-LOGIN-REPAIR-01（2026-10-02）
+
+专项18/18、最终全量367/367（concurrency2）、analyze无问题、复审APPROVE。新增retired_login_url_repair测试首读修旧入口/幂等/字段与数据保留/学校身份/自定义不动；import_flow新增自动预填与WebView参数、确认候选保存/取消保持。强listen保持真实provider订阅，避免仅read.future的测试暂停；原生WebView缺失仅验证路由参数。真实登录/真机/iOS未验，见report_2026-10-02_login_repair.md。
+
+## 全量完成度复验（2026-10-02，TASK-PROGRESS-REPORT-01）
+
+S盘执行`flutter test --no-pub --reporter compact`：362/362通过，日志`build/completion_report_test.log`；`flutter analyze --no-pub`无问题，diff-check通过。写报告期间三项UI任务另行最终收口，证据分别保留。没有采集代码覆盖率/重建/设备测试；现存rapid及light-launch-status两组APK哈希与对应报告一致。见`report_2026-10-02_project_completion.md`。
+
+## TASK-TODAY-STATUS-01 / TASK-LAUNCH-BRAND-01 / TASK-ROOT-SWIPE-01（2026-10-02）
+
+最终全量362/362（`flutter test --no-pub --concurrency=2`），analyze无问题、复审APPROVE、verify_icon.py通过。Today专项25/25并生成明暗进行中/课间/结束合成实画，launch专项8/8含深色AppBar系统栏/浅底/Reduced/首触摸/不重播；Root普通/Reduced局部滑动/区域外不切/取消/点按/分支保留通过。初次默认并发全量运行import_flow worker未完成，该文件随后单独13/13，低并发全量最终通过；未确认首次worker退出原因，不归因业务回归。APK/边界见report_2026-10-02_today_launch_root.md，设备/GPU/iOS未验。
+
+## TASK-PREVIEW-RAPID-01（2026-10-02）
+
+全量355/355，analyze无问题，代码复审APPROVE。预览新回归先在旧实现失败（40ms点击被遮罩截获），修后专项31/31（dismiss/geometry/blur）；preview_dismiss与week_agenda_ui专项56/56，新增首末周边界单项通过后最终全量通过。覆盖普通/Reduced关闭40ms换课、同课重开、旧回调、连续箭头、新手势接管、长拖单次提交/取消/多指/第一末周；不把widget交互验证视为GPU真机流畅度验收。
+
+## TASK-COURSE-HUES-01（2026-10-02）
+
+`flutter test --no-pub --dart-define=HUIKE_CAPTURE_VISUAL=true test/course_colors_test.dart test/weekly_now_indicator_test.dart`：8/8通过。新增明暗八个色相区间覆盖回归，保留16色唯一/不透明/稳定映射/正文对比度≥4.5与轴内提示测试。重新生成并检查明暗360/430dp合成静态截图。本轮全量未重跑，前轮349/349为基线；设备/GPU/iOS未验证。代码复审APPROVE，构建和analyze结果见report_2026-10-02_course_hues.md。
+
+## TASK-TODAY-MOTION-COLOR-01（2026-10-02）
+
+全量349/349、analyze无问题；实画/交互专项47/47。新增当前节次提示明暗360/430dp轴内/不遮课程/非本周隐藏/文字对比度回归；Today预览中途固定宽度/完整正文/固定遮罩/无BackdropFilter与Hero/详情返回/Reduced/入场中立即Back连续性。静态合成数据截图用`flutter test --no-pub --dart-define=HUIKE_CAPTURE_VISUAL=true test/weekly_now_indicator_test.dart`生成build/today-color-{light,dark}-{360,430}.png（仅capture模式载本地字体），普通测试不落PNG。测试默认Ahem字体不能当中文视觉验收；载字体后重新渲染。Release/Debug包见本轮报告，无设备连接，GPU流畅度仍UNVERIFIED。
+
+## TASK-VISUAL-RETURN-01（2026-10-02）
+
+`S:\`：专项36/36（course_colors、launch_motion、preview_geometry、preview_dismiss、preview_blur），全量342/342、analyze无问题。覆盖明暗16色对比度≥4.5、启动全不透明/Reduced、Weekly动画中宽度不变/课程位置不动、14节滚动、完整详情返回后固定大小下滑关闭，以及既有单次关闭/编辑/下拖。tools/verify_icon.py检查fallback/iOS字节与槽位、矢量接线及adaptive安全圆；本轮无设备连接，真机/iOS启动/图标和返回帧耗时UNVERIFIED。APK详见report_2026-10-02_visual_return.md。
+
+## TASK-LEGACY-UPGRADE-01（2026-10-01）
+
+最终`S:\`全量341/341、analyze无问题，导入与启动重试定向14/14；图标及diff-check通过，Debug产物实测证书/包名/版本/debuggable符合兼容契约。未在设备覆盖安装；见报告。
+
+`legacy_database_import_test.dart`8项合成SQLite文件回归：全部字段/多学期/Unix秒、作息/主题/学期名、源文件字节不变、幂等不复活、已有学校跳过、事务失败回滚后重试、无源、未知schema与孤儿课程。`legacy_upgrade_startup_test.dart`覆盖失败提示阻断建校、用户重试、新数据库实例与迁移恢复。
+
+Widget测试数据库流清理：ref.onDispose记录实例；卸载并dispose容器后，在tester.runAsync中首次启动并逐个await close，避免在fake zone预启动close造成暂停stream/Timer.run挂起。所有功能断言保留，清理不吞错误。
+
+图标verify_icon.py只读校验15 Android/15 iOS资源、槽位、adaptive引用。构建改用`flutter build apk --debug --no-pub --flavor huike`或`--flavor legacyUpgrade`；兼容签名配置由外部properties显式提供。APK需aapt核对应用ID/版本/debuggable，apksigner核对旧包与新包证书一致；设备安装不能由签名与测试结论替代。最终结果见本轮报告。
+
+## TASK-SCHOOL-URL-DIALOG-01（2026-10-01）
+
+新增 `school_login_url_dialog_test.dart` 6 项真实应用路由 + 内存数据库测试：取消并重复打开、HTTP/HTTPS 保存、空值/非法协议保存、遮罩/系统返回。逐步 pump 退出动画并检查异常与最终地址/已确认主机。修复前6项失败，捕获 controller disposed 以及 `framework.dart:6281 _dependents.isEmpty`；修复后专项6/6、全量332/332。真机/iOS仍未验证；详情见专项报告。
+
+## TASK-UI-COMPACT-COLOR-01（2026-10-01）
+
+`S:\` analyze无问题，全量326/326；新增16色明暗唯一性/不透明/对比度2例、360dp与2倍字号长信息完整显示2例。更新旧Today高度与Weekly渐变断言；Weekly16色按压前后对比度≥4.5，颜色恒定。360/390/430dp × 1.0/1.3 × Light/Dark矩阵、原Preview回归通过。中文字体合成数据Light/Dark画面已查看；Debug APK成功。真机/iOS/Release未验证。
+
+## TASK-PERF-BLUR-01（2026-10-01）
+
+开工 314/314，最终 `S:\` analyze 无问题、全量 **322/322**；Preview dismiss 9、geometry 10、
+新增 blur 8，专项 **27/27**。新测试覆盖 Weekly/Today × Light/Dark × Reduced/default，
+保留父滤镜、普通按钮默认滤镜与三个动作；不改变 Today。
+API 36 AVD / 60 Hz / profile / Impeller OpenGLES 通过 FrameTiming 与临时 VM 扩展逐层采样，
+每组 1 次预热 + 3 次 open/Back-close。最终 open Raster 峰值 17.553–18.441 ms，
+比同轮原始 21.026–24.841 ms 稳定下降，但仍超预算；UI 未出现超预算。
+Light/Dark、开合抽帧、长拖/短拖回弹、实际 Reduced Motion 已检查，连续真机视觉未验证。
+实验源码完全恢复，脱敏原帧、离群值、设备/统计边界与 APK 验证见
+`report_2026-10-01_perf_blur_01.md` 和 `evidence_2026-10-01_blur_profile.json`。
+
+## TASK-WEEKLY-PERF-PROFILE-01（2026-09-28）
+
+`sdk_gphone64_x86_64` / Android 16 API 36 / 60.000004 Hz，Flutter profile、Impeller OpenGLES，
+通过 DevTools Performance 记录 idle、冷/热/快速切周、Preview open/close 与临时 blur A/B。
+启用 blur 的 Preview-open 代表帧三次 Raster 34.9–37.2 ms；profile-only 绕过 `GlassSurface` 与
+Sheet blur 后三次为 5.9–7.2 ms，UI 仍低于 1.2 ms。静止约 15 秒无新帧。切周有超预算代表帧，
+但未可靠统计慢帧频率。当前 AVD 只有 10 条节次时间配置，14+ 节滚动未测。X 命中、repaint
+区域、真机/iOS/release 未验证。A/B 源码已恢复；无生产逻辑变更。最终 `flutter analyze --no-pub`
+无问题、全量 314/314、`git diff --check` 通过；`flutter build apk --debug --no-pub` 成功，产物
+`build/app/outputs/flutter-apk/app-debug.apk`（207,132,994 字节，SHA-256
+`26A9A567F23B84C12EA1F13B589406D42265BEE6887B6E2CF94A45163EBBA6EE`）。详见专项报告。
+
+## TASK-PREVIEW-GEOMETRY-01（2026-09-28）
+
+新增 `preview_geometry_test.dart` 10 项：两个明显不同的 viewport（640/1000dp）最终矩形等于实测
+内容框；起始矩形对齐点击课程块；14 节纵向滚动后仍从当前课程块位置开始；Reduced Motion 最终
+矩形正确；resize 使用安全 fallback；关闭反向返回源位置且只回调一次；source 关闭前失效时使用
+fallback；live source 移位、drag 跟手及短拖回 destination。与既有
+`preview_dismiss_test.dart` 合跑专项 19 项。最终 `flutter analyze --no-pub` 无问题，
+`flutter test --no-pub` 314/314；`git diff --check` 通过。全量基线 304/304。未执行设备实画；
+本任务 APK 按批次计划 `PENDING`。详见 `report_2026-09-28_preview_geometry_01.md`。
+
+## 统一 APK 构建（2026-09-28 17:01 +08:00）
+
+按用户后续要求对当前工作树统一执行一次 `flutter build apk --debug --no-pub`，成功生成
+`build/app/outputs/flutter-apk/app-debug.apk`（207,125,368 字节；SHA-256
+`90cda25ad60f05b6d4b97d763d0585196ee49b2e570b9a0d6a3e5bd8849f965c`）。
+这是构建验证，不等于真机、iOS 或实际教务验收；构建后未改代码，前次全量 304/304 仍是最近测试记录。
+
+## TASK-PREVIEW-BACK-01（2026-09-28）
+
+基线 analyze 无问题、295/295。新增 `preview_dismiss_test.dart` 9 个 Widget 测试：
+Weekly Preview 的系统 Back、关闭后原路由返回、双 Back、X 后 Back、编辑先关闭再导航；
+GlassSheetHost 的背景与程序化双源关闭、短拖回弹和下拖关闭、Reduced Motion 重复关闭、
+关闭后重开新周期。定向 9/9、全量 304/304；真机 predictive back / iOS 手势未验。
+APK 遵用户安排本轮不构建，验证状态见专项报告。
+
+## TASK-CALENDAR-DATE-01（2026-09-28）
+
+基线 `flutter analyze --no-pub` 无问题、`flutter test --no-pub` 290/290。
+`calendar_exception_date_picker_test.dart` 新增 5 个真实路由 Widget 测试：当前学期今天、历史学期
+夹到末日、未来学期夹到首日、编辑合法原日期、编辑超范围原日期；每例均检查 DatePickerDialog 的
+initialDate 与原 firstDate / lastDate。修复前 3 例边界失败，修复后定向 5/5 通过。
+最终 analyze 无问题、全量测试 295/295、Debug APK 构建与 diff check 均通过，详见专项报告。真机/iOS 未验。
+
+## TASK-DATA-INTEGRITY-01（2026-09-28）
+
+基线 analyze 无问题、283/283。新增 `import_integrity_test.dart` 7 例：跨学期同课共存和稳定 ID、
+同学期重导替换、跨学校隔离、旧格式 ID 重导替换、三部分成功写入、课程插入主键冲突时回滚、
+学期元数据更新后注入异常时回滚。两类失败均比较数据库内作息、课程、学期原始行快照。
+现有 `course_repository_test.dart` 更新 ID 调用签名，原测试继续通过。最终 analyze 无问题、290/290。
+Debug APK 与 diff check 见本轮报告。真实教务、真机和 iOS 均 `UNVERIFIED`。
+
 ## TASK-020B Floating Switcher（2026-09-27）
 
 基线268；root_switcher_test新增15例：360/390/430×明暗×Reduced（font1.3、24/48dp bottom inset）12例，

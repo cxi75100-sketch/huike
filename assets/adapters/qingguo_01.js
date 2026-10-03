@@ -127,6 +127,7 @@ async function fetchAndParseCourses() {
 }
 
 async function runImportFlow() {
+    const attemptId = window.__huikeAdapterContext?.attemptId;
     try {
         window.shiguangBridge.showToast("正在合并课表数据...");
         const courses = await fetchAndParseCourses();
@@ -134,11 +135,11 @@ async function runImportFlow() {
             window.shiguangBridge.showToast("未找到可导入课程");
             return;
         }
-        await window.shiguangBridgePromise.saveImportedCourses(JSON.stringify(courses));
+        await window.shiguangBridgePromise.saveImportedCourses(JSON.stringify(courses), attemptId);
         window.shiguangBridge.showToast(`成功：已优化合并为 ${courses.length} 个课块`);
-        window.shiguangBridge.notifyTaskCompletion();
+        window.shiguangBridge.notifyTaskCompletion(attemptId);
     } catch (error) {
-        window.shiguangBridge.showToast("解析失败: " + error.message);
+        window.shiguangBridge.showToast('解析失败，请确认课表页面已加载后重试。');
     }
 }
 

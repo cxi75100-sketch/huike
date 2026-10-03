@@ -232,7 +232,7 @@ function parseSemesterOptionsFromHtml(selectHtml) {
 
         return { labels, values, defaultIndex };
     } catch (error) {
-        console.warn("JS: 解析学年学期下拉 HTML 失败", error);
+        console.warn("JS: 解析学年学期下拉 HTML 失败");
         return null;
     }
 }
@@ -313,8 +313,8 @@ async function fetchCampusList() {
         console.log(`JS: 校区列表获取成功，共 ${campusList.length} 个校区。`);
         return campusList;
     } catch (error) {
-        window.shiguangBridge.showToast(`获取校区列表失败: ${error.message}`);
-        console.error('JS: fetchCampusList Error:', error);
+        window.shiguangBridge.showToast('获取校区列表失败，请确认已登录后重试。');
+        console.error('JS: fetchCampusList Error');
         return null;
     }
 }
@@ -327,7 +327,7 @@ async function fetchCampusList() {
 async function selectCampus(defaultXqdm) {
     const campusList = await fetchCampusList();
     if (!campusList) {
-        console.warn(`JS: 获取校区列表失败，使用页面参数 xqdm=${defaultXqdm} 继续导入。`);
+        console.warn("JS: 获取校区列表失败，继续使用页面当前校区。");
         window.shiguangBridge.showToast("获取校区列表失败，使用默认校区继续导入。");
         return {
             xqdm: defaultXqdm,
@@ -386,7 +386,7 @@ function generateTimeSlots(jcsjszList) {
         const endTime = formatTime(item.jssj);
 
         if (!startTime || !endTime) {
-            console.warn("JS: 节次时间格式不合法，跳过生成时间段列表。", item);
+            console.warn("JS: 节次时间格式不合法，跳过该项。");
             return null;
         }
 
@@ -430,11 +430,11 @@ async function extractPageParams() {
             xqdm = contentDom.querySelector("#xqdm")?.value || xqdm;
             xnxqSelectHtml = contentDom.querySelector("#xnxq1")?.outerHTML || xnxqSelectHtml;
         } catch (error) {
-            console.warn("JS: 通过抓取课表页提取参数失败", error);
+            console.warn("JS: 通过抓取课表页提取参数失败");
         }
     }
     
-    console.log(`JS: 提取到参数 - xhid: ${xhid}, xqdm: ${xqdm}, xnxqSelectHtml: ${xnxqSelectHtml ? 'yes' : 'no'}`);
+    console.log(`JS: 页面参数检测完成（学生标识: ${Boolean(xhid)}, 校区标识: ${Boolean(xqdm)}）。`);
     
     if (!xhid || !xqdm) {
         console.warn("JS: 无法从页面中提取必要参数。");
@@ -494,8 +494,8 @@ async function fetchTimeAndWeekData(xnxq, xqdm) {
         return { timeSlots, semesterStartDate };
 
     } catch (error) {
-        window.shiguangBridge.showToast(`获取配置信息失败，将继续导入课程: ${error.message}`);
-        console.error('JS: fetchTimeAndWeekData Error:', error);
+        window.shiguangBridge.showToast('获取作息信息失败，将继续尝试导入课程。');
+        console.error('JS: fetchTimeAndWeekData Error');
         return {
             timeSlots: null,
             semesterStartDate: null
@@ -549,8 +549,8 @@ async function fetchCourseData(xnxq, xhid, xqdm) {
         return courses;
 
     } catch (error) {
-        window.shiguangBridge.showToast(`获取课程数据失败: ${error.message}`);
-        console.error('JS: fetchCourseData Error:', error);
+        window.shiguangBridge.showToast('获取课程数据失败，请确认课表页面后重试。');
+        console.error('JS: fetchCourseData Error');
         return null;
     }
 }
@@ -560,17 +560,17 @@ async function fetchCourseData(xnxq, xhid, xqdm) {
  * @param {Array} courses - 课程列表
  * @returns {Promise<boolean>} - 是否保存成功
  */
-async function saveCourses(courses) {
+async function saveCourses(courses, attemptId) {
     console.log(`JS: 正在保存 ${courses.length} 门课程...`);
     window.shiguangBridge.showToast(`正在保存 ${courses.length} 门课程...`);
     
     try {
-        await window.shiguangBridgePromise.saveImportedCourses(JSON.stringify(courses, null, 2));
+        await window.shiguangBridgePromise.saveImportedCourses(JSON.stringify(courses, null, 2), attemptId);
         console.log("JS: 课程保存成功。");
         return true;
     } catch (error) {
-        window.shiguangBridge.showToast(`课程保存失败: ${error.message}`);
-        console.error('JS: saveCourses Error:', error);
+        window.shiguangBridge.showToast('课程保存失败，请重试。');
+        console.error('JS: saveCourses Error');
         return false;
     }
 }
@@ -580,17 +580,17 @@ async function saveCourses(courses) {
  * @param {Array} timeSlots - 时间段列表
  * @returns {Promise<boolean>} - 是否导入成功
  */
-async function importPresetTimeSlots(timeSlots) {
+async function importPresetTimeSlots(timeSlots, attemptId) {
     console.log(`JS: 正在导入 ${timeSlots.length} 个预设时间段...`);
     window.shiguangBridge.showToast(`正在导入作息时间...`);
     
     try {
-        await window.shiguangBridgePromise.savePresetTimeSlots(JSON.stringify(timeSlots));
+        await window.shiguangBridgePromise.savePresetTimeSlots(JSON.stringify(timeSlots), attemptId);
         console.log("JS: 预设时间段导入成功。");
         return true;
     } catch (error) {
-        window.shiguangBridge.showToast("导入时间段失败: " + error.message);
-        console.error('JS: importPresetTimeSlots Error:', error);
+        window.shiguangBridge.showToast("导入时间段失败。");
+        console.error('JS: importPresetTimeSlots Error');
         return false;
     }
 }
@@ -600,7 +600,7 @@ async function importPresetTimeSlots(timeSlots) {
  * @param {string|null} semesterStartDate - 开学日期
  * @returns {Promise<boolean>} - 是否保存成功
  */
-async function saveCourseConfig(semesterStartDate) {
+async function saveCourseConfig(semesterStartDate, attemptId) {
     if (!semesterStartDate) {
         console.log("JS: 开学日期为空，跳过课表配置保存。");
         return true;
@@ -613,12 +613,12 @@ async function saveCourseConfig(semesterStartDate) {
     };
     
     try {
-        await window.shiguangBridgePromise.saveCourseConfig(JSON.stringify(config));
+        await window.shiguangBridgePromise.saveCourseConfig(JSON.stringify(config), attemptId);
         console.log("JS: 课表配置保存成功。");
         return true;
     } catch (error) {
-        window.shiguangBridge.showToast("保存课表配置失败: " + error.message);
-        console.error('JS: saveCourseConfig Error:', error);
+        window.shiguangBridge.showToast("保存课表配置失败。");
+        console.error('JS: saveCourseConfig Error');
         return false;
     }
 }
@@ -648,6 +648,7 @@ async function promptUserToStart() {
  * 主导入流程。
  */
 async function runImportFlow() {
+    const attemptId = window.__huikeAdapterContext?.attemptId;
     console.log("JS: 开始执行超星教务系统课表导入流程...");
     
     // 1. 检查是否在登录页面
@@ -698,28 +699,28 @@ async function runImportFlow() {
     }
 
     // 8. 保存课程数据
-    const saveResult = await saveCourses(courses);
+    const saveResult = await saveCourses(courses, attemptId);
     if (!saveResult) {
         return;
     }
 
     // 9. 导入预设时间段
     if (Array.isArray(timeSlots) && timeSlots.length > 0) {
-        await importPresetTimeSlots(timeSlots);
+        await importPresetTimeSlots(timeSlots, attemptId);
     } else {
         console.log("JS: 未生成有效时间段，跳过预设时间段导入。");
     }
 
     // 10. 保存课表配置（开学日期）
     if (semesterStartDate) {
-        await saveCourseConfig(semesterStartDate);
+        await saveCourseConfig(semesterStartDate, attemptId);
     } else {
         console.log("JS: 未获取到开学日期，跳过课表配置保存。");
     }
 
     // 11. 完成
     window.shiguangBridge.showToast(`导入成功！共导入 ${courses.length} 门课程。`);
-    window.shiguangBridge.notifyTaskCompletion();
+    window.shiguangBridge.notifyTaskCompletion(attemptId);
     console.log("JS: 超星教务系统课表导入流程完成。");
 }
 
